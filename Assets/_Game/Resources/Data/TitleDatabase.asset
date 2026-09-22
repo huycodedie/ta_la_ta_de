@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cd0e98554677e248be7bd2733728b96, type: 3}
+  m_Name: TitleDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleDatabaseSO
+  titles:
+  - {fileID: 11400000, guid: 8533ef98425c1b848880dd9693910144, type: 2}
+  - {fileID: 11400000, guid: 40a38b5063048424ca2c47034c755517, type: 2}
+  - {fileID: 11400000, guid: 786a2d0b68262fe498088b624dd25a56, type: 2}
+  - {fileID: 11400000, guid: 5967684f718561248a045c64948e66ab, type: 2}

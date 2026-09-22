@@ -1,0 +1,1746 @@
+<USER_REQUEST>
+============================================================
+PROTOTYPE 07.7 — CLEANSE / DISPEL / STATUS REMOVAL SYSTEM
+MASTER IMPLEMENTATION PROMPT
+============================================================
+
+PROJECT
+-------
+Project: TLTD
+Path: E:/code/TLTD
+Engine: Unity 6.x
+Language: C#
+
+IDE:
+Google Antigravity IDE
+
+============================================================
+ROLE
+============================================================
+
+You are acting as a Senior Unity Gameplay Systems Architect,
+Senior C# Engineer, QA Engineer, and Technical Game Designer.
+
+You are extending an existing production-style modular combat
+prototype.
+
+DO NOT treat this as a greenfield project.
+
+The existing architecture from P01 → P07.6 is authoritative.
+
+Your job is to inspect the existing implementation first,
+understand it, then extend it without breaking locked systems.
+
+============================================================
+ABSOLUTE RULE #1 — INSPECT BEFORE MODIFYING
+============================================================
+
+DO NOT immediately write code.
+
+FIRST inspect the repository and existing implementation.
+
+You MUST locate and inspect the actual existing implementations
+of at minimum:
+
+- SkillDefinitionSO
+- SkillEffectDefinitionSO
+- EffectResolver
+- SkillExecutor
+- SkillExecutionValidator
+- SkillTargetResolver
+- EntityStatusController
+- RuntimeStatusInstance
+- RuntimeBuffInstance
+- RuntimeDebuffInstance
+- RuntimeCrowdControlInstance
+- DamageOverTimeEffectDefinitionSO
+- BuffEffectDefinitionSO
+- DebuffEffectDefinitionSO
+- CrowdControlEffectDefinitionSO
+- AntiCCImmunityEffectDefinitionSO
+- StatAggregator
+- StatType
+- HealthComponent
+- DamageCalculator
+- RageComponent
+- CooldownManager
+- EventBus
+- Entity
+- Hero
+- Monster
+- AttackComponent
+- MovementComponent
+- existing status/effect tests
+- existing Play Mode test runner
+- existing regression test runner
+
+Also inspect:
+
+- P07.5 implementation
+- P07.6 implementation
+- P07.5 tests
+- P07.6 tests
+- P06 regression tests
+- Master Regression system
+- existing walkthrough/documentation files
+
+DO NOT assume class names or APIs.
+
+If an existing implementation differs from the expected names above,
+adapt to the actual architecture.
+
+============================================================
+FIRST OUTPUT — PRE-IMPLEMENTATION AUDIT
+============================================================
+
+Before changing any production code, output:
+
+P07.7 PRE-IMPLEMENTATION AUDIT
+
+Include:
+
+1. Existing status architecture
+2. Existing Buff architecture
+3. Existing Debuff architecture
+4. Existing DoT architecture
+5. Existing Crowd Control architecture
+6. Existing EntityStatusController responsibilities
+7. Existing stacking rules
+8. Existing SkillEffect pipeline
+9. Existing EventBus integration
+10. Existing StatAggregator integration
+11. Existing test infrastructure
+12. Existing Play Mode infrastructure
+13. Existing P07.6 locked behavior
+14. Files that must be modified
+15. Files that should NOT be modified
+16. Proposed P07.7 architecture
+17. Risks / compatibility concerns
+18. Regression strategy
+
+DO NOT implement until this audit is complete.
+
+============================================================
+P07.7 OBJECTIVE
+============================================================
+
+Implement a modular, data-driven:
+
+CLEANSE / DISPEL / STATUS REMOVAL SYSTEM
+
+The system must allow skills/effects to remove existing runtime
+statuses without creating a second status-management architecture.
+
+P07.7 MUST directly extend the existing P07.5/P07.6 status system.
+
+============================================================
+LOCKED ARCHITECTURAL PRINCIPLE
+============================================================
+
+EntityStatusController remains the SINGLE runtime authority for:
+
+- Buffs
+- Debuffs
+- DoTs
+- Crowd Control
+- Anti-CC Immunity
+- Runtime Status lifetime
+- Runtime Status removal
+
+DO NOT create:
+
+- CleanseManager
+- DispelManager
+- StatusRemovalManager
+- BuffRemovalManager
+- DebuffRemovalManager
+- CrowdControlRemovalManager
+
+Do NOT create duplicate status containers.
+
+Do NOT create duplicate effect resolvers.
+
+Do NOT create duplicate damage calculators.
+
+Do NOT create duplicate stat aggregators.
+
+============================================================
+P07.7 CORE FEATURES
+============================================================
+
+Implement:
+
+A. Generic Status Removal
+B. Cleanse
+C. Dispel
+D. Specific Status Removal
+E. Category-based Removal
+F. Stack-based Removal
+G. Selection Rules
+H. Priority Rules
+I. Multi-effect skill support
+J. EventBus integration
+K. Deterministic automated testing
+L. Unity Play Mode verification
+M. Full regression
+
+============================================================
+STATUS CATEGORIES
+============================================================
+
+The system must be able to distinguish at minimum:
+
+POSITIVE:
+
+- Buff
+
+NEGATIVE:
+
+- Debuff
+- DoT
+- Crowd Control
+
+SPECIAL:
+
+- Anti-CC Immunity
+
+IMPORTANT:
+
+Anti-CC Immunity MUST NOT be removed by ordinary Cleanse
+unless an explicit future mechanic says so.
+
+Do NOT silently introduce a rule that Cleanse removes Anti-CC.
+
+============================================================
+CLEANSE
+============================================================
+
+Cleanse removes negative statuses from the target.
+
+Supported targets:
+
+- Self
+- Ally
+- Other valid target according to existing target rules
+
+Cleanse must support:
+
+1. Remove Debuff
+2. Remove DoT
+3. Remove Crowd Control
+4. Remove all negative statuses
+5. Remove specific status
+6. Remove specific status type
+7. Remove N statuses
+8. Remove N stacks
+9. Remove entire status instance
+
+Example:
+
+Skill:
+
+Thanh Tâm Quyết
+
+Effect:
+
+Cleanse Debuff
+MaxRemoveCount = 2
+
+If target has:
+
+- ATK Down
+- DEF Down
+- Move Speed Down
+- Poison
+
+the Cleanse must remove only statuses matching its configured
+selection rules.
+
+============================================================
+DISPEL
+============================================================
+
+Dispel removes positive Buffs.
+
+Supported:
+
+1. Remove one Buff
+2. Remove N Buffs
+3. Remove specific Buff
+4. Remove Buff by type
+5. Remove all Buffs
+6. Remove N stacks from a Buff where configured
+
+Example:
+
+Enemy has:
+
+- ATK +50%
+- DEF +30%
+- Attack Speed +20%
+
+Dispel:
+
+MaxRemoveCount = 2
+
+must remove exactly two matching Buffs.
+
+============================================================
+DO NOT CONFUSE CLEANSE AND DISPEL
+============================================================
+
+Cleanse:
+
+Negative statuses.
+
+Dispel:
+
+Positive Buffs.
+
+Do NOT make them aliases of the same gameplay rule.
+
+They may share internal removal infrastructure,
+but their gameplay filtering must remain distinct.
+
+============================================================
+SPECIFIC STATUS REMOVAL
+============================================================
+
+The removal system must support selecting a specific status.
+
+Examples:
+
+Remove:
+
+- Poison
+- Burn
+- ATK Down
+- Stun
+- Root
+- Freeze
+- DEF Buff
+- Attack Speed Buff
+
+The system must not depend on GameObject names.
+
+Use data-driven identifiers/types already compatible with
+the existing architecture.
+
+============================================================
+STATUS CATEGORY FILTERING
+============================================================
+
+Implement a data-driven removal filter.
+
+The exact enum/API should follow the existing architecture,
+but the conceptual capabilities are:
+
+- Buff
+- Debuff
+- DoT
+- CrowdControl
+- NegativeStatus
+- PositiveStatus
+- SpecificStatus
+- SpecificStatusType
+
+Do not duplicate existing enums if an equivalent already exists.
+
+============================================================
+SELECTION MODE
+============================================================
+
+The removal system must support deterministic selection modes.
+
+At minimum:
+
+1. Oldest
+2. Newest
+3. Random
+4. HighestPriority
+5. LowestPriority
+6. All
+
+IMPORTANT:
+
+Random selection MUST remain deterministic in automated tests.
+
+Do not weaken production randomness merely to make tests pass.
+
+Use deterministic RNG injection / test-controlled RNG if the
+existing architecture supports it.
+
+============================================================
+WHAT DOES "OLDEST" MEAN?
+============================================================
+
+Use runtime application/start time.
+
+Example:
+
+Buff A:
+Applied at t=1
+
+Buff B:
+Applied at t=5
+
+Buff C:
+Applied at t=10
+
+Oldest = A.
+
+Newest = C.
+
+Do not infer age from remaining duration.
+
+============================================================
+PRIORITY
+============================================================
+
+Removal priority must be data-driven.
+
+Do not hard-code:
+
+"Poison always has priority."
+
+Instead statuses/effects should be able to expose a removal priority
+through their existing definition/configuration system.
+
+If the existing architecture already has a priority concept,
+reuse it.
+
+If it does not, add a minimal data-driven property.
+
+============================================================
+STACK REMOVAL
+============================================================
+
+The existing P07.5/P07.6 stacking architecture is authoritative.
+
+Do NOT replace StackPolicy.
+
+P07.7 must support:
+
+A. Remove entire status
+
+B. Remove N stacks
+
+Example:
+
+Poison:
+Stacks = 5
+
+Cleanse:
+RemoveStacks = 2
+
+Result:
+
+Poison:
+Stacks = 3
+
+If RemoveStacks >= current stack count:
+
+The runtime status must be removed safely.
+
+Do not leave zero-stack zombie statuses.
+
+============================================================
+STACK POLICY COMPATIBILITY
+============================================================
+
+P07.7 must remain compatible with:
+
+- Stack
+- RefreshDuration
+- Replace
+- MaxStacks
+
+Do not change their P07.5 semantics.
+
+For non-stackable statuses:
+
+Removing "1 stack" should safely remove the status instance
+according to the existing runtime semantics.
+
+============================================================
+CROWD CONTROL CLEANSE
+============================================================
+
+Cleanse must support removal of:
+
+- Stun
+- Root
+- Freeze
+
+When a CC status is removed:
+
+the target's action permissions must immediately recalculate.
+
+Examples:
+
+Stun removed:
+
+CanMove = true
+CanBasicAttack = true
+CanUseSkill = true
+CanUseUltimate = true
+CanDash = true
+
+Root removed:
+
+Movement restrictions disappear.
+
+Freeze removed:
+
+Frozen state disappears.
+
+Do NOT manually set random booleans from the Cleanse code.
+
+The existing EntityStatusController remains authoritative.
+
+============================================================
+INTERRUPTION RULE
+============================================================
+
+P07.6 rules remain authoritative.
+
+Stun:
+
+- interrupts current action
+- blocks movement
+- blocks basic attack
+- blocks skills
+
+Freeze:
+
+- interrupts current action
+- blocks movement
+- blocks basic attack
+- blocks skills
+
+Root:
+
+- does NOT interrupt existing action
+- blocks movement
+- blocks dash/teleport
+- allows valid attacks/skills
+
+P07.7 MUST NOT change these rules.
+
+When a CC is removed, the existing interruption/action state
+must recover correctly according to the existing architecture.
+
+============================================================
+CLEANSE + ACTIVE ANTI-CC
+============================================================
+
+P07.6 Anti-CC Immunity remains unchanged.
+
+Cleanse does NOT:
+
+- create immunity
+- remove immunity
+- alter immunity duration
+
+unless explicitly configured by a future effect type.
+
+============================================================
+RESISTANCE
+============================================================
+
+P07.6 CC Resistance remains unchanged.
+
+Cleanse/Dispel do not modify CC Resistance unless an explicit
+future effect is created.
+
+Do not change:
+
+ActualDuration =
+BaseDuration × (1 - Resistance)
+
+Do not change the 100% cap.
+
+============================================================
+FREEZE SHATTER
+============================================================
+
+P07.6 Freeze Shatter rules remain unchanged.
+
+P07.7 may remove Freeze.
+
+It must NOT accidentally trigger Freeze Shatter damage merely
+because the Freeze status was cleansed.
+
+Freeze Shatter remains an attack/skill interaction.
+
+============================================================
+DATA-DRIVEN EFFECT DEFINITIONS
+============================================================
+
+Implement appropriate ScriptableObject definitions.
+
+Preferred conceptual structure:
+
+CleanseEffectDefinitionSO
+DispelEffectDefinitionSO
+
+But FIRST inspect the existing effect-definition architecture.
+
+If a better existing abstraction exists, extend it.
+
+Do NOT create redundant abstractions.
+
+============================================================
+CLEANSE CONFIGURATION
+============================================================
+
+A Cleanse effect should conceptually be able to configure:
+
+Target
+RemovalCategory
+SpecificStatus
+SpecificStatusType
+MaxRemoveCount
+RemoveStacks
+SelectionMode
+Priority rules
+
+Only expose fields that are actually required.
+
+Avoid speculative overengineering.
+
+============================================================
+DISPEL CONFIGURATION
+============================================================
+
+A Dispel effect should conceptually be able to configure:
+
+Target
+RemovalCategory = Buff
+SpecificBuff
+SpecificBuffType
+MaxRemoveCount
+RemoveStacks
+SelectionMode
+Priority rules
+
+============================================================
+NO HIDDEN GAMEPLAY VALUES
+============================================================
+
+Do not invent gameplay values such as:
+
+- cooldown
+- rage cost
+- cleanse count
+- dispel count
+- priority
+- duration
+
+unless required for a test fixture.
+
+Gameplay values must be configuration/data-driven.
+
+============================================================
+MULTI-EFFECT SKILLS
+============================================================
+
+P07.7 must work with existing multi-effect SkillDefinitionSO.
+
+Examples:
+
+Skill A:
+
+Damage
++
+Cleanse Self
+
+Skill B:
+
+Damage
++
+Dispel Enemy
+
+Skill C:
+
+Heal
++
+Cleanse Self
+
+Skill D:
+
+Damage
++
+Dispel
++
+Apply Debuff
+
+All effects must execute through the existing EffectResolver /
+SkillExecutor architecture.
+
+============================================================
+RAGE RULE
+============================================================
+
+A Skill consumes Rage exactly ONCE.
+
+Adding Cleanse or Dispel must NOT cause additional Rage consumption.
+
+Example:
+
+Skill:
+
+Damage + Cleanse
+
+Rage cost:
+
+configured skill cost
+
+Rage is consumed once.
+
+NOT:
+
+Damage consumes Rage
++
+Cleanse consumes Rage
+
+============================================================
+COOLDOWN RULE
+============================================================
+
+A Skill enters cooldown exactly ONCE.
+
+Cleanse/Dispel must not create separate cooldown transactions.
+
+============================================================
+FAILED REMOVAL
+============================================================
+
+If Cleanse/Dispel finds no matching status:
+
+The effect should resolve safely.
+
+No exception.
+
+No null reference.
+
+No fake status.
+
+No infinite loop.
+
+The Skill's normal Rage/Cooldown transaction remains governed by
+existing SkillExecutor rules.
+
+Do NOT silently invent a new "refund Rage" rule.
+
+============================================================
+DEAD TARGET SAFETY
+============================================================
+
+Cleanse/Dispel against:
+
+- dead target
+- destroyed target
+- missing target
+
+must be safe.
+
+Follow existing target/effect semantics.
+
+Do not create stale references.
+
+Do not keep runtime status references alive after entity destruction.
+
+============================================================
+EVENTBUS
+============================================================
+
+Integrate status removal with the existing EventBus.
+
+Use existing event conventions if available.
+
+If new events are necessary, add data-driven/status-removal events
+such as conceptually:
+
+StatusRemoved
+BuffDispelled
+DebuffCleansed
+CrowdControlCleansed
+StatusStacksRemoved
+
+Do not create duplicate event systems.
+
+Events should contain enough information for:
+
+- source
+- target
+- removed status
+- category
+- stack count
+- reason/effect if already supported
+
+============================================================
+STAT RECALCULATION
+============================================================
+
+Removing a Buff/Debuff must immediately result in correct final stats.
+
+Example:
+
+ATK base = 100
+
+Debuff:
+ATK -30%
+
+During status:
+
+ATK = 70
+
+After removal:
+
+ATK = 100
+
+No delayed stale modifier.
+
+Do NOT manually edit final stats from Cleanse.
+
+Remove the runtime modifier/status and let the existing
+StatAggregator recalculate.
+
+============================================================
+RAGE / HEALING / DAMAGE MODIFIERS
+============================================================
+
+P07.6 added modifiers for:
+
+- RageGain
+- HealingReceived
+- DamageDealt
+- AttackInterval
+
+P07.7 removal must immediately restore their correct values.
+
+Example:
+
+HealingReceived debuff removed:
+
+Future healing uses normal multiplier.
+
+Do NOT permanently mutate base stats.
+
+============================================================
+ATTACK SPEED
+============================================================
+
+If an Attack Speed debuff is removed:
+
+AttackComponent must use the recalculated attack interval.
+
+Do not directly edit AttackComponent's base interval.
+
+============================================================
+MOVEMENT
+============================================================
+
+If Move Speed debuff is removed:
+
+Movement must use the recalculated movement stat.
+
+Do not directly mutate the base stat.
+
+============================================================
+ACTION PERMISSIONS
+============================================================
+
+If a CC is removed:
+
+Action queries must immediately reflect the new status state.
+
+Existing centralized methods remain authoritative:
+
+CanMove
+CanBasicAttack
+CanUseSkill
+CanUseUltimate
+CanDash
+
+Do not duplicate permission logic.
+
+============================================================
+STATUS REMOVAL TRANSACTION
+============================================================
+
+Status removal must be atomic from the gameplay perspective.
+
+For a single removal operation:
+
+1. Identify eligible statuses.
+2. Apply selection rules.
+3. Remove or reduce stacks.
+4. Update EntityStatusController state.
+5. Recalculate dependent systems.
+6. Fire appropriate events.
+7. Leave no stale runtime status.
+
+Do not expose half-removed status state to gameplay systems.
+
+============================================================
+NO PER-STATUS UPDATE
+============================================================
+
+Preserve P07.5 architecture.
+
+DO NOT create:
+
+- Update() per status
+- Coroutine per status
+- GameObject per status
+- MonoBehaviour per status
+
+EntityStatusController remains centralized.
+
+============================================================
+TIME SYSTEM
+============================================================
+
+Preserve the existing deterministic time architecture.
+
+Use:
+
+ITimeProvider
+TestTimeProvider
+
+where appropriate.
+
+Do not use UnityEngine.Time directly in logic that needs
+deterministic automated testing.
+
+============================================================
+AUTOMATED TEST REQUIREMENT
+============================================================
+
+Create comprehensive automated tests.
+
+TARGET:
+
+At least 50 P07.7 automated tests.
+
+More is acceptable.
+
+DO NOT fabricate test counts.
+
+Every reported PASS must have actually executed.
+
+============================================================
+MINIMUM AUTOMATED TEST MATRIX
+============================================================
+
+Tests MUST cover at least:
+
+-------------------------
+GENERAL REMOVAL
+-------------------------
+
+01. Remove existing status
+02. Remove nonexistent status
+03. Remove destroyed target safely
+04. Remove dead target safely
+05. Remove specific status
+06. Remove by category
+
+-------------------------
+CLEANSE
+-------------------------
+
+07. Cleanse Debuff
+08. Cleanse DoT
+09. Cleanse CC
+10. Cleanse negative status
+11. Cleanse specific debuff
+12. Cleanse specific DoT
+13. Cleanse specific CC
+14. Cleanse all negative statuses
+15. Cleanse limited count
+16. Cleanse with no matching statuses
+
+-------------------------
+DISPEL
+-------------------------
+
+17. Dispel Buff
+18. Dispel specific Buff
+19. Dispel limited number
+20. Dispel all Buffs
+21. Dispel with no matching Buff
+22. Dispel does not remove Debuff
+23. Dispel does not remove DoT
+24. Dispel does not remove CC
+
+-------------------------
+SELECTION
+-------------------------
+
+25. Oldest
+26. Newest
+27. Random deterministic
+28. HighestPriority
+29. LowestPriority
+30. All
+
+-------------------------
+STACKS
+-------------------------
+
+31. Remove one stack
+32. Remove multiple stacks
+33. Remove all stacks
+34. Removing more stacks than exist
+35. Stack reaches zero
+36. Non-stackable status removal
+37. Stack policy Stack compatibility
+38. RefreshDuration compatibility
+39. Replace compatibility
+40. MaxStacks compatibility
+
+-------------------------
+CC
+-------------------------
+
+41. Remove Stun
+42. Remove Root
+43. Remove Freeze
+44. Stun action permissions recover
+45. Root movement recovers
+46. Freeze action permissions recover
+47. Cleanse CC does not cause Shatter
+48. Existing interruption semantics preserved
+
+-------------------------
+STATS
+-------------------------
+
+49. Remove ATK Debuff restores ATK
+50. Remove DEF Debuff restores DEF
+51. Remove Attack Speed Debuff restores interval
+52. Remove Move Speed Debuff restores movement
+53. Remove RageGain Debuff restores Rage gain
+54. Remove HealingReceived Debuff restores healing
+55. Remove DamageDealt Debuff restores damage
+
+If needed, exceed 55 tests.
+
+============================================================
+MULTI-EFFECT TESTS
+============================================================
+
+Also test:
+
+Damage + Cleanse
+Damage + Dispel
+Heal + Cleanse
+Damage + Dispel + ApplyDebuff
+
+Verify:
+
+- Rage consumed once
+- Cooldown triggered once
+- all effects execute
+- removal is correct
+- no duplicated side effects
+
+============================================================
+REGRESSION TESTS
+============================================================
+
+P07.7 MUST NOT break:
+
+P01
+P02
+P03
+P04
+P05
+P06
+P07.1
+P07.2
+P07.3
+P07.4
+P07.5
+P07.6
+
+At minimum explicitly run:
+
+P06 Play Mode:
+14/14
+
+P07.5 Automated:
+46/46
+
+P07.5 Play Mode:
+30/30
+
+P07.6 Automated:
+55/55
+
+P07.6 Play Mode:
+35/35
+
+And the complete Master Regression suite.
+
+IMPORTANT:
+
+These are EXPECTED existing baselines.
+
+If actual counts differ because the repository has evolved,
+report the real executed numbers.
+
+NEVER fabricate the expected count.
+
+============================================================
+UNITY PLAY MODE ACCEPTANCE
+============================================================
+
+Create at least 35 actual Play Mode acceptance tests.
+
+These must run inside Unity Play Mode.
+
+They must exercise actual runtime components.
+
+Do not count Editor-only unit tests as Play Mode tests.
+
+============================================================
+PLAY MODE COVERAGE
+============================================================
+
+At minimum cover:
+
+T01 Cleanse Debuff
+T02 Cleanse DoT
+T03 Cleanse CC
+T04 Cleanse all negative
+T05 Cleanse specific status
+
+T06 Dispel Buff
+T07 Dispel specific Buff
+T08 Dispel multiple Buffs
+T09 Dispel all Buffs
+T10 Dispel no-match safety
+
+T11 Oldest selection
+T12 Newest selection
+T13 Deterministic Random selection
+T14 Priority selection
+
+T15 Remove one stack
+T16 Remove multiple stacks
+T17 Remove all stacks
+T18 Zero-stack cleanup
+
+T19 Stun removal
+T20 Root removal
+T21 Freeze removal
+T22 Stun permission recovery
+T23 Root movement recovery
+T24 Freeze permission recovery
+
+T25 ATK stat recovery
+T26 DEF stat recovery
+T27 Attack Speed recovery
+T28 Move Speed recovery
+T29 Rage Gain recovery
+T30 Healing Received recovery
+T31 Damage Dealt recovery
+
+T32 Multi-effect Damage + Cleanse
+T33 Multi-effect Damage + Dispel
+T34 Rage/Cooldown transaction correctness
+T35 End-to-end combat Cleanse/Dispel
+
+More tests are encouraged if necessary.
+
+============================================================
+ACTUAL VISUAL VERIFICATION
+============================================================
+
+PASS is NOT established merely because an automated Play Mode
+assertion returns true.
+
+For critical runtime behavior, visually verify in actual Unity
+Play Mode.
+
+At minimum visually verify:
+
+1. Target receives Debuff.
+2. Cleanse removes visible Debuff/status.
+3. Target receives Buff.
+4. Dispel removes Buff.
+5. Stun can be applied and then cleansed.
+6. Root can be applied and then cleansed.
+7. Freeze can be applied and then cleansed.
+8. UI/status indicators update correctly if the project already
+   exposes them.
+9. Combat continues correctly after status removal.
+10. No stale status indicator remains.
+
+If the project currently has no visual status UI, do NOT invent a
+large UI system just for P07.7.
+
+Instead verify gameplay state through existing runtime debug/visual
+hooks and document what is actually visible.
+
+============================================================
+NO FAKE VISUAL VERIFICATION
+============================================================
+
+Do NOT write:
+
+"Visual verification PASS"
+
+unless Unity Play Mode was actually launched and the behavior
+was actually observed.
+
+Do NOT infer visual PASS from unit tests.
+
+If visual verification cannot be completed, report:
+
+VISUAL VERIFICATION = NOT COMPLETED
+
+and explain why.
+
+============================================================
+EDITOR / BATCHMODE
+============================================================
+
+Update the existing test runner rather than creating a parallel
+test framework.
+
+Preferred conceptual entry point:
+
+Prototype01PlayTestRunner.RunAllPrototype07_7Tests
+
+Use the actual project namespace/API.
+
+The runner must:
+
+- execute all P07.7 tests
+- report each test
+- report totals
+- return failure status when any test fails
+
+============================================================
+FAILURE POLICY
+============================================================
+
+If any test fails:
+
+DO NOT claim PASS.
+
+Investigate.
+
+Fix only the root cause.
+
+Re-run:
+
+1. Failed test
+2. Relevant P07.7 suite
+3. Full P07.7 suite
+4. Relevant regression
+5. Full Master Regression
+
+============================================================
+DO NOT WEAKEN TESTS
+============================================================
+
+Never modify production logic merely to satisfy a test.
+
+Never:
+
+- remove assertions
+- loosen assertions
+- reduce coverage
+- disable randomness
+- bypass runtime systems
+- mock away the feature under test
+- mark failed tests as skipped
+- hard-code expected results into production logic
+
+============================================================
+P07.6 LOCKED BEHAVIOR
+============================================================
+
+The following P07.6 behavior is LOCKED and must remain unchanged:
+
+Debuffs:
+
+- ATK
+- DEF
+- Attack Speed
+- Move Speed
+- Crit Rate
+- Dodge Rate
+- Rage Gain
+- Healing Received
+- Damage Dealt
+
+Crowd Control:
+
+Stun:
+- no movement
+- no basic attack
+- no skill
+- no ultimate
+- no dash
+- interrupts current action
+
+Root:
+- no movement
+- no dash/teleport
+- basic attacks allowed
+- skills allowed if movement is not required
+- does not interrupt current action
+
+Freeze:
+- gameplay restriction equivalent to Stun
+- visual frozen identity
+- shatter hook remains data-driven
+
+Resistance:
+- reduces CC duration
+- max 100%
+- no RNG-based resistance
+
+Anti-CC:
+- pre-activated
+- duration-based immunity
+- CC application fails while immune
+
+Freeze Shatter:
+- only when CanShatterFreeze=true
+
+Power Tier:
+- A/B/C
+- data-driven
+- independent from Skill Level
+
+DO NOT alter these rules.
+
+============================================================
+P07.5 LOCKED BEHAVIOR
+============================================================
+
+Preserve:
+
+- centralized status tick
+- RuntimeStatusInstance
+- StartTime
+- Duration
+- ExpirationTime
+- NextTickTime
+- StackCount
+- MaxStacks
+- StackPolicy
+- DamagePerTick
+- frame-stall catch-up
+- dead target safety
+- destroyed target safety
+- no per-status Update/coroutine/GameObject
+
+============================================================
+P06 LOCKED BEHAVIOR
+============================================================
+
+Preserve:
+
+- Mind Method ownership
+- active Mind Method
+- independent Mind Method levels
+- five skill slots
+- selected skill persistence
+- passive through StatAggregator
+- Rage modification through StatAggregator/configuration
+- runtime state separated from ScriptableObjects
+
+============================================================
+DATA / RUNTIME SEPARATION
+============================================================
+
+ScriptableObjects define:
+
+- status/effect identity
+- configuration
+- values
+- behavior parameters
+
+Runtime classes define:
+
+- active status
+- remaining duration
+- stack count
+- application time
+- runtime state
+
+Never mutate ScriptableObject runtime state.
+
+============================================================
+NULL / LIFETIME SAFETY
+============================================================
+
+Handle:
+
+- destroyed entity
+- dead entity
+- missing target
+- missing status
+- repeated cleanse
+- repeated dispel
+- zero stacks
+- status removed during iteration
+- entity destroyed during status processing
+
+Avoid collection modification exceptions.
+
+Use safe iteration/removal patterns.
+
+============================================================
+PERFORMANCE
+============================================================
+
+Do not introduce:
+
+- per-status Update
+- per-status Coroutine
+- per-status GameObject
+- unnecessary allocations every frame
+- duplicate status scans every frame
+
+Status removal should happen on demand.
+
+============================================================
+DOCUMENTATION
+============================================================
+
+Update/create documentation consistent with existing project style.
+
+At minimum document:
+
+P07.7 architecture
+Cleanse rules
+Dispel rules
+Status categories
+Selection modes
+Priority rules
+Stack removal
+CC cleansing
+Multi-effect behavior
+Testing
+Regression
+Known limitations
+
+Use existing documentation conventions.
+
+============================================================
+IMPLEMENTATION PHASES
+============================================================
+
+PHASE 1
+--------
+Repository inspection.
+
+Produce:
+
+P07.7 PRE-IMPLEMENTATION AUDIT
+
+STOP if architecture is unclear.
+
+PHASE 2
+--------
+Design minimal extension.
+
+Define:
+
+- removal request
+- removal filter
+- selection logic
+- Cleanse effect
+- Dispel effect
+
+Reuse existing abstractions whenever possible.
+
+PHASE 3
+--------
+Implement generic status removal inside the existing
+EntityStatusController architecture.
+
+PHASE 4
+--------
+Implement Cleanse.
+
+PHASE 5
+--------
+Implement Dispel.
+
+PHASE 6
+--------
+Integrate with EffectResolver / SkillExecutor.
+
+PHASE 7
+--------
+Integrate EventBus.
+
+PHASE 8
+--------
+Integrate stat recalculation.
+
+PHASE 9
+--------
+Create automated tests.
+
+Minimum target:
+
+>=50 actual automated tests.
+
+PHASE 10
+---------
+Run automated P07.7 tests.
+
+Fix all failures.
+
+PHASE 11
+---------
+Run Unity Play Mode tests.
+
+Minimum:
+
+>=35 actual Play Mode tests.
+
+PHASE 12
+---------
+Perform actual runtime/visual verification.
+
+PHASE 13
+---------
+Run P07.5 regression.
+
+PHASE 14
+---------
+Run P07.6 regression.
+
+PHASE 15
+---------
+Run P06 regression.
+
+PHASE 16
+---------
+Run complete Master Regression.
+
+PHASE 17
+---------
+Update documentation.
+
+============================================================
+PASS CRITERIA
+============================================================
+
+P07.7 can be declared PASS only if:
+
+[ ] Production code compiles
+[ ] No compile errors
+[ ] No new warnings caused by P07.7
+[ ] Cleanse works
+[ ] Dispel works
+[ ] Specific status removal works
+[ ] Category removal works
+[ ] Selection modes work
+[ ] Priority works
+[ ] Stack removal works
+[ ] CC removal works
+[ ] Stats immediately recalculate
+[ ] Multi-effect skills work
+[ ] Rage consumed once
+[ ] Cooldown triggered once
+[ ] Dead target safe
+[ ] Destroyed target safe
+[ ] No stale status instances
+[ ] EventBus integration works
+[ ] >=50 automated tests actually executed
+[ ] All automated tests PASS
+[ ] >=35 Play Mode tests actually executed
+[ ] All Play Mode tests PASS
+[ ] Actual runtime verification completed
+[ ] P06 regression PASS
+[ ] P07.5 regression PASS
+[ ] P07.6 regression PASS
+[ ] Master Regression PASS
+[ ] Documentation updated
+
+============================================================
+LOCK CRITERIA
+============================================================
+
+Only after ALL PASS criteria are actually satisfied:
+
+Status:
+
+P07.7 — PASSED
+
+Then:
+
+P07.7 — LOCKED
+
+Do not call it LOCKED before actual verification.
+
+============================================================
+FINAL REPORT FORMAT
+============================================================
+
+At completion produce:
+
+============================================================
+P07.7 FINAL IMPLEMENTATION REPORT
+============================================================
+
+1. Status
+2. Architecture changes
+3. Files created
+4. Files modified
+5. Files intentionally untouched
+6. Cleanse implementation
+7. Dispel implementation
+8. Selection implementation
+9. Priority implementation
+10. Stack removal implementation
+11. CC removal implementation
+12. Stat recalculation
+13. EventBus integration
+14. Multi-effect integration
+
+TEST RESULTS
+------------
+
+Automated:
+Executed: X
+Passed: X
+Failed: X
+
+Play Mode:
+Executed: X
+Passed: X
+Failed: X
+
+Visual Verification:
+YES / NO
+
+If YES:
+List exactly what was observed.
+
+If NO:
+Explain exactly why.
+
+REGRESSION
+----------
+
+P06:
+X/X
+
+P07.5:
+X/X
+
+P07.6:
+X/X
+
+Master Regression:
+X/X suites
+
+BUILD
+-----
+
+Compile:
+PASS / FAIL
+
+Warnings:
+Actual count
+
+Errors:
+Actual count
+
+============================================================
+FINAL STATUS
+============================================================
+
+P07.7:
+PASS / FAIL
+
+LOCKED:
+YES / NO
+
+============================================================
+CRITICAL REPORTING RULE
+============================================================
+
+NEVER fabricate:
+
+- test count
+- PASS result
+- Play Mode result
+- visual verification
+- regression result
+- compilation result
+
+Only report results from commands/tests that were actually
+executed.
+
+If something could not be executed, explicitly say:
+
+NOT VERIFIED
+
+============================================================
+MOST IMPORTANT DESIGN PRINCIPLE
+============================================================
+
+P07.7 is NOT a separate status system.
+
+It is an extension of:
+
+EntityStatusController
+
+The intended architecture remains:
+
+SkillDefinitionSO
+        ↓
+SkillEffectDefinitionSO
+        ↓
+EffectResolver
+        ↓
+EntityStatusController
+        ↓
+RuntimeStatusInstance
+        ↓
+Buff / Debuff / DoT / CC
+        ↓
+Status Removal
+        ↓
+StatAggregator / Combat Systems
+        ↓
+EventBus
+
+Cleanse and Dispel are EFFECTS that request status removal.
+
+They are NOT independent gameplay managers.
+
+============================================================
+END OF P07.7 MASTER PROMPT
+============================================================
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-07T20:02:28+07:00.
+
+The user's current state is as follows:
+Other open documents:
+- e:\code\TLTD\Assets\_Game\Progression\LootTierProgressionManager.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\UI\TitleBreakthroughUI.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\Data\TitleBreakthroughDatabaseSO.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\UI\DamagePopupManager.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\Combat\RuntimeBuffInstance.cs (LANGUAGE_CSHARP)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.8 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

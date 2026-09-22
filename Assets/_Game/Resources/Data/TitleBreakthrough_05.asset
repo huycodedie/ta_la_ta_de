@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 543569e4d3c14f44fb1eb3c3b893ceb8, type: 3}
+  m_Name: TitleBreakthrough_05
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughConfigSO
+  breakthroughId: title_05
+  titleName: Platinum Grandmaster
+  displayOrder: 5
+  description: Grandmaster Stage
+  currentLevelCap: 80
+  nextLevelCap: 110
+  requirements:
+  - type: 0
+    requiredValue: 80
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 3
+    requiredValue: 7
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 1
+    requiredValue: 160000
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 2
+    requiredValue: 960
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  requiredHeroLevel: 80
+  requiredGold: 160000
+  requiredMaterial: 960
+  requiredStageCleared: 0
+  requiredPreviousTitleId: 
+  baseMaxHealth: 3800
+  baseAttack: 600
+  baseDefense: 220
+  bonusCritRate: 7
+  bonusCritDamage: 25
+  bonusDodge: 0
+  customModifiers: []

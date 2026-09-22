@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23b9c436f04f1094ea50b86c957f0992, type: 3}
+  m_Name: MindMethod_Taiji
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.MindMethodDefinitionSO
+  mindMethodId: mm_taiji
+  mindMethodName: "Th\xE1i C\u1EF1c Th\u1EA7n C\xF4ng"
+  description: "T\xE2m ph\xE1p \u0110\u1EA1o gia d\u0129 nhu ch\u1EBF c\u01B0\u01A1ng, h\u1ED9 th\u1EC3 tr\u01B0\u1EDDng c\u1EEDu, s\u1EDF h\u1EEFu n\u1ED9i t\u1EA1i Quy Nh\u1EA5t H\u1ED3i Sinh khi nguy c\u1EA5p."
+  icon: {fileID: 0}
+  maxLevel: 10
+  isUnlockedByDefault: 1
+  unlockConditions: []
+  passiveData:
+    bonusMaxHealth: 200
+    bonusAttack: 20
+    bonusDefense: 30
+    bonusCritRate: 2
+    bonusCritDamage: 0
+    bonusDodge: 5
+    bonusMoveSpeed: 0
+    basicAttackRageModifier: 0
+    damageTakenRageModifier: 1
+    rageGainMultiplier: 1
+    hasReviveOnce: 1
+    reviveHealthPercent: 30
+  skills:
+  - {fileID: 11400000, guid: e467bf1f0891a0343b3fe845782a96b5, type: 2}
+  - {fileID: 11400000, guid: 4487910252b519b43acfcbc798111c7f, type: 2}
+  - {fileID: 11400000, guid: dc1df72c6d408ff4c9ae9fa12833fc01, type: 2}
+  - {fileID: 11400000, guid: e2d292937e413934a96ceec2023290fc, type: 2}
+  - {fileID: 11400000, guid: f12e07b3f939561459b99ae5a92cb81e, type: 2}
+  - {fileID: 11400000, guid: 3f8b7729d2b491847bbe54b3cb06454b, type: 2}
+  - {fileID: 11400000, guid: d815fbd29dd01714ea37c113f57b61aa, type: 2}
+  - {fileID: 11400000, guid: e30b2b3a720113844ac4abbbfa2466f9, type: 2}
+  - {fileID: 11400000, guid: f636abea039802a4ead5dfca0b18d65e, type: 2}
+  - {fileID: 11400000, guid: ecaffecfd32f94f43a18215b0460b404, type: 2}

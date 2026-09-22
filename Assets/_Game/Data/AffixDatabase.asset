@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f6a88fb7357c7844b31056fcf93c49d, type: 3}
+  m_Name: AffixDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.AffixDatabaseSO
+  affixes:
+  - {fileID: 11400000, guid: 00c82f6b6f5a9524fa1b2218bdb91ff8, type: 2}
+  - {fileID: 11400000, guid: 37e38e475a5d3664b8413c745d800b1c, type: 2}
+  - {fileID: 11400000, guid: b62b761bb19901047ac12d259503d49b, type: 2}
+  - {fileID: 11400000, guid: ebef6c828b5be47429d9b6192c8a8cdc, type: 2}
+  - {fileID: 11400000, guid: e49f0590aed4c7746a3bf9093505c5c6, type: 2}
+  - {fileID: 11400000, guid: 680d48a5fb615f34da5386846f6199a7, type: 2}
+  - {fileID: 11400000, guid: 8730fd69f0d6b624fb03b6de72e53633, type: 2}

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3be8265ea8057b747b43de4a5a02fef5, type: 3}
+  m_Name: DropLevelDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.DropLevelDatabaseSO
+  dropLevels:
+  - {fileID: 11400000, guid: 94ef71c71ba46c74cb0f7878da4d0438, type: 2}
+  - {fileID: 11400000, guid: 75e13aa68ca2f214d9feb7b2227f135e, type: 2}

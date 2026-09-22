@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 543569e4d3c14f44fb1eb3c3b893ceb8, type: 3}
+  m_Name: TitleBreakthrough_07
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughConfigSO
+  breakthroughId: title_07
+  titleName: Immortal Sovereign
+  displayOrder: 7
+  description: Immortal Stage
+  currentLevelCap: 145
+  nextLevelCap: 200
+  requirements:
+  - type: 0
+    requiredValue: 145
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  requiredHeroLevel: 145
+  requiredGold: 640000
+  requiredMaterial: 3840
+  requiredStageCleared: 0
+  requiredPreviousTitleId: 
+  baseMaxHealth: 7000
+  baseAttack: 1100
+  baseDefense: 400
+  bonusCritRate: 15
+  bonusCritDamage: 40
+  bonusDodge: 0
+  customModifiers: []

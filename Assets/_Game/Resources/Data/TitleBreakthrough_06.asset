@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 543569e4d3c14f44fb1eb3c3b893ceb8, type: 3}
+  m_Name: TitleBreakthrough_06
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughConfigSO
+  breakthroughId: title_06
+  titleName: Diamond Warlord
+  displayOrder: 6
+  description: Warlord Stage
+  currentLevelCap: 110
+  nextLevelCap: 145
+  requirements:
+  - type: 0
+    requiredValue: 110
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 3
+    requiredValue: 8
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 1
+    requiredValue: 320000
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 2
+    requiredValue: 1920
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  requiredHeroLevel: 110
+  requiredGold: 320000
+  requiredMaterial: 1920
+  requiredStageCleared: 0
+  requiredPreviousTitleId: 
+  baseMaxHealth: 5000
+  baseAttack: 800
+  baseDefense: 300
+  bonusCritRate: 10
+  bonusCritDamage: 30
+  bonusDodge: 0
+  customModifiers: []

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 543569e4d3c14f44fb1eb3c3b893ceb8, type: 3}
+  m_Name: TitleBreakthrough_04
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughConfigSO
+  breakthroughId: title_04
+  titleName: Gold Master
+  displayOrder: 4
+  description: Master Stage
+  currentLevelCap: 55
+  nextLevelCap: 80
+  requirements:
+  - type: 0
+    requiredValue: 55
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 3
+    requiredValue: 6
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 1
+    requiredValue: 80000
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 2
+    requiredValue: 480
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  requiredHeroLevel: 55
+  requiredGold: 80000
+  requiredMaterial: 480
+  requiredStageCleared: 0
+  requiredPreviousTitleId: 
+  baseMaxHealth: 2800
+  baseAttack: 450
+  baseDefense: 160
+  bonusCritRate: 5
+  bonusCritDamage: 20
+  bonusDodge: 0
+  customModifiers: []

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28f5929e2d6363a479e3ec0654d25ea2, type: 3}
+  m_Name: ExpConfig
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.ExpConfigSO
+  baseExp: 100
+  incrementPerLevel: 50
+  tierSize: 50
+  tierMultiplier: 2
+  maxPlayerLevel: 999999
+  expPerMonsterKill: 10

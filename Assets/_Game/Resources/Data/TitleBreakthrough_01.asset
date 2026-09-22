@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 543569e4d3c14f44fb1eb3c3b893ceb8, type: 3}
+  m_Name: TitleBreakthrough_01
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughConfigSO
+  breakthroughId: title_01
+  titleName: Iron Warrior
+  displayOrder: 1
+  description: Warrior Stage
+  currentLevelCap: 10
+  nextLevelCap: 20
+  requirements:
+  - type: 0
+    requiredValue: 10
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 3
+    requiredValue: 3
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 1
+    requiredValue: 10000
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  - type: 2
+    requiredValue: 60
+    targetId: 
+    targetRarityOrder: 0
+    customDescription: 
+  requiredHeroLevel: 10
+  requiredGold: 10000
+  requiredMaterial: 60
+  requiredStageCleared: 0
+  requiredPreviousTitleId: 
+  baseMaxHealth: 1200
+  baseAttack: 150
+  baseDefense: 40
+  bonusCritRate: 1
+  bonusCritDamage: 5
+  bonusDodge: 0
+  customModifiers: []

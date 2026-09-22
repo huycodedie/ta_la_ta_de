@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e6b070c6069b9e40be475d8ce529240, type: 3}
+  m_Name: HeroProgressionConfig
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.HeroProgressionConfigSO
+  startingLevel: 1
+  maxLevel: 100
+  baseMaxHealth: 1000
+  baseAttack: 100
+  baseDefense: 20
+  hpGrowthPerLevel: 50
+  atkGrowthPerLevel: 10
+  defGrowthPerLevel: 2

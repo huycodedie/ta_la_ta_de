@@ -1,0 +1,151 @@
+<USER_REQUEST>
+============================================================
+PROTOTYPE 07.7 — CLEANSE / DISPEL / STATUS REMOVAL SYSTEM
+MASTER IMPLEMENTATION PROMPT
+============================================================
+
+PROJECT
+-------
+Project: TLTD
+Path: E:/code/TLTD
+Engine: Unity 6.x
+Language: C#
+
+IDE:
+Google Antigravity IDE
+
+============================================================
+ROLE
+============================================================
+
+You are acting as a Senior Unity Gameplay Systems Architect,
+Senior C# Engineer, QA Engineer, and Technical Game Designer.
+
+You are extending an existing production-style modular combat
+prototype.
+
+DO NOT treat this as a greenfield project.
+
+The existing architecture from P01 → P07.6 is authoritative.
+
+Your job is to inspect the existing implementation first,
+understand it, then extend it without breaking locked systems.
+
+============================================================
+ABSOLUTE RULE #1 — INSPECT BEFORE MODIFYING
+============================================================
+
+DO NOT immediately write code.
+
+FIRST inspect the repository and existing implementation.
+
+You MUST locate and inspect the actual existing implementations
+of at minimum:
+
+- SkillDefinitionSO
+- SkillEffectDefinitionSO
+- EffectResolver
+- SkillExecutor
+- SkillExecutionValidator
+- SkillTargetResolver
+- EntityStatusController
+- RuntimeStatusInstance
+- RuntimeBuffInstance
+- RuntimeDebuffInstance
+- RuntimeCrowdControlInstance
+- DamageOverTimeEffectDefinitionSO
+- BuffEffectDefinitionSO
+- DebuffEffectDefinitionSO
+- CrowdControlEffectDefinitionSO
+- AntiCCImmunityEffectDefinitionSO
+- StatAggregator
+- StatType
+- HealthComponent
+- DamageCalculator
+- RageComponent
+- CooldownManager
+- EventBus
+- Entity
+- Hero
+- Monster
+- AttackComponent
+- MovementComponent
+- existing status/effect tests
+- existing Play Mode test runner
+- existing regression test runner
+
+Also inspect:
+
+- P07.5 implementation
+- P07.6 implementat
+<truncated 33828 bytes>
+========================================================
+
+NEVER fabricate:
+
+- test count
+- PASS result
+- Play Mode result
+- visual verification
+- regression result
+- compilation result
+
+Only report results from commands/tests that were actually
+executed.
+
+If something could not be executed, explicitly say:
+
+NOT VERIFIED
+
+============================================================
+MOST IMPORTANT DESIGN PRINCIPLE
+============================================================
+
+P07.7 is NOT a separate status system.
+
+It is an extension of:
+
+EntityStatusController
+
+The intended architecture remains:
+
+SkillDefinitionSO
+        ↓
+SkillEffectDefinitionSO
+        ↓
+EffectResolver
+        ↓
+EntityStatusController
+        ↓
+RuntimeStatusInstance
+        ↓
+Buff / Debuff / DoT / CC
+        ↓
+Status Removal
+        ↓
+StatAggregator / Combat Systems
+        ↓
+EventBus
+
+Cleanse and Dispel are EFFECTS that request status removal.
+
+They are NOT independent gameplay managers.
+
+============================================================
+END OF P07.7 MASTER PROMPT
+============================================================
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-07T20:02:28+07:00.
+
+The user's current state is as follows:
+Other open documents:
+- e:\code\TLTD\Assets\_Game\Progression\LootTierProgressionManager.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\UI\TitleBreakthroughUI.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\Data\TitleBreakthroughDatabaseSO.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\UI\DamagePopupManager.cs (LANGUAGE_CSHARP)
+- e:\code\TLTD\Assets\_Game\Combat\RuntimeBuffInstance.cs (LANGUAGE_CSHARP)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.8 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

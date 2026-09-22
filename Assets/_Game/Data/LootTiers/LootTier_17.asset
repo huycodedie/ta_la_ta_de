@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181520a085525e94284388af0dbcb45e, type: 3}
+  m_Name: LootTier_17
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.LootTierConfigSO
+  tierId: 17
+  displayName: "C\u1EA5p R\u01A1i 17"
+  rarityWeights:
+  - rarity: {fileID: 11400000, guid: 13a77a92d45cf4d42a5738e0ccb396e2, type: 2}
+    weightPercentage: 0
+  - rarity: {fileID: 11400000, guid: 2d5efacd4c77fd7498bb9c243c95c49c, type: 2}
+    weightPercentage: 53.01
+  - rarity: {fileID: 11400000, guid: ca8909b8674187248a87f0e0321ae02e, type: 2}
+    weightPercentage: 28.44
+  - rarity: {fileID: 11400000, guid: b45353ee2f427634db87482fbeefc5cc, type: 2}
+    weightPercentage: 10.15
+  - rarity: {fileID: 11400000, guid: 2ee5d3af360fd6e4aa0160f3635608db, type: 2}
+    weightPercentage: 5.56
+  - rarity: {fileID: 11400000, guid: 319e27b74837bfe4e8c0bac528fd6331, type: 2}
+    weightPercentage: 2.12
+  - rarity: {fileID: 11400000, guid: 201c2951f490d8b46b8f33f21c21948e, type: 2}
+    weightPercentage: 0.62
+  - rarity: {fileID: 11400000, guid: 08fb1ad9053711c42abd789deb966928, type: 2}
+    weightPercentage: 0.09
+  - rarity: {fileID: 11400000, guid: 174ecdc51f4a1264cb85f919ed9fd9ae, type: 2}
+    weightPercentage: 0.01
+  requiredProgress: 20000
+  upgradeDurationSeconds: 7200
+  upgradeCostGold: 100000
+  upgradeCostMaterial: 200
+  requiredHeroLevel: 1
+  requiredTitleIndex: 0

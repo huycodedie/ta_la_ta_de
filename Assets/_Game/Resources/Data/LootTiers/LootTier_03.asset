@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181520a085525e94284388af0dbcb45e, type: 3}
+  m_Name: LootTier_03
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.LootTierConfigSO
+  tierId: 3
+  displayName: "C\u1EA5p R\u01A1i 3"
+  rarityWeights:
+  - rarity: {fileID: 11400000, guid: 970956e9e0bd7ae4a855c8e7c66711c5, type: 2}
+    weightPercentage: 35
+  - rarity: {fileID: 11400000, guid: beb8345bb2db2124bbabb0aff55bde02, type: 2}
+    weightPercentage: 40
+  - rarity: {fileID: 11400000, guid: 831bff56a95648241a64cc321406aa4d, type: 2}
+    weightPercentage: 20
+  - rarity: {fileID: 11400000, guid: 60008d78b427c974ebc69d35fcc39161, type: 2}
+    weightPercentage: 5
+  requiredProgress: 5000
+  upgradeDurationSeconds: 1800
+  upgradeCostGold: 10000
+  upgradeCostMaterial: 20
+  requiredHeroLevel: 1
+  requiredTitleIndex: 0

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04f95499625569444a5ca9f5bba9fb99, type: 3}
+  m_Name: TitleBreakthroughDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.TitleBreakthroughDatabaseSO
+  breakthroughs:
+  - {fileID: 11400000, guid: 2e4c4663316dd02459560bdd943508b9, type: 2}
+  - {fileID: 11400000, guid: 65c86059929756c40ab01af9749b692c, type: 2}
+  - {fileID: 11400000, guid: fe849e933d854ca4cad1d23dd9898254, type: 2}
+  - {fileID: 11400000, guid: a4426f77c73114247af0eed099f03eef, type: 2}
+  - {fileID: 11400000, guid: 19f4d2d5223ee534ea941f12c92065f9, type: 2}
+  - {fileID: 11400000, guid: f5e408b9da446634da3941d463c41382, type: 2}
+  - {fileID: 11400000, guid: 08ed4df5d20d78f4c9163e62bc6f34e9, type: 2}
+  - {fileID: 11400000, guid: d875432b0594af64ca3499f5b15b1460, type: 2}

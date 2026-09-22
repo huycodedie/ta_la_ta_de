@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8245a5e44b02b04f88919749d8e841b, type: 3}
+  m_Name: EquipmentDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.EquipmentDatabaseSO
+  definitions:
+  - {fileID: 11400000, guid: afbecb52b9bce2c48aa63ca54afce98a, type: 2}
+  - {fileID: 11400000, guid: db6862c038f31734a9f51939f9b742f9, type: 2}
+  - {fileID: 11400000, guid: ebef0660b80272045a1bb4f40df697c0, type: 2}
+  - {fileID: 11400000, guid: 4a869e4e8ab94334595cb13d1cb7a28c, type: 2}
+  - {fileID: 11400000, guid: 3e9e025f6c2650e4fb6f1df03aa6aabc, type: 2}
+  - {fileID: 11400000, guid: 874a5a94505d0a041bde346c43dbfd8d, type: 2}
+  - {fileID: 11400000, guid: 27065672b9a75b74ba669756dfb1fff2, type: 2}
+  - {fileID: 11400000, guid: 18c6c6e735a2e554fba47f98719a087f, type: 2}
+  - {fileID: 11400000, guid: a21a9dd051e56f04ea9ba5ba841a4be3, type: 2}
+  - {fileID: 11400000, guid: e94edefc3f787124cbe52acf2d73f6e7, type: 2}
+  - {fileID: 11400000, guid: 1e419f66379b8f646aecec762be43347, type: 2}
+  - {fileID: 11400000, guid: 57bf3cbcef5858d4ab8794424127ece0, type: 2}

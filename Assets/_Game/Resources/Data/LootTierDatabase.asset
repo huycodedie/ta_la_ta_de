@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96d0bcfa44a68064d8cfec112467a85f, type: 3}
+  m_Name: LootTierDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Data.LootTierDatabaseSO
+  tiers:
+  - {fileID: 11400000, guid: c84030a3e060cf040b082285cb6e2b8a, type: 2}
+  - {fileID: 11400000, guid: a6a20d08aa2e87d46a125c4dc8eef263, type: 2}
+  - {fileID: 11400000, guid: 5876c376154079a42869a4d145910b26, type: 2}
+  - {fileID: 11400000, guid: dc2d4ecb9100ef4478b4b24596abc7a2, type: 2}
+  - {fileID: 11400000, guid: a23db65ab1cd48440be78ab81cbd9821, type: 2}
