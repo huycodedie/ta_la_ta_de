@@ -29,6 +29,18 @@ namespace WuxiaGame.Core
         private int _lootTransactionCounter = 0;
         private Coroutine _activeEncounterTransitionCoroutine;
         private int _encounterTransitionCounter = 0;
+        private readonly Dictionary<Entity, WuxiaGame.Combat.SkillExecutionRequest> _finishingCasters = new();
+        private int _finishingEncounterIndex = 0;
+
+        public bool CanEntityTickDuringTransition(Entity entity)
+        {
+            if (isCombatPausedByUI) return false;
+            if (entity == null || !entity.gameObject.activeInHierarchy || !entity.enabled || !entity.IsAlive || !entity.IsCasting) return false;
+            if (EncounterIndex != _finishingEncounterIndex) return false;
+            if (!_finishingCasters.TryGetValue(entity, out var recordedRequest)) return false;
+            if (entity.CastState == null || entity.CastState.ActiveRequest != recordedRequest || entity.CastState.IsFinished) return false;
+            return true;
+        }
 
         private void CancelLootLifecycle()
         {
@@ -49,6 +61,7 @@ namespace WuxiaGame.Core
                 StopCoroutine(_activeEncounterTransitionCoroutine);
                 _activeEncounterTransitionCoroutine = null;
             }
+            _finishingCasters.Clear();
         }
 
         public Hero CurrentHero => currentHero;
@@ -683,30 +696,69 @@ namespace WuxiaGame.Core
                     EventBus.RaiseBattleStateChanged(BattleState.MonsterDead);
                     StopAllCombatants();
 
-                    if (_pendingLootQueue.Count > 0)
-                    {
-                        pendingLootItem = _pendingLootQueue.Dequeue();
-                        IsBattleActive = false;
-                        CurrentBattleState = BattleState.LootPending;
-                        Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
-                        Debug.Log("[P05.7.1] LootPending Entered");
-                        EventBus.RaiseBattleStateChanged(BattleState.LootPending);
-                        EventBus.RaiseLootDecisionRequested(pendingLootItem);
-                    }
-                    else
-                    {
-                        CurrentBattleState = BattleState.EncounterTransition;
-                        EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
-                        IsBattleActive = false;
+                    // Cancel any previous transition and track living combatants currently executing an active skill/channel
+                    CancelEncounterTransition();
+                    _finishingEncounterIndex = EncounterIndex;
 
-                        if (Application.isPlaying)
+                    if (currentHero != null && currentHero.IsAlive && currentHero.IsCasting && currentHero.CastState != null && currentHero.CastState.IsActive)
+                    {
+                        _finishingCasters[currentHero] = currentHero.CastState.ActiveRequest;
+                    }
+                    for (int i = 0; i < activeMonsters.Count; i++)
+                    {
+                        var m = activeMonsters[i];
+                        if (m != null && m.IsAlive && m.IsCasting && m.CastState != null && m.CastState.IsActive)
                         {
-                            CancelEncounterTransition();
-                            _activeEncounterTransitionCoroutine = StartCoroutine(DeferEncounterAdvanceWithoutLoot(EncounterIndex, _encounterTransitionCounter));
+                            _finishingCasters[m] = m.CastState.ActiveRequest;
+                        }
+                    }
+
+                    if (Application.isPlaying)
+                    {
+                        if (_finishingCasters.Count > 0)
+                        {
+                            IsBattleActive = false;
+                            _activeEncounterTransitionCoroutine = StartCoroutine(WaitForFinishingExecutionsThenProceed(EncounterIndex, _encounterTransitionCounter));
                         }
                         else
                         {
-                            EndEncounterAndStartNext();
+                            if (_pendingLootQueue.Count > 0)
+                            {
+                                pendingLootItem = _pendingLootQueue.Dequeue();
+                                IsBattleActive = false;
+                                CurrentBattleState = BattleState.LootPending;
+                                Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
+                                Debug.Log("[P05.7.1] LootPending Entered");
+                                EventBus.RaiseBattleStateChanged(BattleState.LootPending);
+                                EventBus.RaiseLootDecisionRequested(pendingLootItem);
+                            }
+                            else
+                            {
+                                CurrentBattleState = BattleState.EncounterTransition;
+                                EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
+                                IsBattleActive = false;
+                                _activeEncounterTransitionCoroutine = StartCoroutine(DeferEncounterAdvanceWithoutLoot(EncounterIndex, _encounterTransitionCounter));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (_pendingLootQueue.Count > 0)
+                        {
+                            pendingLootItem = _pendingLootQueue.Dequeue();
+                            IsBattleActive = false;
+                            CurrentBattleState = BattleState.LootPending;
+                            Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
+                            Debug.Log("[P05.7.1] LootPending Entered");
+                            EventBus.RaiseBattleStateChanged(BattleState.LootPending);
+                            EventBus.RaiseLootDecisionRequested(pendingLootItem);
+                        }
+                        else
+                        {
+                            // In Edit Mode without loot, transition battle state without synchronously mutating encounter/targets inside death callback stack
+                            CurrentBattleState = BattleState.EncounterTransition;
+                            EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
+                            IsBattleActive = false;
                         }
                     }
                 }
@@ -895,10 +947,6 @@ namespace WuxiaGame.Core
             {
                 currentHero.DisableEntityActions();
                 currentHero.SetCurrentTarget(null);
-                if (currentHero.IsCasting && currentHero.CastState != null)
-                {
-                    currentHero.InterruptCurrentAction();
-                }
             }
             for (int i = 0; i < activeMonsters.Count; i++)
             {
@@ -907,20 +955,84 @@ namespace WuxiaGame.Core
                 {
                     m.DisableEntityActions();
                     m.SetCurrentTarget(null);
-                    if (m.IsCasting && m.CastState != null)
-                    {
-                        m.InterruptCurrentAction();
-                    }
                 }
             }
             if (currentMonster != null)
             {
                 currentMonster.DisableEntityActions();
                 currentMonster.SetCurrentTarget(null);
-                if (currentMonster.IsCasting && currentMonster.CastState != null)
+            }
+        }
+
+        private System.Collections.IEnumerator WaitForFinishingExecutionsThenProceed(int expectedEncounter, int transitionId)
+        {
+            var keysToRemove = new List<Entity>();
+
+            while (_finishingCasters.Count > 0)
+            {
+                if (transitionId != _encounterTransitionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
                 {
-                    currentMonster.InterruptCurrentAction();
+                    _finishingCasters.Clear();
+                    yield break;
                 }
+
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
+                {
+                    _finishingCasters.Clear();
+                    yield break;
+                }
+
+                keysToRemove.Clear();
+                foreach (var kvp in _finishingCasters)
+                {
+                    var c = kvp.Key;
+                    var req = kvp.Value;
+                    if (c == null || !c.gameObject.activeInHierarchy || !c.enabled || !c.IsAlive || !c.IsCasting ||
+                        c.CastState == null || c.CastState.ActiveRequest != req || c.CastState.IsFinished)
+                    {
+                        keysToRemove.Add(c);
+                    }
+                }
+
+                for (int i = 0; i < keysToRemove.Count; i++)
+                {
+                    _finishingCasters.Remove(keysToRemove[i]);
+                }
+
+                if (_finishingCasters.Count > 0)
+                {
+                    yield return null;
+                }
+            }
+
+            if (transitionId != _encounterTransitionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+            {
+                yield break;
+            }
+
+            _finishingCasters.Clear();
+
+            if (_pendingLootQueue.Count > 0)
+            {
+                pendingLootItem = _pendingLootQueue.Dequeue();
+                IsBattleActive = false;
+                CurrentBattleState = BattleState.LootPending;
+                Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
+                Debug.Log("[P05.7.1] LootPending Entered");
+                EventBus.RaiseBattleStateChanged(BattleState.LootPending);
+                EventBus.RaiseLootDecisionRequested(pendingLootItem);
+            }
+            else
+            {
+                CurrentBattleState = BattleState.EncounterTransition;
+                EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
+                IsBattleActive = false;
+                _activeEncounterTransitionCoroutine = StartCoroutine(DeferEncounterAdvanceWithoutLoot(EncounterIndex, _encounterTransitionCounter));
             }
         }
 
@@ -960,6 +1072,27 @@ namespace WuxiaGame.Core
             }
 
             yield return null;
+
+            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+            {
+                yield break;
+            }
+
+            if (pendingLootItem != expectedItem)
+            {
+                yield break;
+            }
+
+            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            {
+                yield break;
+            }
+
             _activeLootLifecycleCoroutine = null;
             EventBus.RaiseLootDecisionRequested(expectedItem);
         }
@@ -994,6 +1127,22 @@ namespace WuxiaGame.Core
             }
 
             yield return null;
+
+            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+            {
+                yield break;
+            }
+
+            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            {
+                yield break;
+            }
+
             _activeLootLifecycleCoroutine = null;
             AdvanceEncounterAfterLoot();
         }

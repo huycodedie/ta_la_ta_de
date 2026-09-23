@@ -37,64 +37,87 @@ function Safe-DeleteRegistryKey([string]$fullKeyPath, [string]$subKeyPath) {
 }
 
 function Get-RegistryScopeSnapshot([string]$subKeyPath) {
-    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKeyPath, $false)
-    if ($null -eq $key) {
+    $rootKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKeyPath, $false)
+    if ($null -eq $rootKey) {
         return @{
             Exists = $false
             SubKeyPath = $subKeyPath
             ValueCount = 0
             Values = @{}
-            SubKeys = @()
+            SubKeyCount = 0
+            SubKeys = @{}
         }
     }
 
     try {
-        $valueNames = $key.GetValueNames()
-        $valuesMap = @{}
-        foreach ($vName in $valueNames) {
-            $kind = $key.GetValueKind($vName)
-            $rawVal = $key.GetValue($vName)
-            $dataRepresentation = $null
+        function Get-NodeSnapshot([Microsoft.Win32.RegistryKey]$k) {
+            $valueNames = $k.GetValueNames()
+            $valuesMap = @{}
+            foreach ($vName in $valueNames) {
+                $kind = $k.GetValueKind($vName)
+                $rawVal = $k.GetValue($vName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+                $dataRep = $null
 
-            switch ($kind) {
-                ([Microsoft.Win32.RegistryValueKind]::Binary) {
-                    $bytes = [byte[]]$rawVal
-                    $dataRepresentation = [Convert]::ToBase64String($bytes)
+                switch ($kind) {
+                    ([Microsoft.Win32.RegistryValueKind]::Binary) {
+                        $bytes = [byte[]]$rawVal
+                        $dataRep = if ($bytes) { [BitConverter]::ToString($bytes) } else { "" }
+                    }
+                    ([Microsoft.Win32.RegistryValueKind]::MultiString) {
+                        $strArr = [string[]]$rawVal
+                        $dataRep = if ($strArr) { [string[]]$strArr } else { @() }
+                    }
+                    ([Microsoft.Win32.RegistryValueKind]::DWord) {
+                        $dataRep = [long]$rawVal
+                    }
+                    ([Microsoft.Win32.RegistryValueKind]::QWord) {
+                        $dataRep = [long]$rawVal
+                    }
+                    Default {
+                        $dataRep = if ($rawVal -ne $null) { [string]$rawVal } else { "" }
+                    }
                 }
-                ([Microsoft.Win32.RegistryValueKind]::MultiString) {
-                    $strArr = [string[]]$rawVal
-                    $dataRepresentation = $strArr
-                }
-                ([Microsoft.Win32.RegistryValueKind]::DWord) {
-                    $dataRepresentation = [long]$rawVal
-                }
-                ([Microsoft.Win32.RegistryValueKind]::QWord) {
-                    $dataRepresentation = [long]$rawVal
-                }
-                Default {
-                    $dataRepresentation = [string]$rawVal
+
+                $valuesMap[$vName] = @{
+                    Name = $vName
+                    Kind = $kind.ToString()
+                    Data = $dataRep
                 }
             }
 
-            $valuesMap[$vName] = @{
-                Name = $vName
-                Kind = $kind.ToString()
-                Data = $dataRepresentation
+            $subKeyNames = $k.GetSubKeyNames()
+            $subKeysMap = @{}
+            foreach ($skName in $subKeyNames) {
+                $childKey = $k.OpenSubKey($skName, $false)
+                if ($null -ne $childKey) {
+                    try {
+                        $subKeysMap[$skName] = Get-NodeSnapshot $childKey
+                    } finally {
+                        $childKey.Close()
+                    }
+                }
+            }
+
+            return @{
+                ValueCount = $valueNames.Count
+                Values = $valuesMap
+                SubKeyCount = $subKeyNames.Count
+                SubKeys = $subKeysMap
             }
         }
 
-        $subKeyNames = $key.GetSubKeyNames()
-
+        $rootNode = Get-NodeSnapshot $rootKey
         return @{
             Exists = $true
             SubKeyPath = $subKeyPath
-            ValueCount = $valueNames.Count
-            Values = $valuesMap
-            SubKeys = $subKeyNames
+            ValueCount = $rootNode.ValueCount
+            Values = $rootNode.Values
+            SubKeyCount = $rootNode.SubKeyCount
+            SubKeys = $rootNode.SubKeys
         }
     }
     finally {
-        $key.Close()
+        $rootKey.Close()
     }
 }
 
@@ -117,6 +140,114 @@ function Get-SnapshotValueEntry($valuesObj, [string]$propName) {
     return $null
 }
 
+function Compare-RegistryNodeEntries($baseNode, $currNode, [string]$path, [ref]$diffMessage) {
+    if ($null -eq $baseNode -or $null -eq $currNode) {
+        $diffMessage.Value = "Node null mismatch at '$path'"
+        return $false
+    }
+
+    if ($baseNode.ValueCount -ne $currNode.ValueCount) {
+        $diffMessage.Value = "Value count mismatch at '$path': Baseline=$($baseNode.ValueCount), Current=$($currNode.ValueCount)"
+        return $false
+    }
+
+    $baseNames = Get-SnapshotValueNames $baseNode.Values
+    $currNames = Get-SnapshotValueNames $currNode.Values
+
+    $currNamesSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($cn in $currNames) { $currNamesSet.Add($cn) | Out-Null }
+
+    foreach ($name in $baseNames) {
+        if (-not $currNamesSet.Contains($name)) {
+            $diffMessage.Value = "Value missing in current snapshot at '$path': '$name'"
+            return $false
+        }
+
+        $baseEntry = Get-SnapshotValueEntry $baseNode.Values $name
+        $currEntry = Get-SnapshotValueEntry $currNode.Values $name
+
+        if (-not [string]::Equals($baseEntry.Kind, $currEntry.Kind, [System.StringComparison]::Ordinal)) {
+            $diffMessage.Value = "Value '$name' at '$path' kind mismatch: Baseline=$($baseEntry.Kind), Current=$($currEntry.Kind)"
+            return $false
+        }
+
+        if ($baseEntry.Kind -eq "MultiString") {
+            $arr1 = [string[]]$baseEntry.Data
+            $arr2 = [string[]]$currEntry.Data
+            if ($arr1.Length -ne $arr2.Length) {
+                $diffMessage.Value = "Value '$name' at '$path' MultiString length mismatch: Baseline=$($arr1.Length), Current=$($arr2.Length)"
+                return $false
+            }
+            for ($i = 0; $i -lt $arr1.Length; $i++) {
+                if (-not [string]::Equals($arr1[$i], $arr2[$i], [System.StringComparison]::Ordinal)) {
+                    $diffMessage.Value = "Value '$name' at '$path' MultiString element at index $i mismatch: '$($arr1[$i])' vs '$($arr2[$i])'"
+                    return $false
+                }
+            }
+        }
+        elseif ($baseEntry.Kind -eq "Binary") {
+            if (-not [string]::Equals([string]$baseEntry.Data, [string]$currEntry.Data, [System.StringComparison]::Ordinal)) {
+                $diffMessage.Value = "Value '$name' at '$path' Binary byte mismatch: Baseline=$($baseEntry.Data), Current=$($currEntry.Data)"
+                return $false
+            }
+        }
+        elseif ($baseEntry.Kind -eq "DWord" -or $baseEntry.Kind -eq "QWord") {
+            if ([long]$baseEntry.Data -ne [long]$currEntry.Data) {
+                $diffMessage.Value = "Value '$name' at '$path' integer data mismatch: Baseline=$($baseEntry.Data), Current=$($currEntry.Data)"
+                return $false
+            }
+        }
+        else {
+            if (-not [string]::Equals([string]$baseEntry.Data, [string]$currEntry.Data, [System.StringComparison]::Ordinal)) {
+                $diffMessage.Value = "Value '$name' at '$path' String data mismatch (case/content): Baseline='$($baseEntry.Data)', Current='$($currEntry.Data)'"
+                return $false
+            }
+        }
+    }
+
+    $baseNamesSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($bn in $baseNames) { $baseNamesSet.Add($bn) | Out-Null }
+
+    foreach ($name in $currNames) {
+        if (-not $baseNamesSet.Contains($name)) {
+            $diffMessage.Value = "Unexpected extra value found in current snapshot at '$path': '$name'"
+            return $false
+        }
+    }
+
+    # Recursive subkey comparison
+    $baseSubKeys = Get-SnapshotValueNames $baseNode.SubKeys
+    $currSubKeys = Get-SnapshotValueNames $currNode.SubKeys
+
+    $currSubKeysSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($csk in $currSubKeys) { $currSubKeysSet.Add($csk) | Out-Null }
+
+    foreach ($sk in $baseSubKeys) {
+        if (-not $currSubKeysSet.Contains($sk)) {
+            $diffMessage.Value = "Subkey missing in current snapshot at '$path': '$sk'"
+            return $false
+        }
+        $childBase = Get-SnapshotValueEntry $baseNode.SubKeys $sk
+        $childCurr = Get-SnapshotValueEntry $currNode.SubKeys $sk
+        $childPath = if ($path) { "$path\$sk" } else { $sk }
+        if (-not (Compare-RegistryNodeEntries $childBase $childCurr $childPath $diffMessage)) {
+            return $false
+        }
+    }
+
+    $baseSubKeysSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($bsk in $baseSubKeys) { $baseSubKeysSet.Add($bsk) | Out-Null }
+
+    foreach ($sk in $currSubKeys) {
+        if (-not $baseSubKeysSet.Contains($sk)) {
+            $diffMessage.Value = "Unexpected extra subkey found in current snapshot at '$path': '$sk'"
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Compare-RegistryScopeSnapshots($baseline, $current, [ref]$diffMessage) {
     if ($baseline.Exists -ne $current.Exists) {
         $diffMessage.Value = "Existence mismatch: Baseline.Exists=$($baseline.Exists), Current.Exists=$($current.Exists)"
@@ -127,64 +258,7 @@ function Compare-RegistryScopeSnapshots($baseline, $current, [ref]$diffMessage) 
         return $true
     }
 
-    if ($baseline.ValueCount -ne $current.ValueCount) {
-        $diffMessage.Value = "Value count mismatch: Baseline=$($baseline.ValueCount), Current=$($current.ValueCount)"
-        return $false
-    }
-
-    $baseNames = Get-SnapshotValueNames $baseline.Values
-    $currNames = Get-SnapshotValueNames $current.Values
-
-    $currNamesSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($cn in $currNames) { $currNamesSet.Add($cn) | Out-Null }
-
-    foreach ($name in $baseNames) {
-        if (-not $currNamesSet.Contains($name)) {
-            $diffMessage.Value = "Value missing in current snapshot: '$name'"
-            return $false
-        }
-
-        $baseEntry = Get-SnapshotValueEntry $baseline.Values $name
-        $currEntry = Get-SnapshotValueEntry $current.Values $name
-
-        if ($baseEntry.Kind -ne $currEntry.Kind) {
-            $diffMessage.Value = "Value '$name' kind mismatch: Baseline=$($baseEntry.Kind), Current=$($currEntry.Kind)"
-            return $false
-        }
-
-        if ($baseEntry.Kind -eq "MultiString") {
-            $arr1 = [string[]]$baseEntry.Data
-            $arr2 = [string[]]$currEntry.Data
-            if ($arr1.Length -ne $arr2.Length) {
-                $diffMessage.Value = "Value '$name' MultiString length mismatch: Baseline=$($arr1.Length), Current=$($arr2.Length)"
-                return $false
-            }
-            for ($i = 0; $i -lt $arr1.Length; $i++) {
-                if ($arr1[$i] -ne $arr2[$i]) {
-                    $diffMessage.Value = "Value '$name' MultiString element at index $i mismatch"
-                    return $false
-                }
-            }
-        }
-        else {
-            if ($baseEntry.Data -ne $currEntry.Data) {
-                $diffMessage.Value = "Value '$name' data mismatch between baseline and current"
-                return $false
-            }
-        }
-    }
-
-    $baseNamesSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($bn in $baseNames) { $baseNamesSet.Add($bn) | Out-Null }
-
-    foreach ($name in $currNames) {
-        if (-not $baseNamesSet.Contains($name)) {
-            $diffMessage.Value = "Unexpected extra value found in current snapshot: '$name'"
-            return $false
-        }
-    }
-
-    return $true
+    return Compare-RegistryNodeEntries $baseline $current "" $diffMessage
 }
 
 function Backup-SaveState([string]$dir, [string]$regSubKey, [switch]$allowUnity) {
@@ -502,6 +576,123 @@ Start-Sleep -Seconds 60
         if (-not $hashFailed) {
             throw "[SUITE D FATAL] Restore succeeded on corrupted backup file!"
         }
+
+        # Re-establish clean backup after tampering test
+        Remove-Item -Recurse -Force $disposableDir -ErrorAction SilentlyContinue
+        Backup-SaveState $disposableDir $disposableKey -allowUnity | Out-Null
+        $journalClean = Get-Content (Join-Path $disposableDir "journal.json") -Raw | ConvertFrom-Json
+
+        # -------------------------------------------------------------
+        # SUITE F: Negative Check - String Case-Sensitive Ordinal Difference
+        # -------------------------------------------------------------
+        LogMsg "[SUITE F] Negative Check: Altering string case only ('StandardText' -> 'standardtext')..."
+        & reg.exe add $fullKeyPath /v "Baseline_String" /t REG_SZ /d "standardtext" /f | Out-Null
+        $diffF = ""
+        $currSnapF = Get-RegistryScopeSnapshot $disposableKey
+        $matchF = Compare-RegistryScopeSnapshots $journalClean.Snapshot $currSnapF ([ref]$diffF)
+        if ($matchF) {
+            throw "[SUITE F FATAL] Comparison falsely PASSED when string case differed!"
+        }
+        LogMsg "[SUITE F] Comparison correctly REJECTED string case difference ($diffF): PASS"
+
+        # Restore back to clean baseline
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
+
+        # -------------------------------------------------------------
+        # SUITE G: Negative Check - MultiString Case and Element Order
+        # -------------------------------------------------------------
+        LogMsg "[SUITE G] Negative Check: Testing MultiString case and order sensitivity..."
+        & reg.exe add $fullKeyPath /v "Baseline_Multi" /t REG_MULTI_SZ /d "Alpha\0Beta\0Gamma" /f | Out-Null
+        Remove-Item -Recurse -Force $disposableDir -ErrorAction SilentlyContinue
+        Backup-SaveState $disposableDir $disposableKey -allowUnity | Out-Null
+        $journalG = Get-Content (Join-Path $disposableDir "journal.json") -Raw | ConvertFrom-Json
+
+        # Test G1: Case difference in one element
+        & reg.exe add $fullKeyPath /v "Baseline_Multi" /t REG_MULTI_SZ /d "alpha\0Beta\0Gamma" /f | Out-Null
+        $diffG1 = ""
+        $currSnapG1 = Get-RegistryScopeSnapshot $disposableKey
+        $matchG1 = Compare-RegistryScopeSnapshots $journalG.Snapshot $currSnapG1 ([ref]$diffG1)
+        if ($matchG1) {
+            throw "[SUITE G1 FATAL] Comparison falsely PASSED on MultiString element case difference!"
+        }
+        LogMsg "[SUITE G1] Comparison correctly REJECTED MultiString case difference ($diffG1): PASS"
+
+        # Test G2: Element order swap
+        & reg.exe add $fullKeyPath /v "Baseline_Multi" /t REG_MULTI_SZ /d "Beta\0Alpha\0Gamma" /f | Out-Null
+        $diffG2 = ""
+        $currSnapG2 = Get-RegistryScopeSnapshot $disposableKey
+        $matchG2 = Compare-RegistryScopeSnapshots $journalG.Snapshot $currSnapG2 ([ref]$diffG2)
+        if ($matchG2) {
+            throw "[SUITE G2 FATAL] Comparison falsely PASSED on MultiString element order swap!"
+        }
+        LogMsg "[SUITE G2] Comparison correctly REJECTED MultiString order swap ($diffG2): PASS"
+
+        # Restore back to clean baseline
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
+
+        # -------------------------------------------------------------
+        # SUITE H: Negative Check - Binary Byte-Exact Mutation
+        # -------------------------------------------------------------
+        LogMsg "[SUITE H] Negative Check: Mutating 1 byte in Binary value..."
+        & reg.exe add $fullKeyPath /v "Baseline_Binary" /t REG_BINARY /d "0102030405AABBCCDDEEFE" /f | Out-Null
+        $diffH = ""
+        $currSnapH = Get-RegistryScopeSnapshot $disposableKey
+        $matchH = Compare-RegistryScopeSnapshots $journalClean.Snapshot $currSnapH ([ref]$diffH)
+        if ($matchH) {
+            throw "[SUITE H FATAL] Comparison falsely PASSED on Binary single-byte mutation!"
+        }
+        LogMsg "[SUITE H] Comparison correctly REJECTED Binary byte mutation ($diffH): PASS"
+
+        # Restore back to clean baseline
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
+
+        # -------------------------------------------------------------
+        # SUITE I: Negative Check - Recursive Subkey Mutation, Addition, and Deletion
+        # -------------------------------------------------------------
+        LogMsg "[SUITE I] Negative Check: Testing recursive subkey snapshot and comparison..."
+        $subKeyPath1 = "$fullKeyPath\SubFolder1"
+        $subKeyPath2 = "$fullKeyPath\SubFolder1\SubFolder2"
+        & reg.exe add $subKeyPath1 /v "SubVal1" /t REG_SZ /d "OriginalSubText" /f | Out-Null
+        & reg.exe add $subKeyPath2 /v "DeepVal" /t REG_DWORD /d 42 /f | Out-Null
+
+        Backup-SaveState $disposableDir $disposableKey -allowUnity | Out-Null
+        $journalI = Get-Content (Join-Path $disposableDir "journal.json") -Raw | ConvertFrom-Json
+
+        # Test I1: Mutate value inside recursive subkey
+        & reg.exe add $subKeyPath1 /v "SubVal1" /t REG_SZ /d "originalsubtext" /f | Out-Null
+        $diffI1 = ""
+        $currSnapI1 = Get-RegistryScopeSnapshot $disposableKey
+        $matchI1 = Compare-RegistryScopeSnapshots $journalI.Snapshot $currSnapI1 ([ref]$diffI1)
+        if ($matchI1) {
+            throw "[SUITE I1 FATAL] Comparison falsely PASSED on subkey value case change!"
+        }
+        LogMsg "[SUITE I1] Comparison correctly REJECTED subkey value modification ($diffI1): PASS"
+
+        # Test I2: Add unexpected child subkey
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
+        $extraSubKey = "$fullKeyPath\SubFolder1\UnexpectedExtraChild"
+        & reg.exe add $extraSubKey /v "Dummy" /t REG_SZ /d "Extra" /f | Out-Null
+        $diffI2 = ""
+        $currSnapI2 = Get-RegistryScopeSnapshot $disposableKey
+        $matchI2 = Compare-RegistryScopeSnapshots $journalI.Snapshot $currSnapI2 ([ref]$diffI2)
+        if ($matchI2) {
+            throw "[SUITE I2 FATAL] Comparison falsely PASSED on unexpected extra subkey!"
+        }
+        LogMsg "[SUITE I2] Comparison correctly REJECTED extra subkey ($diffI2): PASS"
+
+        # Test I3: Delete nested subkey
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
+        Safe-DeleteRegistryKey $subKeyPath2 "$disposableKey\SubFolder1\SubFolder2"
+        $diffI3 = ""
+        $currSnapI3 = Get-RegistryScopeSnapshot $disposableKey
+        $matchI3 = Compare-RegistryScopeSnapshots $journalI.Snapshot $currSnapI3 ([ref]$diffI3)
+        if ($matchI3) {
+            throw "[SUITE I3 FATAL] Comparison falsely PASSED on missing deleted subkey!"
+        }
+        LogMsg "[SUITE I3] Comparison correctly REJECTED missing deleted subkey ($diffI3): PASS"
+
+        # Restore back to clean baseline
+        Restore-SaveState $disposableDir -allowUnity | Out-Null
 
         # -------------------------------------------------------------
         # SUITE E: Negative Check - Non-Existent Initial Scope

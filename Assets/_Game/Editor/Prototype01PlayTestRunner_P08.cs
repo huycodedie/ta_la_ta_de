@@ -1856,6 +1856,18 @@ namespace WuxiaGame.Editor
             var (bmGO, bm) = CreateMockBattleManager();
             var (mmGO, mm) = CreateMockMindMethodManager();
 
+            // Isolate unit test fixture from pre-existing scene monsters in open editor scene
+            var ambientMonsters = UnityEngine.Object.FindObjectsByType<Monster>(FindObjectsInactive.Exclude);
+            var disabledAmbient = new List<GameObject>();
+            foreach (var amb in ambientMonsters)
+            {
+                if (amb != m1 && amb.gameObject.activeInHierarchy)
+                {
+                    amb.gameObject.SetActive(false);
+                    disabledAmbient.Add(amb.gameObject);
+                }
+            }
+
             bool pass = false;
             try
             {
@@ -1893,24 +1905,62 @@ namespace WuxiaGame.Editor
                 hero.Rage.ResetRage(100f);
                 CooldownManager.ResetAllCooldowns();
 
+                // Track exact damage events with target identity, damage amount, and encounter index
+                int damageEventsOnM1 = 0;
+                int foreignEntityDamageEvents = 0;
+                int damageEventsInEncounter2OrHigher = 0;
+
+                Action<Entity, DamageResult> onDamage = (victim, res) =>
+                {
+                    if (victim == m1)
+                    {
+                        damageEventsOnM1++;
+                    }
+                    else
+                    {
+                        foreignEntityDamageEvents++;
+                        Debug.LogError($"[T34 DAMAGE BLEED DETECTED] Victim={victim?.EntityName ?? "null"}, Attacker={res.Attacker?.EntityName ?? "null"}, FinalDamage={res.FinalDamage:F1}, Encounter={bm.EncounterIndex}");
+                    }
+
+                    if (bm.EncounterIndex > 1)
+                    {
+                        damageEventsInEncounter2OrHigher++;
+                    }
+                };
+                EventBus.OnEntityDamaged += onDamage;
+
                 // Execute the 2-effect skill through real pipeline
                 var req = new SkillExecutionRequest(hero, multiSkill, SkillSlotType.Skill, m1);
                 var execRes = SkillExecutor.Execute(req);
 
+                EventBus.OnEntityDamaged -= onDamage;
+
                 // Effect 1 defeats M1
-                bool m1Dead = (m1 == null || !m1.IsAlive);
+                bool m1Dead = (m1 == null || !m1.IsAlive || m1.Health.CurrentHealth <= 0f);
                 bool execSuccess = execRes.Success;
                 bool rageConsumedOnce = Mathf.Approximately(hero.Rage.CurrentRage, 80f);
                 bool cdTriggeredOnce = CooldownManager.IsOnCooldown(multiSkill.SkillId, out _);
 
                 // Effect 2 results: must NOT damage any monster from a new encounter
-                bool encounterEndedCleanly = (bm.CurrentBattleState == BattleState.MonsterDead || bm.CurrentBattleState == BattleState.EncounterTransition || bm.CurrentBattleState == BattleState.InProgress);
+                bool noForeignHits = (foreignEntityDamageEvents == 0);
+                bool noBleedToEncounter2 = (damageEventsInEncounter2OrHigher == 0);
+                bool exactlyOneHitOnM1 = (damageEventsOnM1 == 1);
+                bool encounterEndedCleanly = (bm.CurrentBattleState == BattleState.EncounterTransition || bm.CurrentBattleState == BattleState.MonsterDead);
 
-                pass = execSuccess && m1Dead && rageConsumedOnce && cdTriggeredOnce && encounterEndedCleanly;
-                Debug.Log($"[P08 T34] Multi-Effect Encounter Isolation: ExecSuccess={execSuccess}, M1Dead={m1Dead}, RageOnce={rageConsumedOnce}, CdOnce={cdTriggeredOnce}, State={bm.CurrentBattleState} | {(pass ? "PASS" : "FAIL")}");
+                // After execution completes, verify encounter advances cleanly to Encounter 2 when transition is processed
+                int encBeforeAdvance = bm.EncounterIndex;
+                bm.EndEncounterAndStartNext();
+                bool encounterAdvancedToNext = (bm.EncounterIndex == encBeforeAdvance + 1 && bm.CurrentMonster != null && bm.CurrentMonster.IsAlive);
+
+                pass = execSuccess && m1Dead && rageConsumedOnce && cdTriggeredOnce && exactlyOneHitOnM1 && noForeignHits && noBleedToEncounter2 && encounterEndedCleanly && encounterAdvancedToNext;
+                Debug.Log($"[P08 T34] Multi-Effect Encounter Isolation: ExecSuccess={execSuccess}, M1Dead={m1Dead}, RageOnce={rageConsumedOnce}, CdOnce={cdTriggeredOnce}, HitsM1={damageEventsOnM1}, ForeignHits={foreignEntityDamageEvents}, BleedEnc2={damageEventsInEncounter2OrHigher}, State={bm.CurrentBattleState}, Advanced={encounterAdvancedToNext} | {(pass ? "PASS" : "FAIL")}");
             }
             finally
             {
+                foreach (var ambGo in disabledAmbient)
+                {
+                    if (ambGo != null) ambGo.SetActive(true);
+                }
                 if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
                 if (m1GO != null) UnityEngine.Object.DestroyImmediate(m1GO);
                 if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
@@ -1935,21 +1985,29 @@ namespace WuxiaGame.Editor
                 bm.StartBattle();
 
                 var drop1 = new EquipmentInstance("drop_hold_1", "Sword of Patience", EquipmentSlotType.Weapon, 1, null, new List<AffixInstance>());
+                var drop2 = new EquipmentInstance("drop_hold_2", "Shield of Endurance", EquipmentSlotType.Armor, 1, null, new List<AffixInstance>());
                 bm.EnqueuePendingLoot(drop1);
+                bm.EnqueuePendingLoot(drop2);
 
-                // Kill monster to enter LootPending
+                // Kill monster to enter LootPending with drop1
                 m1.Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
 
-                bool enteredLootPending = (bm.CurrentBattleState == BattleState.LootPending && bm.PendingLootItem == drop1);
+                bool enteredLootPending1 = (bm.CurrentBattleState == BattleState.LootPending && bm.PendingLootItem == drop1);
 
-                // Complete decision
-                bool completeRes = bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+                // Complete decision for drop1 (Equip)
+                bool completeRes1 = bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
 
-                bool lootResolved = (bm.PendingLootItem == null && bm.PendingLootQueueCount == 0);
+                // Sequential queue: drop2 popped into pendingLootItem
+                bool drop2Presented = (bm.PendingLootItem == drop2 && bm.CurrentBattleState == BattleState.LootPending);
+
+                // Complete decision for drop2 (Dismantle)
+                bool completeRes2 = bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+
+                bool allLootResolved = (bm.PendingLootItem == null && bm.PendingLootQueueCount == 0);
                 bool resumed = (bm.CurrentBattleState == BattleState.InProgress || bm.CurrentBattleState == BattleState.EncounterTransition || bm.EncounterIndex > 1);
 
-                pass = enteredLootPending && completeRes && lootResolved && resumed;
-                Debug.Log($"[P08 T35] Loot Lifecycle Modal Hold: EnteredLootPending={enteredLootPending}, CompleteRes={completeRes}, LootResolved={lootResolved}, Resumed={resumed} | {(pass ? "PASS" : "FAIL")}");
+                pass = enteredLootPending1 && completeRes1 && drop2Presented && completeRes2 && allLootResolved && resumed;
+                Debug.Log($"[P08 T35] Sequential Loot Resolution: Drop1Pending={enteredLootPending1}, Complete1={completeRes1}, Drop2Presented={drop2Presented}, Complete2={completeRes2}, AllResolved={allLootResolved}, Resumed={resumed} | {(pass ? "PASS" : "FAIL")}");
             }
             finally
             {
@@ -1984,6 +2042,21 @@ namespace WuxiaGame.Editor
                 EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
                 EditorApplication.isPlaying = true;
             }
+        }
+
+        [MenuItem("Tools/Wuxia RPG/P08/Setup Manual Direct Verification Observer")]
+        public static void SetupManualDirectVerificationObserver()
+        {
+            Debug.Log("[MANUAL OBSERVER P08] Setting up Manual Direct Verification Observer...");
+            var existing = UnityEngine.Object.FindAnyObjectByType<P08ManualDirectVerificationObserver>();
+            if (existing != null)
+            {
+                Debug.Log("[MANUAL OBSERVER P08] Observer already active in scene.");
+                return;
+            }
+            var go = new GameObject("P08ManualDirectVerificationObserver");
+            go.AddComponent<P08ManualDirectVerificationObserver>();
+            Debug.Log("[MANUAL OBSERVER P08] Observer setup complete. Enter Play Mode to observe real-time channel & loot lifecycle verification. Full events logged to manual_direct_test.log.");
         }
 
         [InitializeOnLoadMethod]
@@ -2646,6 +2719,27 @@ namespace WuxiaGame.Editor
                 yield return null;
             }
 
+            // Immediately request real blocking modal (TitleBreakthrough) during loot deferral waiting window
+            Debug.Log("[PLAY MODE P08] Requesting real blocking modal (TitleBreakthrough) during loot deferral waiting window...");
+            var blockingReq = new ModalRequest("TitleBreakthrough", ModalPriority.SystemProgression, isDismissable: true, payload: null);
+            ModalCoordinator.Instance.RequestModal(blockingReq);
+
+            // Hold blocking modal for 16 seconds (exceeding legacy 15s timeout) while DeferNextLootDecisionRequest yields
+            float deferralHoldStart = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - deferralHoldStart < 16.0f)
+            {
+                yield return null;
+            }
+            bool deferralHeldPast15s = (Time.realtimeSinceStartup - deferralHoldStart >= 15.5f);
+            bool blockingModalActive = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount > 0);
+            bool secondLootNotPrematurelyShown = (lootUI == null || !lootUI.IsVisible || bm.PendingLootItem == null);
+            bool encounterNotPrematurelyAdvanced = (bm.EncounterIndex == initialEncounterIndex);
+            Debug.Log($"[PLAY MODE P08] Blocking modal held during deferral: Duration={(Time.realtimeSinceStartup - deferralHoldStart):F1}s, BlockingActive={blockingModalActive}, SecondLootHeld={secondLootNotPrematurelyShown}, EncounterNotAdvanced={encounterNotPrematurelyAdvanced}");
+
+            // Dismiss the blocking modal to allow DeferNextLootDecisionRequest to proceed to modal 2
+            Debug.Log("[PLAY MODE P08] Dismissing blocking modal to allow deferred second loot presentation...");
+            ModalCoordinator.Instance.DismissActiveModal(DismissalReason.UserClosed);
+
             // 7. Sequential Loot UI Interaction - Second Modal
             currentPhase = "SCENARIO_1_LOOT_MODAL_2";
             Debug.Log("[PLAY MODE P08] Awaiting deferred second loot modal...");
@@ -2683,7 +2777,11 @@ namespace WuxiaGame.Editor
             bool secondDeathAdvanceOk = (m2Dead && bm.EncounterIndex > initialEncounterIndex);
             bool distinctItemsResolvedOnce = (firstItem != null && secondItem != null && firstItem != secondItem && (firstItemId != secondItemId || firstItemName != secondItemName) && !string.IsNullOrEmpty(firstItemName) && !string.IsNullOrEmpty(secondItemName));
             bool finalModalClosedBeforeAdvance = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount == 0 && ModalCoordinator.Instance.TotalQueuedCount == 0);
-            bool aoeLootScenarioPass = orderOk && bothAlive && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk && modal1PreAssertOk && modal2PreAssertOk && distinctItemsResolvedOnce && finalModalClosedBeforeAdvance && modal1HeldPast15s && modal1StillActiveAfter16s;
+            bool aoeLootScenarioPass = orderOk && bothAlive && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk &&
+                                       modal1PreAssertOk && modal2PreAssertOk && distinctItemsResolvedOnce &&
+                                       finalModalClosedBeforeAdvance && modal1HeldPast15s && modal1StillActiveAfter16s &&
+                                       deferralHeldPast15s && blockingModalActive && secondLootNotPrematurelyShown &&
+                                       encounterNotPrematurelyAdvanced;
 
             Debug.Log($"[PLAY MODE P08] Scenario 1 Summary: AdvanceOk={secondDeathAdvanceOk}, DistinctItems={distinctItemsResolvedOnce} ('{firstItemName}' [{firstItemId}] vs '{secondItemName}' [{secondItemId}]), FinalModalClosed={finalModalClosedBeforeAdvance} | {(aoeLootScenarioPass ? "PASS" : "FAIL")}");
 
@@ -2779,6 +2877,7 @@ namespace WuxiaGame.Editor
             hero.Rage.ResetRage(100f);
             CooldownManager.ResetAllCooldowns();
 
+            int chanStartEncounterIndex = bm.EncounterIndex;
             // 1. Channel Start Execution
             var chanReq = new SkillExecutionRequest(hero, _tempChannelSkill, SkillSlotType.Skill, chanM1);
             var chanExecRes = SkillExecutor.Execute(chanReq);
@@ -2809,7 +2908,17 @@ namespace WuxiaGame.Editor
             bool pulse1M1Hit = (chanM1HpP1 <= 0f && !chanM1.IsAlive);
             bool pulse1M2Hit = (chanM2HpP1 < 500f);
             bool lateMonsterExcludedP1 = Mathf.Approximately(chanMLateHpP1, 500f);
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 1: M1HitAndDeadNaturally={pulse1M1Hit} ({chanM1HpP1}), M2Hit={pulse1M2Hit} ({chanM2HpP1}), LateExcluded={lateMonsterExcludedP1} ({chanMLateHpP1})");
+
+            // Tech Lead P08 Corrective V2 Invariants:
+            // 1. Not interrupted as CrowdControl
+            bool notCcInterruptedAtP1 = (hero.CastState != null && hero.CastState.InterruptSource == SkillCastInterruptSource.None);
+            // 2. Not auto-completed at 0.5s; continues through natural frames
+            bool notEarlyCompletedAtP1 = (hero.IsCasting && hero.IsChanneling && !hero.CastState.IsFinished);
+            // 3. Next encounter not spawned while execution ongoing
+            bool nextEncounterNotSpawnedAtP1 = (bm.EncounterIndex == chanStartEncounterIndex);
+            // 4. Cooldown not triggered prematurely (must be triggered once upon completion)
+            bool noEarlyCooldownAtP1 = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 1: M1HitAndDeadNaturally={pulse1M1Hit} ({chanM1HpP1}), M2Hit={pulse1M2Hit} ({chanM2HpP1}), LateExcluded={lateMonsterExcludedP1} ({chanMLateHpP1}), NotCcInterrupted={notCcInterruptedAtP1}, NotEarlyCompleted={notEarlyCompletedAtP1}, NextEncBlocked={nextEncounterNotSpawnedAtP1}, NoEarlyCd={noEarlyCooldownAtP1}");
 
             // 4. Progress naturally to Pulse 2 (ticks at 1.0s via natural Unity frames, skips naturally dead M1 without replacement)
             while (hero.CastState.ChannelTicksExecuted < 2 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
@@ -3118,7 +3227,9 @@ namespace WuxiaGame.Editor
 
             bool channelScenarioPass = chanStarted && rageConsumedOnceAtStart && noCooldownAtStart &&
                                        snapshotBelongsToExecution && pulse1M1Hit && pulse1M2Hit &&
-                                       lateMonsterExcludedP1 && pulse2M2Hit && lateMonsterStillExcludedP2 &&
+                                       lateMonsterExcludedP1 && notCcInterruptedAtP1 && notEarlyCompletedAtP1 &&
+                                       nextEncounterNotSpawnedAtP1 && noEarlyCooldownAtP1 &&
+                                       pulse2M2Hit && lateMonsterStillExcludedP2 &&
                                        channelFinishedNaturally && rageStillPreservedAtEnd &&
                                        cooldownTriggeredOnCompletion && bScenarioPass && separateCastersPass;
 
@@ -3205,16 +3316,20 @@ namespace WuxiaGame.Editor
                 string dir1 = Path.Combine(projectRoot, "screenshots");
                 string dir2 = Path.Combine(projectRoot, "review_package_p08_final_acceptance", "screenshots");
                 string dir3 = Path.Combine(projectRoot, "review_package_p08_final_closure", "screenshots");
+                string dir4 = Path.Combine(projectRoot, "review_package_p08_corrective_v2", "screenshots");
                 Directory.CreateDirectory(dir1);
                 Directory.CreateDirectory(dir2);
                 Directory.CreateDirectory(dir3);
+                Directory.CreateDirectory(dir4);
 
                 string path1 = Path.Combine(dir1, filename);
                 string path2 = Path.Combine(dir2, filename);
                 string path3 = Path.Combine(dir3, filename);
+                string path4 = Path.Combine(dir4, filename);
                 File.WriteAllBytes(path1, bytes);
                 File.WriteAllBytes(path2, bytes);
                 File.WriteAllBytes(path3, bytes);
+                File.WriteAllBytes(path4, bytes);
 
                 Debug.Log($"[PLAY MODE P08] Screenshot '{filename}' captured successfully ({bytes.Length} bytes).");
             }
@@ -3232,6 +3347,95 @@ namespace WuxiaGame.Editor
                     canvas.sortingOrder = origSortingOrder;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Manual Direct Verification Observer for the project owner to verify channel & loot lifecycle
+    /// via real Unity Editor GUI / Console without requiring automated batchmode execution.
+    /// </summary>
+    public class P08ManualDirectVerificationObserver : MonoBehaviour
+    {
+        private readonly List<string> _eventsLog = new List<string>();
+        private string _logFilePath;
+
+        private void Awake()
+        {
+            _logFilePath = Path.Combine(Application.dataPath, "..", "manual_direct_test.log");
+            LogEvent("P08 Manual Direct Verification Observer Initialized.");
+            EventBus.OnEntityDamaged += HandleDamage;
+            EventBus.OnBattleStateChanged += HandleStateChanged;
+            EventBus.OnSkillExecutionSucceeded += HandleSkillSucceeded;
+            EventBus.OnLootDecisionRequested += HandleLootRequested;
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.OnEntityDamaged -= HandleDamage;
+            EventBus.OnBattleStateChanged -= HandleStateChanged;
+            EventBus.OnSkillExecutionSucceeded -= HandleSkillSucceeded;
+            EventBus.OnLootDecisionRequested -= HandleLootRequested;
+            LogEvent("P08 Manual Direct Verification Observer Destroyed.");
+        }
+
+        private void HandleDamage(Entity victim, DamageResult result)
+        {
+            LogEvent($"[DAMAGE] Attacker={result.Attacker?.EntityName ?? "null"}, Victim={victim?.EntityName ?? "null"}, FinalDamage={result.FinalDamage:F1}");
+        }
+
+        private void HandleStateChanged(BattleState state)
+        {
+            LogEvent($"[BATTLE_STATE] State changed to: {state}");
+        }
+
+        private void HandleSkillSucceeded(SkillExecutionRequest request, SkillExecutionResult result)
+        {
+            LogEvent($"[SKILL_SUCCESS] Skill={request.Skill?.SkillId ?? "null"}, Source={request.Source?.EntityName ?? "null"}");
+        }
+
+        private void HandleLootRequested(EquipmentInstance item)
+        {
+            LogEvent($"[LOOT_REQUESTED] Item={item?.ItemName ?? "null"} ({item?.InstanceId ?? "null"})");
+        }
+
+        private void LogEvent(string msg)
+        {
+            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            _eventsLog.Add(line);
+            try
+            {
+                File.AppendAllText(_logFilePath, line + Environment.NewLine);
+            }
+            catch {}
+            Debug.Log($"[MANUAL OBSERVER] {msg}");
+        }
+
+        private void OnGUI()
+        {
+            var bm = BattleManager.Instance;
+            var hero = bm != null ? bm.CurrentHero : null;
+
+            GUILayout.BeginArea(new Rect(10, 10, 480, 420), "P08 Verification Observer", GUI.skin.window);
+            GUILayout.Label($"Encounter: {(bm != null ? bm.EncounterIndex.ToString() : "N/A")} | BattleState: {(bm != null ? bm.CurrentBattleState.ToString() : "N/A")}");
+            GUILayout.Label($"Hero Casting: {(hero != null && hero.IsCasting)} | Channeling: {(hero != null && hero.IsChanneling)}");
+            if (hero != null && hero.CastState != null)
+            {
+                GUILayout.Label($"Cast Phase: {hero.CastState.CurrentPhase} | Elapsed: {hero.CastState.ElapsedChannelTime:F2}s / {hero.CastState.ChannelDuration:F2}s");
+                GUILayout.Label($"Ticks Executed: {hero.CastState.ChannelTicksExecuted} | InterruptSource: {hero.CastState.InterruptSource}");
+            }
+            GUILayout.Label($"Pending Loot: {(bm != null && bm.PendingLootItem != null ? bm.PendingLootItem.ItemName : "None")}");
+            GUILayout.Label($"Loot Queue: {(bm != null ? bm.PendingLootQueueCount.ToString() : "0")}");
+            var coord = ModalCoordinator.Instance;
+            GUILayout.Label($"Blocking Modals: {(coord != null ? coord.ActiveBlockingModalCount.ToString() : "0")}");
+
+            GUILayout.Space(10);
+            GUILayout.Label("Recent Observer Events (saved to manual_direct_test.log):");
+            int start = Mathf.Max(0, _eventsLog.Count - 6);
+            for (int i = start; i < _eventsLog.Count; i++)
+            {
+                GUILayout.Label(_eventsLog[i]);
+            }
+            GUILayout.EndArea();
         }
     }
 }

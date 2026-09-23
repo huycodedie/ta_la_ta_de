@@ -73,7 +73,20 @@ namespace WuxiaGame.Entities
 
         protected virtual void Update()
         {
-            if (BattleManager.Instance != null && !BattleManager.Instance.IsBattleActive)
+            bool canTick = false;
+            if (BattleManager.Instance != null)
+            {
+                if (BattleManager.Instance.IsBattleActive)
+                {
+                    canTick = true;
+                }
+                else if (BattleManager.Instance.CanEntityTickDuringTransition(this))
+                {
+                    canTick = true;
+                }
+            }
+
+            if (!canTick)
                 return;
 
             if (!IsAlive || !IsCasting)
