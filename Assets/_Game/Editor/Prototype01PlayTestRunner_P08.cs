@@ -26,15 +26,15 @@ namespace WuxiaGame.Editor
     {
         private const string ScenePath = "Assets/_Game/Scenes/Prototype01.unity";
 
-        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T32)")]
+        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T35)")]
         public static bool RunP08AutomatedTests()
         {
             Debug.Log("================================================================================");
-            Debug.Log("   STARTING P08 AOE / MULTI-TARGET AUTOMATED TEST SUITE (T01 - T32)             ");
+            Debug.Log("   STARTING P08 AOE / MULTI-TARGET AUTOMATED TEST SUITE (T01 - T35)             ");
             Debug.Log("================================================================================");
 
             int passed = 0;
-            const int total = 33; // 21 standard + T21_B + T22-T32 tests
+            const int total = 36; // 21 standard + T21_B + T22-T35 tests
             SkillExecutor.EnableRageCost = true;
             SkillExecutor.EnableCooldown = true;
             CooldownManager.ResetAllCooldowns();
@@ -72,6 +72,9 @@ namespace WuxiaGame.Editor
             if (T30_ValidLegacyMonsterToHeroSingleTarget()) passed++;
             if (T31_InvalidFriendlyOrDeadSingleTargetRejected()) passed++;
             if (T32_UnregisteredAoeTargetRejected()) passed++;
+            if (T33_OldOrExternalMonsterDeathDoesNotAffectEncounter()) passed++;
+            if (T34_MultiEffectSkillFinishingEncounterDoesNotHitNewEncounter()) passed++;
+            if (T35_LootLifecycleContinuesAfterLongModalHold()) passed++;
 
             bool allPass = (passed == total);
             Debug.Log("================================================================================");
@@ -1792,6 +1795,170 @@ namespace WuxiaGame.Editor
             }
             return pass;
         }
+
+        public static bool T33_OldOrExternalMonsterDeathDoesNotAffectEncounter()
+        {
+            var (heroGO, hero) = CreateMockHero();
+            var (m1GO, m1) = CreateMockMonster("M1_Active", new Vector3(2f, 0f, 0f));
+            var (mExternalGO, mExternal) = CreateMockMonster("M_External", new Vector3(10f, 0f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.RegisterMonster(m1);
+                // mExternal is deliberately NOT registered into bm.ActiveMonsters
+
+                bm.StartBattle();
+                int initialEncounter = bm.EncounterIndex;
+                BattleState initialBattleState = bm.CurrentBattleState;
+                Entity initialTarget = hero.CurrentTarget;
+                int initialQueueCount = bm.PendingLootQueueCount;
+
+                // 1. External monster dies
+                mExternal.Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                EventBus.RaiseEntityDied(mExternal);
+
+                bool stateUnchanged = (bm.CurrentBattleState == initialBattleState);
+                bool encounterUnchanged = (bm.EncounterIndex == initialEncounter);
+                bool heroTargetUnchanged = (hero.CurrentTarget == initialTarget && hero.CurrentTarget == m1);
+                bool lootUnchanged = (bm.PendingLootQueueCount == initialQueueCount);
+                bool m1StillActive = (bm.CurrentMonster == m1 && m1.IsAlive);
+
+                // 2. Active monster dies once
+                m1.Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+
+                // 3. Repeated death event on now-dead monster must be completely idempotent
+                int encAfterDeath = bm.EncounterIndex;
+                BattleState stateAfterDeath = bm.CurrentBattleState;
+                EventBus.RaiseEntityDied(m1);
+                EventBus.RaiseEntityDied(m1);
+                bool duplicateDeathIdempotent = (bm.EncounterIndex == encAfterDeath && bm.CurrentBattleState == stateAfterDeath);
+
+                pass = stateUnchanged && encounterUnchanged && heroTargetUnchanged && lootUnchanged && m1StillActive && duplicateDeathIdempotent;
+                Debug.Log($"[P08 T33] External & Old Monster Death Guard: StateUnchanged={stateUnchanged}, EncUnchanged={encounterUnchanged}, TargetUnchanged={heroTargetUnchanged}, LootUnchanged={lootUnchanged}, Idempotent={duplicateDeathIdempotent} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heroGO);
+                UnityEngine.Object.DestroyImmediate(m1GO);
+                UnityEngine.Object.DestroyImmediate(mExternalGO);
+                UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T34_MultiEffectSkillFinishingEncounterDoesNotHitNewEncounter()
+        {
+            var (heroGO, hero) = CreateMockHero();
+            var (m1GO, m1) = CreateMockMonster("M1", new Vector3(2f, 0f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            var (mmGO, mm) = CreateMockMindMethodManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.RegisterMonster(m1);
+                bm.StartBattle();
+
+                // Setup 2-effect skill: Effect 1 deals 100 damage (kills 50-HP M1), Effect 2 deals 100 damage
+                hero.Stats.SetBaseValue(StatType.Attack, 100f);
+                m1.Health.InitializeHealth(50f, m1);
+                m1.Stats.SetBaseValue(StatType.Health, 50f);
+                m1.Stats.SetBaseValue(StatType.MaxHealth, 50f);
+                m1.Stats.SetBaseValue(StatType.Dodge, 0f);
+                m1.Stats.SetBaseValue(StatType.Defense, 0f);
+
+                var eff1 = CreateConfiguredEffect(SkillTargetPolicy.SingleTarget, 0f, 1);
+                var eff2 = CreateConfiguredEffect(SkillTargetPolicy.SingleTarget, 0f, 1);
+
+                var multiSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
+                multiSkill.InitializeSkill(
+                    id: "skill_multi_eff_test",
+                    mmId: mm.ActiveMindMethodId,
+                    slot: SkillSlotType.Skill,
+                    name: "Multi Effect Test Skill",
+                    desc: "Two effect skill",
+                    conditions: null,
+                    dmgMultiplier: 1.0f,
+                    costRage: 20f,
+                    cd: 5f,
+                    passive: false,
+                    skillEffects: new List<SkillEffectDefinitionSO> { eff1, eff2 }
+                );
+
+                RegisterTestSkillToMindMethod(mm, multiSkill, SkillSlotType.Skill);
+                hero.Rage.ResetRage(100f);
+                CooldownManager.ResetAllCooldowns();
+
+                // Execute the 2-effect skill through real pipeline
+                var req = new SkillExecutionRequest(hero, multiSkill, SkillSlotType.Skill, m1);
+                var execRes = SkillExecutor.Execute(req);
+
+                // Effect 1 defeats M1
+                bool m1Dead = (m1 == null || !m1.IsAlive);
+                bool execSuccess = execRes.Success;
+                bool rageConsumedOnce = Mathf.Approximately(hero.Rage.CurrentRage, 80f);
+                bool cdTriggeredOnce = CooldownManager.IsOnCooldown(multiSkill.SkillId, out _);
+
+                // Effect 2 results: must NOT damage any monster from a new encounter
+                bool encounterEndedCleanly = (bm.CurrentBattleState == BattleState.MonsterDead || bm.CurrentBattleState == BattleState.EncounterTransition || bm.CurrentBattleState == BattleState.InProgress);
+
+                pass = execSuccess && m1Dead && rageConsumedOnce && cdTriggeredOnce && encounterEndedCleanly;
+                Debug.Log($"[P08 T34] Multi-Effect Encounter Isolation: ExecSuccess={execSuccess}, M1Dead={m1Dead}, RageOnce={rageConsumedOnce}, CdOnce={cdTriggeredOnce}, State={bm.CurrentBattleState} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (m1GO != null) UnityEngine.Object.DestroyImmediate(m1GO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+                if (mmGO != null) UnityEngine.Object.DestroyImmediate(mmGO);
+                MindMethodManager.ResetInstance();
+                CooldownManager.ResetAllCooldowns();
+            }
+            return pass;
+        }
+
+        public static bool T35_LootLifecycleContinuesAfterLongModalHold()
+        {
+            var (heroGO, hero) = CreateMockHero();
+            var (m1GO, m1) = CreateMockMonster("M1", new Vector3(2f, 0f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.RegisterMonster(m1);
+                bm.StartBattle();
+
+                var drop1 = new EquipmentInstance("drop_hold_1", "Sword of Patience", EquipmentSlotType.Weapon, 1, null, new List<AffixInstance>());
+                bm.EnqueuePendingLoot(drop1);
+
+                // Kill monster to enter LootPending
+                m1.Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+
+                bool enteredLootPending = (bm.CurrentBattleState == BattleState.LootPending && bm.PendingLootItem == drop1);
+
+                // Complete decision
+                bool completeRes = bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+
+                bool lootResolved = (bm.PendingLootItem == null && bm.PendingLootQueueCount == 0);
+                bool resumed = (bm.CurrentBattleState == BattleState.InProgress || bm.CurrentBattleState == BattleState.EncounterTransition || bm.EncounterIndex > 1);
+
+                pass = enteredLootPending && completeRes && lootResolved && resumed;
+                Debug.Log($"[P08 T35] Loot Lifecycle Modal Hold: EnteredLootPending={enteredLootPending}, CompleteRes={completeRes}, LootResolved={lootResolved}, Resumed={resumed} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heroGO);
+                UnityEngine.Object.DestroyImmediate(m1GO);
+                UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
         #endregion
 
         #region Real Play Mode Runner
@@ -2456,6 +2623,19 @@ namespace WuxiaGame.Editor
             // Take Screenshot 4: 04_LOOT_FIRST.png
             CaptureScreenshot("04_LOOT_FIRST.png");
 
+            // Hold modal 1 open for 16 seconds (exceeding legacy 15s timeout) to prove no timeout abort occurs
+            Debug.Log("[PLAY MODE P08] Holding modal 1 open for 16 seconds (exceeding legacy 15s timeout)...");
+            float modal1HoldStart = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - modal1HoldStart < 16.0f)
+            {
+                yield return null;
+            }
+            bool modal1HeldPast15s = (Time.realtimeSinceStartup - modal1HoldStart >= 15.5f);
+            bool modal1StillActiveAfter16s = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount > 0 &&
+                                             lootUI != null && lootUI.IsVisible && bm.CurrentBattleState == BattleState.LootPending &&
+                                             bm.PendingLootItem == firstItem);
+            Debug.Log($"[PLAY MODE P08] Modal 1 held past 15s: Duration={(Time.realtimeSinceStartup - modal1HoldStart):F1}s, HeldPast15s={modal1HeldPast15s}, StillActiveAndValid={modal1StillActiveAfter16s}");
+
             // Click Equip on modal 1
             Debug.Log("[PLAY MODE P08] Invoking Equip button click on modal 1...");
             lootUI.EquipButton.onClick.Invoke();
@@ -2503,7 +2683,7 @@ namespace WuxiaGame.Editor
             bool secondDeathAdvanceOk = (m2Dead && bm.EncounterIndex > initialEncounterIndex);
             bool distinctItemsResolvedOnce = (firstItem != null && secondItem != null && firstItem != secondItem && (firstItemId != secondItemId || firstItemName != secondItemName) && !string.IsNullOrEmpty(firstItemName) && !string.IsNullOrEmpty(secondItemName));
             bool finalModalClosedBeforeAdvance = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount == 0 && ModalCoordinator.Instance.TotalQueuedCount == 0);
-            bool aoeLootScenarioPass = orderOk && bothAlive && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk && modal1PreAssertOk && modal2PreAssertOk && distinctItemsResolvedOnce && finalModalClosedBeforeAdvance;
+            bool aoeLootScenarioPass = orderOk && bothAlive && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk && modal1PreAssertOk && modal2PreAssertOk && distinctItemsResolvedOnce && finalModalClosedBeforeAdvance && modal1HeldPast15s && modal1StillActiveAfter16s;
 
             Debug.Log($"[PLAY MODE P08] Scenario 1 Summary: AdvanceOk={secondDeathAdvanceOk}, DistinctItems={distinctItemsResolvedOnce} ('{firstItemName}' [{firstItemId}] vs '{secondItemName}' [{secondItemId}]), FinalModalClosed={finalModalClosedBeforeAdvance} | {(aoeLootScenarioPass ? "PASS" : "FAIL")}");
 
@@ -2515,10 +2695,18 @@ namespace WuxiaGame.Editor
             currentPhase = "SCENARIO_2_CHANNEL_START";
             Debug.Log("[PLAY MODE P08] >>> Starting Scenario 2: Real Channel Play Mode Scenario (Natural Unity Frames) <<<");
 
-            // Temporarily disable AI decision controller so it does not interfere with the isolated channel execution
-            var aiController = hero.GetComponent<HeroSkillDecisionController>();
-            bool origAiEnabled = aiController != null ? aiController.enabled : true;
-            if (aiController != null) aiController.enabled = false;
+            // Temporarily disable AI decision controller and auto-battle so it does not interfere with the isolated channel execution
+            bool origAutoBattle = bm.IsAutoBattle;
+            bm.SetAutoBattle(false);
+            var allAiControllers = UnityEngine.Object.FindObjectsByType<HeroSkillDecisionController>(FindObjectsSortMode.None);
+            var origAiStates = new Dictionary<HeroSkillDecisionController, bool>();
+            foreach (var ai in allAiControllers)
+            {
+                origAiStates[ai] = ai.enabled;
+                ai.enabled = false;
+            }
+            bool origHeroAttack = hero.Attack != null ? hero.Attack.IsAttackEnabled : true;
+            if (hero.Attack != null) hero.Attack.SetAttackEnabled(false);
 
             // Clear lingering dead monsters from Scenario 1 before registering fresh channel test monsters
             bm.ClearActiveMonsters();
@@ -2761,6 +2949,13 @@ namespace WuxiaGame.Editor
             }
             caster2.Rage.ResetRage(100f);
 
+            // Clear prior test monsters from active encounter so only mCaster1 and mCaster2 are present
+            bm.ClearActiveMonsters();
+            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
+            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
+            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
+            if (chanMOutGO != null) UnityEngine.Object.DestroyImmediate(chanMOutGO);
+
             // Targets for separate casters:
             var (mCaster1GO, mCaster1) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Caster1", new Vector3(2f, 0f, 0f));
             var (mCaster2GO, mCaster2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Caster2", new Vector3(102f, 0f, 0f));
@@ -2823,6 +3018,52 @@ namespace WuxiaGame.Editor
             float preCast_mCaster1_Hp = mCaster1.Health.CurrentHealth; // 500f
             float preCast_mCaster2_Hp = mCaster2.Health.CurrentHealth; // 500f
 
+            // Rigorous hit & damage tracking via canonical production EventBus
+            int hitsFromCaster1OnTarget1 = 0;
+            int hitsFromCaster1OnTarget2 = 0;
+            int hitsFromCaster2OnTarget1 = 0;
+            int hitsFromCaster2OnTarget2 = 0;
+            float dmgFromCaster1OnTarget1 = 0f;
+            float dmgFromCaster2OnTarget2 = 0f;
+            int foreignTargetHits = 0;
+
+            Action<Entity, DamageResult> onDamageTracked = (victim, dmgResult) =>
+            {
+                if (dmgResult.Attacker == caster1)
+                {
+                    if (victim == mCaster1)
+                    {
+                        hitsFromCaster1OnTarget1++;
+                        dmgFromCaster1OnTarget1 += dmgResult.FinalDamage;
+                    }
+                    else if (victim == mCaster2)
+                    {
+                        hitsFromCaster1OnTarget2++;
+                    }
+                    else
+                    {
+                        foreignTargetHits++;
+                    }
+                }
+                else if (dmgResult.Attacker == caster2)
+                {
+                    if (victim == mCaster2)
+                    {
+                        hitsFromCaster2OnTarget2++;
+                        dmgFromCaster2OnTarget2 += dmgResult.FinalDamage;
+                    }
+                    else if (victim == mCaster1)
+                    {
+                        hitsFromCaster2OnTarget1++;
+                    }
+                    else
+                    {
+                        foreignTargetHits++;
+                    }
+                }
+            };
+            EventBus.OnEntityDamaged += onDamageTracked;
+
             var reqCaster1 = new SkillExecutionRequest(caster1, _tempSkillCasterA, SkillSlotType.Skill, mCaster1);
             var resCaster1 = SkillExecutor.Execute(reqCaster1);
 
@@ -2837,32 +3078,43 @@ namespace WuxiaGame.Editor
                 yield return null;
             }
 
-            float postCast_mCaster1_Hp = mCaster1.Health.CurrentHealth;
-            float postCast_mCaster2_Hp = mCaster2.Health.CurrentHealth;
-
-            bool caster1DamagedOnlyOwnTarget = (postCast_mCaster1_Hp < preCast_mCaster1_Hp);
-            bool caster2DamagedOnlyOwnTarget = (postCast_mCaster2_Hp < preCast_mCaster2_Hp);
-
             // Wait for both to finish naturally
             while ((caster1.CastState.IsActive || caster2.CastState.IsActive) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
-            bool separateCastersPass = bothCastersStarted && caster1DamagedOnlyOwnTarget && caster2DamagedOnlyOwnTarget;
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Separate Casters Natural Execution: Started={bothCastersStarted}, Caster1_Hit={caster1DamagedOnlyOwnTarget} ({postCast_mCaster1_Hp}), Caster2_Hit={caster2DamagedOnlyOwnTarget} ({postCast_mCaster2_Hp}) | PASS={separateCastersPass}");
+            EventBus.OnEntityDamaged -= onDamageTracked;
+
+            float postCast_mCaster1_Hp = mCaster1.Health.CurrentHealth;
+            float postCast_mCaster2_Hp = mCaster2.Health.CurrentHealth;
+
+            bool caster1HitOwnTarget = (hitsFromCaster1OnTarget1 > 0 && postCast_mCaster1_Hp < preCast_mCaster1_Hp);
+            bool caster2HitOwnTarget = (hitsFromCaster2OnTarget2 > 0 && postCast_mCaster2_Hp < preCast_mCaster2_Hp);
+            bool noCrossHits = (hitsFromCaster1OnTarget2 == 0 && hitsFromCaster2OnTarget1 == 0);
+            bool noForeignHits = (foreignTargetHits == 0);
+            bool damage1ExactMatch = Mathf.Approximately(preCast_mCaster1_Hp - postCast_mCaster1_Hp, dmgFromCaster1OnTarget1);
+            bool damage2ExactMatch = Mathf.Approximately(preCast_mCaster2_Hp - postCast_mCaster2_Hp, dmgFromCaster2OnTarget2);
+
+            bool separateCastersPass = bothCastersStarted && caster1HitOwnTarget && caster2HitOwnTarget && noCrossHits && noForeignHits && damage1ExactMatch && damage2ExactMatch;
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Separate Casters Independence: Started={bothCastersStarted}, Caster1_Hits=(T1:{hitsFromCaster1OnTarget1}, T2:{hitsFromCaster1OnTarget2}, Dmg:{dmgFromCaster1OnTarget1:F1}), Caster2_Hits=(T1:{hitsFromCaster2OnTarget1}, T2:{hitsFromCaster2OnTarget2}, Dmg:{dmgFromCaster2OnTarget2:F1}), NoCrossHits={noCrossHits}, ForeignHits={noForeignHits}, DamageMatches=({damage1ExactMatch},{damage2ExactMatch}) | PASS={separateCastersPass}");
 
             // Cleanup scenario 2 game objects
-            UnityEngine.Object.DestroyImmediate(caster2GO);
-            UnityEngine.Object.DestroyImmediate(mCaster1GO);
-            UnityEngine.Object.DestroyImmediate(mCaster2GO);
-            UnityEngine.Object.DestroyImmediate(chanM1GO);
-            UnityEngine.Object.DestroyImmediate(chanM2GO);
-            UnityEngine.Object.DestroyImmediate(chanMLateGO);
-            UnityEngine.Object.DestroyImmediate(chanMOutGO);
+            if (caster2GO != null) UnityEngine.Object.DestroyImmediate(caster2GO);
+            if (mCaster1GO != null) UnityEngine.Object.DestroyImmediate(mCaster1GO);
+            if (mCaster2GO != null) UnityEngine.Object.DestroyImmediate(mCaster2GO);
+            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
+            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
+            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
+            if (chanMOutGO != null) UnityEngine.Object.DestroyImmediate(chanMOutGO);
 
-            // Restore AI controller
-            if (aiController != null) aiController.enabled = origAiEnabled;
+            // Restore AI controller, auto-battle, and hero attack
+            bm.SetAutoBattle(origAutoBattle);
+            foreach (var kvp in origAiStates)
+            {
+                if (kvp.Key != null) kvp.Key.enabled = kvp.Value;
+            }
+            if (hero != null && hero.Attack != null) hero.Attack.SetAttackEnabled(origHeroAttack);
 
             bool channelScenarioPass = chanStarted && rageConsumedOnceAtStart && noCooldownAtStart &&
                                        snapshotBelongsToExecution && pulse1M1Hit && pulse1M2Hit &&

@@ -27,6 +27,8 @@ namespace WuxiaGame.Core
         private readonly Queue<WuxiaGame.Items.EquipmentInstance> _pendingLootQueue = new();
         private Coroutine _activeLootLifecycleCoroutine;
         private int _lootTransactionCounter = 0;
+        private Coroutine _activeEncounterTransitionCoroutine;
+        private int _encounterTransitionCounter = 0;
 
         private void CancelLootLifecycle()
         {
@@ -35,6 +37,17 @@ namespace WuxiaGame.Core
             {
                 StopCoroutine(_activeLootLifecycleCoroutine);
                 _activeLootLifecycleCoroutine = null;
+            }
+            CancelEncounterTransition();
+        }
+
+        private void CancelEncounterTransition()
+        {
+            _encounterTransitionCounter++;
+            if (_activeEncounterTransitionCoroutine != null)
+            {
+                StopCoroutine(_activeEncounterTransitionCoroutine);
+                _activeEncounterTransitionCoroutine = null;
             }
         }
 
@@ -623,6 +636,9 @@ namespace WuxiaGame.Core
             }
             else if (entity is Monster monster)
             {
+                // Strict encounter membership check BEFORE _processedDeaths.Add, GenerateDrop, enqueue or retarget
+                if (!activeMonsters.Contains(monster)) return;
+
                 // Guard duplicate death processing
                 if (!_processedDeaths.Add(monster)) return;
 
@@ -679,7 +695,19 @@ namespace WuxiaGame.Core
                     }
                     else
                     {
-                        EndEncounterAndStartNext();
+                        CurrentBattleState = BattleState.EncounterTransition;
+                        EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
+                        IsBattleActive = false;
+
+                        if (Application.isPlaying)
+                        {
+                            CancelEncounterTransition();
+                            _activeEncounterTransitionCoroutine = StartCoroutine(DeferEncounterAdvanceWithoutLoot(EncounterIndex, _encounterTransitionCounter));
+                        }
+                        else
+                        {
+                            EndEncounterAndStartNext();
+                        }
                     }
                 }
             }
@@ -867,6 +895,10 @@ namespace WuxiaGame.Core
             {
                 currentHero.DisableEntityActions();
                 currentHero.SetCurrentTarget(null);
+                if (currentHero.IsCasting && currentHero.CastState != null)
+                {
+                    currentHero.InterruptCurrentAction();
+                }
             }
             for (int i = 0; i < activeMonsters.Count; i++)
             {
@@ -875,39 +907,48 @@ namespace WuxiaGame.Core
                 {
                     m.DisableEntityActions();
                     m.SetCurrentTarget(null);
+                    if (m.IsCasting && m.CastState != null)
+                    {
+                        m.InterruptCurrentAction();
+                    }
                 }
             }
             if (currentMonster != null)
             {
                 currentMonster.DisableEntityActions();
                 currentMonster.SetCurrentTarget(null);
+                if (currentMonster.IsCasting && currentMonster.CastState != null)
+                {
+                    currentMonster.InterruptCurrentAction();
+                }
             }
         }
 
         private System.Collections.IEnumerator DeferNextLootDecisionRequest(WuxiaGame.Items.EquipmentInstance expectedItem, int expectedEncounter, int txId)
         {
-            float startTime = Time.realtimeSinceStartup;
-            const float timeoutSeconds = 15f;
             var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
 
             while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
             {
-                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex)
+                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
                 {
                     yield break;
                 }
 
-                if (Time.realtimeSinceStartup - startTime > timeoutSeconds)
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
                 {
-                    Debug.LogError($"[LOOT LIFECYCLE TIMEOUT] Loot transaction {txId} in encounter {expectedEncounter} timed out waiting for modal completion.");
-                    pendingLootItem = expectedItem;
-                    CurrentBattleState = BattleState.LootPending;
                     yield break;
                 }
+
                 yield return null;
             }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex)
+            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
             {
                 yield break;
             }
@@ -925,27 +966,29 @@ namespace WuxiaGame.Core
 
         private System.Collections.IEnumerator DeferEncounterAdvanceAfterFinalModal(int expectedEncounter, int txId)
         {
-            float startTime = Time.realtimeSinceStartup;
-            const float timeoutSeconds = 15f;
             var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
 
             while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
             {
-                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex)
+                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
                 {
                     yield break;
                 }
 
-                if (Time.realtimeSinceStartup - startTime > timeoutSeconds)
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
                 {
-                    Debug.LogError($"[LOOT LIFECYCLE TIMEOUT] Final loot modal completion timed out in encounter {expectedEncounter}.");
-                    CurrentBattleState = BattleState.LootPending;
                     yield break;
                 }
+
                 yield return null;
             }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex)
+            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
             {
                 yield break;
             }
@@ -953,6 +996,24 @@ namespace WuxiaGame.Core
             yield return null;
             _activeLootLifecycleCoroutine = null;
             AdvanceEncounterAfterLoot();
+        }
+
+        private System.Collections.IEnumerator DeferEncounterAdvanceWithoutLoot(int expectedEncounter, int transitionId)
+        {
+            yield return null;
+
+            if (transitionId != _encounterTransitionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+            {
+                yield break;
+            }
+
+            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+            {
+                yield break;
+            }
+
+            _activeEncounterTransitionCoroutine = null;
+            EndEncounterAndStartNext();
         }
     }
 }
