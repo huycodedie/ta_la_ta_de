@@ -26,55 +26,146 @@ namespace WuxiaGame.Editor
     {
         private const string ScenePath = "Assets/_Game/Scenes/Prototype01.unity";
 
-        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T35)")]
+        [MenuItem("Tools/Wuxia RPG/P08/Run Gate 1 (P08 Tests CLI)")]
+        public static void RunGate1_P08Tests_CLI()
+        {
+            try
+            {
+                bool passed = RunP08AutomatedTests();
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.Exit(passed ? 0 : 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+            }
+        }
+
+        [MenuItem("Tools/Wuxia RPG/P08/Run Gate 2 (137 Locked Regression CLI)")]
+        public static void RunGate2_LockedRegression_CLI()
+        {
+            try
+            {
+                bool passed = Prototype01PlayTestRunner.RunAll137LockedRegressionTests();
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.Exit(passed ? 0 : 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+            }
+        }
+
+        [MenuItem("Tools/Wuxia RPG/P08/Run Gate 3 (Phase B1 Modal Suite CLI)")]
+        public static void RunGate3_PhaseB1Modal_CLI()
+        {
+            try
+            {
+                bool passed = Prototype01PlayTestRunner.RunAllUI01PhaseB1Tests();
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.Exit(passed ? 0 : 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+            }
+        }
+
+        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T43)")]
         public static bool RunP08AutomatedTests()
         {
             Debug.Log("================================================================================");
-            Debug.Log("   STARTING P08 AOE / MULTI-TARGET AUTOMATED TEST SUITE (T01 - T35)             ");
+            Debug.Log("   STARTING P08 AOE / MULTI-TARGET & NORMAL WAVE AUTOMATED TEST SUITE           ");
             Debug.Log("================================================================================");
 
-            int passed = 0;
-            const int total = 36; // 21 standard + T21_B + T22-T35 tests
             SkillExecutor.EnableRageCost = true;
             SkillExecutor.EnableCooldown = true;
             CooldownManager.ResetAllCooldowns();
 
-            if (T01_SingleTargetResultUnchanged()) passed++;
-            if (T02_AreaHitsTwoInRangeEnemies()) passed++;
-            if (T03_PrimaryIsHitExactlyOnce()) passed++;
-            if (T04_OutOfRadiusEnemyIsUnaffected()) passed++;
-            if (T05_DeadInactiveUnregisteredEnemyIsExcluded()) passed++;
-            if (T06_MaxTargetCountIsEnforced()) passed++;
-            if (T07_Ordering_PrimaryDistanceRegistration()) passed++;
-            if (T08_NoDuplicateTarget()) passed++;
-            if (T09_EffectExecutesExactlyOncePerResolvedTarget()) passed++;
-            if (T10_RageConsumedOncePerCast()) passed++;
-            if (T11_CooldownTriggeredOncePerCast()) passed++;
-            if (T12_StatusAppliedIndependentlyToTargets()) passed++;
-            if (T13_OneImmuneFailedTargetDoesNotCancelAnotherValidTarget()) passed++;
-            if (T14_HeroCompanionNotHitByHeroArea()) passed++;
-            if (T15_HeroRetargetsAndAutoCombatContinuesAfterPrimaryDeath()) passed++;
-            if (T16_LootAndExpAwardPrecision()) passed++;
-            if (T17_EncounterRemainsActiveAfterFirstDeath()) passed++;
-            if (T18_EncounterCompletesExactlyOnceAfterFinalDeath()) passed++;
-            if (T19_StopResumeAffectsAllActiveMonsters()) passed++;
-            if (T20_AllEnemiesPolicyResolvesAllLivingRegisteredEnemies()) passed++;
-            if (T21_InvalidAreaAllEnemiesFailsBeforeRageCooldown()) passed++;
-            if (T21_B_ChannelEagerSnapshotExcludesLateRegisteredMonster()) passed++;
-            if (T22_CooldownRejectionCreatesNoChannelAndConsumesNoResources()) passed++;
-            if (T23_RequiredTargetSnapshotFailureConsumesNoResources()) passed++;
-            if (T24_TwoExecutionsDoNotShareSnapshots()) passed++;
-            if (T25_TwoSupportedCastersHaveSeparateSnapshots()) passed++;
-            if (T26_LaterRegisteredMonsterExcludedFromStartedChannel()) passed++;
-            if (T27_LaterPulsesSkipDeadMembersWithoutAddingReplacements()) passed++;
-            if (T28_RageAndCooldownFollowOncePerExecutionContract()) passed++;
-            if (T29_ValidLegacyHeroToMonsterSingleTarget()) passed++;
-            if (T30_ValidLegacyMonsterToHeroSingleTarget()) passed++;
-            if (T31_InvalidFriendlyOrDeadSingleTargetRejected()) passed++;
-            if (T32_UnregisteredAoeTargetRejected()) passed++;
-            if (T33_OldOrExternalMonsterDeathDoesNotAffectEncounter()) passed++;
-            if (T34_MultiEffectSkillFinishingEncounterDoesNotHitNewEncounter()) passed++;
-            if (T35_LootLifecycleContinuesAfterLongModalHold()) passed++;
+            var tests = new List<(string Name, Func<bool> Action)>
+            {
+                ("T01_SingleTargetResultUnchanged", T01_SingleTargetResultUnchanged),
+                ("T02_AreaHitsTwoInRangeEnemies", T02_AreaHitsTwoInRangeEnemies),
+                ("T03_PrimaryIsHitExactlyOnce", T03_PrimaryIsHitExactlyOnce),
+                ("T04_OutOfRadiusEnemyIsUnaffected", T04_OutOfRadiusEnemyIsUnaffected),
+                ("T05_DeadInactiveUnregisteredEnemyIsExcluded", T05_DeadInactiveUnregisteredEnemyIsExcluded),
+                ("T06_MaxTargetCountIsEnforced", T06_MaxTargetCountIsEnforced),
+                ("T07_Ordering_PrimaryDistanceRegistration", T07_Ordering_PrimaryDistanceRegistration),
+                ("T08_NoDuplicateTarget", T08_NoDuplicateTarget),
+                ("T09_EffectExecutesExactlyOncePerResolvedTarget", T09_EffectExecutesExactlyOncePerResolvedTarget),
+                ("T10_RageConsumedOncePerCast", T10_RageConsumedOncePerCast),
+                ("T11_CooldownTriggeredOncePerCast", T11_CooldownTriggeredOncePerCast),
+                ("T12_StatusAppliedIndependentlyToTargets", T12_StatusAppliedIndependentlyToTargets),
+                ("T13_OneImmuneFailedTargetDoesNotCancelAnotherValidTarget", T13_OneImmuneFailedTargetDoesNotCancelAnotherValidTarget),
+                ("T14_HeroCompanionNotHitByHeroArea", T14_HeroCompanionNotHitByHeroArea),
+                ("T15_HeroRetargetsAndAutoCombatContinuesAfterPrimaryDeath", T15_HeroRetargetsAndAutoCombatContinuesAfterPrimaryDeath),
+                ("T16_LootAndExpAwardPrecision", T16_LootAndExpAwardPrecision),
+                ("T17_EncounterRemainsActiveAfterFirstDeath", T17_EncounterRemainsActiveAfterFirstDeath),
+                ("T18_EncounterCompletesExactlyOnceAfterFinalDeath", T18_EncounterCompletesExactlyOnceAfterFinalDeath),
+                ("T19_StopResumeAffectsAllActiveMonsters", T19_StopResumeAffectsAllActiveMonsters),
+                ("T20_AllEnemiesPolicyResolvesAllLivingRegisteredEnemies", T20_AllEnemiesPolicyResolvesAllLivingRegisteredEnemies),
+                ("T21_InvalidAreaAllEnemiesFailsBeforeRageCooldown", T21_InvalidAreaAllEnemiesFailsBeforeRageCooldown),
+                ("T21_B_ChannelEagerSnapshotExcludesLateRegisteredMonster", T21_B_ChannelEagerSnapshotExcludesLateRegisteredMonster),
+                ("T22_CooldownRejectionCreatesNoChannelAndConsumesNoResources", T22_CooldownRejectionCreatesNoChannelAndConsumesNoResources),
+                ("T23_RequiredTargetSnapshotFailureConsumesNoResources", T23_RequiredTargetSnapshotFailureConsumesNoResources),
+                ("T24_TwoExecutionsDoNotShareSnapshots", T24_TwoExecutionsDoNotShareSnapshots),
+                ("T25_TwoSupportedCastersHaveSeparateSnapshots", T25_TwoSupportedCastersHaveSeparateSnapshots),
+                ("T26_LaterRegisteredMonsterExcludedFromStartedChannel", T26_LaterRegisteredMonsterExcludedFromStartedChannel),
+                ("T27_LaterPulsesSkipDeadMembersWithoutAddingReplacements", T27_LaterPulsesSkipDeadMembersWithoutAddingReplacements),
+                ("T28_RageAndCooldownFollowOncePerExecutionContract", T28_RageAndCooldownFollowOncePerExecutionContract),
+                ("T29_ValidLegacyHeroToMonsterSingleTarget", T29_ValidLegacyHeroToMonsterSingleTarget),
+                ("T30_ValidLegacyMonsterToHeroSingleTarget", T30_ValidLegacyMonsterToHeroSingleTarget),
+                ("T31_InvalidFriendlyOrDeadSingleTargetRejected", T31_InvalidFriendlyOrDeadSingleTargetRejected),
+                ("T32_UnregisteredAoeTargetRejected", T32_UnregisteredAoeTargetRejected),
+                ("T33_OldOrExternalMonsterDeathDoesNotAffectEncounter", T33_OldOrExternalMonsterDeathDoesNotAffectEncounter),
+                ("T34_MultiEffectSkillFinishingEncounterDoesNotHitNewEncounter", T34_MultiEffectSkillFinishingEncounterDoesNotHitNewEncounter),
+                ("T35_LootLifecycleContinuesAfterLongModalHold", T35_LootLifecycleContinuesAfterLongModalHold),
+                ("T36_NormalWaveSpawnsExpectedCount_4or5", T36_NormalWaveSpawnsExpectedCount_4or5),
+                ("T37_ConsecutiveThreeWaves_SpawnsAndProgressesCleanly", T37_ConsecutiveThreeWaves_SpawnsAndProgressesCleanly),
+                ("T38_WaveStatGrowth_ExactMultiplierProgression", T38_WaveStatGrowth_ExactMultiplierProgression),
+                ("T39_WaveProgressionIdempotency_NoDoubleScaling", T39_WaveProgressionIdempotency_NoDoubleScaling),
+                ("T40_RecalculateStatsPreservesScaledBaseStats", T40_RecalculateStatsPreservesScaledBaseStats),
+                ("T41_ChannelMidWaveDeathLifecycleAndCleanNextWaveSpawn", T41_ChannelMidWaveDeathLifecycleAndCleanNextWaveSpawn),
+                ("T42_ModalRaceAndHeroDeathDuringTransition", T42_ModalRaceAndHeroDeathDuringTransition),
+                ("T43_CompanionCasterTrackedDuringFinishingExecution", T43_CompanionCasterTrackedDuringFinishingExecution)
+            };
+
+            int passed = 0;
+            int total = tests.Count;
+
+            for (int i = 0; i < tests.Count; i++)
+            {
+                var (name, action) = tests[i];
+                bool res = false;
+                try
+                {
+                    res = action();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[TEST EXCEPTION] {name} threw: {ex.Message}\n{ex.StackTrace}");
+                    res = false;
+                }
+
+                if (res)
+                {
+                    passed++;
+                    Debug.Log($"[{i + 1:D2}/{total}] PASS: {name}");
+                }
+                else
+                {
+                    Debug.LogError($"[{i + 1:D2}/{total}] FAIL: {name}");
+                }
+            }
 
             bool allPass = (passed == total);
             Debug.Log("================================================================================");
@@ -2017,6 +2108,468 @@ namespace WuxiaGame.Editor
             }
             return pass;
         }
+
+        public static bool T36_NormalWaveSpawnsExpectedCount_4or5()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T36", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            var origRandomState = UnityEngine.Random.state;
+            try
+            {
+                bm.RegisterHero(hero);
+
+                // Branch 1: Explicit 4-monster wave
+                bm.PrepareAndStartNormalWave(4);
+                bool count4Ok = (bm.ActiveMonsters.Count == 4);
+                bool all4Alive = true;
+                bool all4DistinctY = true;
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    var m = bm.ActiveMonsters[i];
+                    if (m == null || !m.IsAlive || m.Health == null || m.Health.CurrentHealth <= 0f) all4Alive = false;
+                    if (m != null && Mathf.Abs(m.transform.position.y - (-0.3f)) > 0.001f) all4DistinctY = false;
+                }
+                bool target4Ok = (bm.CurrentMonster == bm.ActiveMonsters[0] && hero.CurrentTarget == bm.ActiveMonsters[0]);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    if (bm.ActiveMonsters[i].CurrentTarget != hero) target4Ok = false;
+                }
+
+                // Branch 2: Explicit 5-monster wave
+                bm.PrepareAndStartNormalWave(5);
+                bool count5Ok = (bm.ActiveMonsters.Count == 5);
+                bool all5Alive = true;
+                bool all5DistinctY = true;
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    var m = bm.ActiveMonsters[i];
+                    if (m == null || !m.IsAlive || m.Health == null || m.Health.CurrentHealth <= 0f) all5Alive = false;
+                    if (m != null && Mathf.Abs(m.transform.position.y - (-0.3f)) > 0.001f) all5DistinctY = false;
+                }
+                bool target5Ok = (bm.CurrentMonster == bm.ActiveMonsters[0] && hero.CurrentTarget == bm.ActiveMonsters[0]);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    if (bm.ActiveMonsters[i].CurrentTarget != hero) target5Ok = false;
+                }
+
+                // Branch 3: Default random pick (must strictly be in {4, 5})
+                bm.PrepareAndStartNormalWave();
+                bool randomBranchOk = (bm.ActiveMonsters.Count == 4 || bm.ActiveMonsters.Count == 5);
+
+                pass = count4Ok && all4Alive && all4DistinctY && target4Ok &&
+                       count5Ok && all5Alive && all5DistinctY && target5Ok &&
+                       randomBranchOk;
+
+                Debug.Log($"[P08 T36] Wave Count Contract: Branch4={count4Ok} (Alive={all4Alive}, Y={all4DistinctY}, Target={target4Ok}), Branch5={count5Ok} (Alive={all5Alive}, Y={all5DistinctY}, Target={target5Ok}), RandomBranch={randomBranchOk} ({bm.ActiveMonsters.Count}) | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                UnityEngine.Random.state = origRandomState;
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T37_ConsecutiveThreeWaves_SpawnsAndProgressesCleanly()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T37", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+
+                // Wave 1
+                bm.PrepareAndStartNormalWave(4);
+                bool w1Ok = (bm.ActiveMonsters.Count == 4 && bm.EncounterIndex == 1 && bm.CompletedNormalWaveCount == 0);
+
+                // Wave 1 defeat via loot path
+                var drop1 = new EquipmentInstance("drop_t37_1", "Helm of Victory", EquipmentSlotType.Helmet, 1, null, new List<AffixInstance>());
+                bm.EnqueuePendingLoot(drop1);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                bool w1LootPending = (bm.CurrentBattleState == BattleState.LootPending && bm.PendingLootItem == drop1);
+                bm.CompleteLootDecisionAndResume(equip: true);
+
+                // Wave 2 starts via loot advance
+                if (bm.CurrentBattleState == BattleState.EncounterTransition)
+                {
+                    typeof(BattleManager).GetMethod("AdvanceEncounterAfterLoot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(bm, null);
+                }
+                bool w2Ok = (bm.ActiveMonsters.Count >= 4 && bm.ActiveMonsters.Count <= 5 && bm.EncounterIndex == 2 && bm.CompletedNormalWaveCount == 1);
+
+                // Wave 2 defeat via non-loot path
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                bm.EndEncounterAndStartNext();
+
+                // Wave 3 starts
+                bool w3Ok = (bm.ActiveMonsters.Count >= 4 && bm.ActiveMonsters.Count <= 5 && bm.EncounterIndex == 3 && bm.CompletedNormalWaveCount == 2);
+
+                pass = w1Ok && w1LootPending && w2Ok && w3Ok;
+                Debug.Log($"[P08 T37] 3 Consecutive Waves: Wave1={w1Ok}, W1LootPending={w1LootPending}, Wave2={w2Ok}, Wave3={w3Ok} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T38_WaveStatGrowth_ExactMultiplierProgression()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T38", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+
+                // Wave 1: Completed=0 -> multiplier = 1.0 (500 / 50 / 10)
+                bm.PrepareAndStartNormalWave(4);
+                bool w1StatsOk = true;
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    var m = bm.ActiveMonsters[i];
+                    if (Mathf.Abs(m.Health.MaxHealth - 500f) > 0.001f) w1StatsOk = false;
+                    if (Mathf.Abs(m.Health.CurrentHealth - 500f) > 0.001f) w1StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Attack) - 50f) > 0.001f) w1StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Defense) - 10f) > 0.001f) w1StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.MoveSpeed) - 3f) > 0.001f) w1StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.AttackInterval) - 2f) > 0.001f) w1StatsOk = false;
+                }
+
+                // Defeat Wave 1
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                bool w1DefeatedOk = (bm.CompletedNormalWaveCount == 1 && Mathf.Abs(bm.NextWaveStatMultiplier - 1.01f) < 0.0001f);
+
+                // Wave 2: Completed=1 -> multiplier = 1.01 (505 / 50.5 / 10.1)
+                bm.PrepareAndStartNormalWave(4);
+                bool w2StatsOk = (bm.CurrentWaveTier == 1 && Mathf.Abs(bm.CurrentWaveStatMultiplier - 1.01f) < 0.0001f);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    var m = bm.ActiveMonsters[i];
+                    if (Mathf.Abs(m.Health.MaxHealth - 505.0f) > 0.001f) w2StatsOk = false;
+                    if (Mathf.Abs(m.Health.CurrentHealth - 505.0f) > 0.001f) w2StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Attack) - 50.5f) > 0.001f) w2StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Defense) - 10.1f) > 0.001f) w2StatsOk = false;
+                }
+
+                // Defeat Wave 2
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                bool w2DefeatedOk = (bm.CompletedNormalWaveCount == 2 && Mathf.Abs(bm.NextWaveStatMultiplier - 1.0201f) < 0.0001f);
+
+                // Wave 3: Completed=2 -> multiplier = 1.0201 (510.05 / 51.005 / 10.201)
+                bm.PrepareAndStartNormalWave(4);
+                bool w3StatsOk = (bm.CurrentWaveTier == 2 && Mathf.Abs(bm.CurrentWaveStatMultiplier - 1.0201f) < 0.0001f);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    var m = bm.ActiveMonsters[i];
+                    if (Mathf.Abs(m.Health.MaxHealth - 510.05f) > 0.001f) w3StatsOk = false;
+                    if (Mathf.Abs(m.Health.CurrentHealth - 510.05f) > 0.001f) w3StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Attack) - 51.005f) > 0.001f) w3StatsOk = false;
+                    if (Mathf.Abs(m.Stats.GetValue(StatType.Defense) - 10.201f) > 0.001f) w3StatsOk = false;
+                }
+
+                pass = w1StatsOk && w1DefeatedOk && w2StatsOk && w2DefeatedOk && w3StatsOk;
+                Debug.Log($"[P08 T38] Stat Growth Formula Verification: W1(500/50/10)={w1StatsOk}, W1Defeat={w1DefeatedOk}, W2(505/50.5/10.1)={w2StatsOk}, W2Defeat={w2DefeatedOk}, W3(510.05/51.005/10.201)={w3StatsOk} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T39_WaveProgressionIdempotency_NoDoubleScaling()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T39", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                // 1. Partial kill (2 of 4) does NOT advance tier
+                bm.ActiveMonsters[0].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                bm.ActiveMonsters[1].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                bool partialKillOk = (bm.CompletedNormalWaveCount == 0);
+
+                // 2. RegisterMonster does NOT advance tier
+                var (extraM_GO, extraM) = CreateMockMonster("ExtraMonster", new Vector3(6f, -0.3f, 0f));
+                bm.RegisterMonster(extraM);
+                bool registerOk = (bm.CompletedNormalWaveCount == 0);
+                bm.UnregisterMonster(extraM);
+                UnityEngine.Object.DestroyImmediate(extraM_GO);
+
+                // 3. RecalculateStats does NOT advance tier
+                bm.ActiveMonsters[2].RecalculateStats();
+                bool recalcOk = (bm.CompletedNormalWaveCount == 0);
+
+                // 4. Pause / Resume does NOT advance tier
+                bm.PauseCombat();
+                bm.ResumeCombat();
+                bool pauseResumeOk = (bm.CompletedNormalWaveCount == 0);
+
+                // 5. Defeat remaining monsters: completed count increments to 1
+                var lastMonster = bm.ActiveMonsters[3];
+                bm.ActiveMonsters[2].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                lastMonster.Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                bool fullKillOk = (bm.CompletedNormalWaveCount == 1);
+
+                // 6. Duplicate death event does NOT increment tier again
+                EventBus.RaiseEntityDied(lastMonster);
+                bool dupDeathOk = (bm.CompletedNormalWaveCount == 1);
+
+                // 7. Multiple sequential loot decisions do NOT increment tier
+                var dropA = new EquipmentInstance("drop_idemp_a", "Item A", EquipmentSlotType.Weapon, 1, null, new List<AffixInstance>());
+                var dropB = new EquipmentInstance("drop_idemp_b", "Item B", EquipmentSlotType.Armor, 1, null, new List<AffixInstance>());
+                bm.EnqueuePendingLoot(dropA);
+                bm.EnqueuePendingLoot(dropB);
+                bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+                bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+                bool multiLootOk = (bm.CompletedNormalWaveCount == 1);
+
+                // 8. Hero death & retry preserves tier without adding a false win
+                hero.Health.TakeDamage(new DamageResult(null, null, 99999f, 99999f, false, false, DamageType.Skill));
+                bool heroDeadState = (bm.CurrentBattleState == BattleState.AwaitingPlayerStart);
+                bm.StartCombatAfterHeroDeath();
+                bool retryPreservesTier = (bm.CompletedNormalWaveCount == 1 && bm.CurrentWaveTier == 1);
+
+                pass = partialKillOk && registerOk && recalcOk && pauseResumeOk && fullKillOk && dupDeathOk && multiLootOk && heroDeadState && retryPreservesTier;
+                Debug.Log($"[P08 T39] Progression Idempotency: PartialKill={partialKillOk}, Register={registerOk}, Recalc={recalcOk}, PauseResume={pauseResumeOk}, FullKill={fullKillOk}, DupDeath={dupDeathOk}, MultiLoot={multiLootOk}, HeroDead={heroDeadState}, RetryPreservedTier={retryPreservesTier} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T40_RecalculateStatsPreservesScaledBaseStats()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T40", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+
+                // Advance to Wave 2 (tier 1: HP=505, Atk=50.5, Def=10.1)
+                bm.PrepareAndStartNormalWave(4);
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                bm.PrepareAndStartNormalWave(4);
+
+                var monster = bm.ActiveMonsters[0];
+                float hpBefore = monster.Health.MaxHealth;
+                float atkBefore = monster.Stats.GetValue(StatType.Attack);
+                float defBefore = monster.Stats.GetValue(StatType.Defense);
+
+                bool initialScaledOk = (Mathf.Abs(hpBefore - 505.0f) < 0.001f && Mathf.Abs(atkBefore - 50.5f) < 0.001f && Mathf.Abs(defBefore - 10.1f) < 0.001f);
+
+                // Recalculate stats: must remain at scaled base!
+                monster.RecalculateStats();
+                float hpAfterRecalc = monster.Health.MaxHealth;
+                float atkAfterRecalc = monster.Stats.GetValue(StatType.Attack);
+                float defAfterRecalc = monster.Stats.GetValue(StatType.Defense);
+
+                bool recalcPreservedOk = (Mathf.Abs(hpAfterRecalc - 505.0f) < 0.001f && Mathf.Abs(atkAfterRecalc - 50.5f) < 0.001f && Mathf.Abs(defAfterRecalc - 10.1f) < 0.001f);
+
+                // Apply temporary Attack buff (+10)
+                monster.Stats.ModifyValue(StatType.Attack, 10f);
+                float atkWithBuff = monster.Stats.GetValue(StatType.Attack);
+                bool buffAppliedOk = (Mathf.Abs(atkWithBuff - 60.5f) < 0.001f);
+
+                // RecalculateStats (buff expiration): must revert to 50.5, NOT wave 1's 50.0!
+                monster.RecalculateStats();
+                float atkAfterBuffExpire = monster.Stats.GetValue(StatType.Attack);
+                bool buffExpiredRevertOk = (Mathf.Abs(atkAfterBuffExpire - 50.5f) < 0.001f);
+
+                // Check that original disk asset was untouched
+                var diskConfig = Resources.Load<MonsterConfigSO>("Data/MonsterConfig");
+#if UNITY_EDITOR
+                if (diskConfig == null) diskConfig = AssetDatabase.LoadAssetAtPath<MonsterConfigSO>("Assets/_Game/Data/MonsterConfig.asset");
+#endif
+                bool diskUntouchedOk = (diskConfig != null && Mathf.Abs(diskConfig.MaxHealth - 500f) < 0.001f && Mathf.Abs(diskConfig.Attack - 50f) < 0.001f && Mathf.Abs(diskConfig.Defense - 10f) < 0.001f);
+
+                pass = initialScaledOk && recalcPreservedOk && buffAppliedOk && buffExpiredRevertOk && diskUntouchedOk;
+                Debug.Log($"[P08 T40] RecalculateStats Preservation: InitialScaled={initialScaledOk}, Preserved={recalcPreservedOk}, BuffApplied={buffAppliedOk}, BuffExpireReverted={buffExpiredRevertOk}, DiskUntouched={diskUntouchedOk} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T41_ChannelMidWaveDeathLifecycleAndCleanNextWaveSpawn()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T41", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            var (mmGO, mm) = CreateMockMindMethodManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                // Defeat first 3 monsters so only 1 monster remains (the FINAL monster of the wave)
+                for (int i = 0; i < 3; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+                var finalMonster = bm.ActiveMonsters[3];
+                hero.SetCurrentTarget(finalMonster);
+
+                // Create channel skill: duration=1.5s, 3 ticks
+                var effect = CreateConfiguredEffect(SkillTargetPolicy.Area, 10f, 0);
+                var skill = CreateConfiguredSkill("skill_t41", effect, rageCost: 20f, cooldown: 5f, isChannel: true, channelDuration: 1.5f, channelTickInterval: 0.5f);
+                RegisterTestSkillToMindMethod(mm, skill, SkillSlotType.Skill);
+
+                hero.Rage.ResetRage(100f);
+                CooldownManager.ResetAllCooldowns();
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, finalMonster);
+                var startResult = SkillExecutor.Execute(req);
+                bool channelStarted = startResult.Success && hero.CastState.IsActive && hero.CastState.CurrentPhase == SkillCastPhase.Channeling;
+
+                // Pulse 1 defeats the final monster
+                finalMonster.Health.TakeDamage(new DamageResult(hero, finalMonster, 1000f, 1000f, false, false, DamageType.Skill));
+
+                // Assertions at final monster death mid-channel:
+                bool canTickDuringTransition = bm.CanEntityTickDuringTransition(hero);
+                bool channelNotAborted = (hero.CastState.IsActive && hero.CastState.CurrentPhase == SkillCastPhase.Channeling);
+                bool nextWaveNotPremature = (bm.EncounterIndex == 1 && bm.ActiveMonsters.Count == 4);
+
+                // Tick channel through completion
+                hero.CastState.Tick(0.6f);
+                hero.CastState.Tick(0.6f);
+                hero.CastState.Tick(0.4f);
+
+                bool channelFinishedCleanly = (hero.CastState.IsFinished || !hero.CastState.IsActive);
+                bool rageConsumedOnce = (hero.Rage.CurrentRage == 80f);
+                bool cooldownActive = CooldownManager.IsOnCooldown(skill.SkillId, out _);
+
+                pass = channelStarted && canTickDuringTransition && channelNotAborted && nextWaveNotPremature && channelFinishedCleanly && rageConsumedOnce && cooldownActive;
+                Debug.Log($"[P08 T41] Channel Final Death Lifecycle: Started={channelStarted}, CanTickDuringTransition={canTickDuringTransition}, ChannelNotAborted={channelNotAborted}, NextWaveNotPremature={nextWaveNotPremature}, Finished={channelFinishedCleanly}, RageOnce={rageConsumedOnce}, Cooldown={cooldownActive} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+                if (mmGO != null) UnityEngine.Object.DestroyImmediate(mmGO);
+                MindMethodManager.ResetInstance();
+            }
+            return pass;
+        }
+
+        public static bool T42_ModalRaceAndHeroDeathDuringTransition()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T42", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                // Kill all monsters to enter transition
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+
+                // In transition state, Hero dies
+                hero.Health.TakeDamage(new DamageResult(null, null, 99999f, 99999f, false, false, DamageType.Skill));
+
+                // Verify lifecycle cancelled immediately and battle state is AwaitingPlayerStart
+                bool heroDeadHandled = (bm.CurrentBattleState == BattleState.AwaitingPlayerStart && !bm.IsBattleActive);
+
+                pass = heroDeadHandled;
+                Debug.Log($"[P08 T42] Hero Death During Transition: AwaitingPlayerStart={heroDeadHandled} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T43_CompanionCasterTrackedDuringFinishingExecution()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T43", new Vector3(-2.2f, -0.3f, 0f));
+            var (compGO, comp) = CreateMockHero("Companion_T43", new Vector3(-3.0f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            var (mmGO, mm) = CreateMockMindMethodManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                // Set companion entity type to Companion
+                var typeF = typeof(Entity).GetField("entityType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (typeF != null) typeF.SetValue(comp, EntityType.Companion);
+
+                var effect = CreateConfiguredEffect(SkillTargetPolicy.Area, 10f, 0);
+                var skill = CreateConfiguredSkill("skill_t43_comp", effect, rageCost: 20f, cooldown: 5f, isChannel: true, channelDuration: 1.5f, channelTickInterval: 0.5f);
+                RegisterTestSkillToMindMethod(mm, skill, SkillSlotType.Skill);
+
+                comp.Rage.ResetRage(100f);
+                var req = new SkillExecutionRequest(comp, skill, SkillSlotType.Skill, bm.ActiveMonsters[0]);
+                var startResult = SkillExecutor.Execute(req);
+
+                // Kill all monsters
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+
+                // Companion should be tracked as finishing caster
+                bool compTracked = bm.CanEntityTickDuringTransition(comp);
+
+                pass = startResult.Success && compTracked;
+                Debug.Log($"[P08 T43] Companion Finishing Execution Tracking: Started={startResult.Success}, Tracked={compTracked} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (compGO != null) UnityEngine.Object.DestroyImmediate(compGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+                if (mmGO != null) UnityEngine.Object.DestroyImmediate(mmGO);
+                MindMethodManager.ResetInstance();
+            }
+            return pass;
+        }
         #endregion
 
         #region Real Play Mode Runner
@@ -2565,15 +3118,15 @@ namespace WuxiaGame.Editor
             currentPhase = "SCENARIO_1_AOE_LOOT_START";
             Debug.Log("[PLAY MODE P08] >>> Starting Scenario 1: Real AOE Combat & Sequential Loot Resolution <<<");
 
-            // 1. Wait for battle active and two monsters registered
-            while ((bm.ActiveMonsters.Count < 2 || bm.CurrentHero == null || !bm.IsBattleActive) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            // 1. Wait for battle active and 4-5 monsters registered
+            while ((bm.ActiveMonsters.Count < 4 || bm.CurrentHero == null || !bm.IsBattleActive) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
-            if (bm.ActiveMonsters.Count < 2 || bm.CurrentHero == null || !bm.IsBattleActive)
+            if (bm.ActiveMonsters.Count < 4 || bm.ActiveMonsters.Count > 5 || bm.CurrentHero == null || !bm.IsBattleActive)
             {
-                Debug.LogError("[PLAY MODE P08] FAIL: Encounter failed to start with two registered monsters!");
+                Debug.LogError($"[PLAY MODE P08] FAIL: Encounter failed to start with 4-5 registered monsters! Count={bm.ActiveMonsters.Count}");
                 DumpDiagnostics(false);
                 PerformRestoration();
                 hasFinished = true;
@@ -2581,12 +3134,19 @@ namespace WuxiaGame.Editor
                 yield break;
             }
 
+            var hero = bm.CurrentHero;
+            bool orderOk = (bm.ActiveMonsters.Count == 4 || bm.ActiveMonsters.Count == 5);
+            bool allAlive = true;
+            bool distinctYMinus03 = true;
+            for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+            {
+                var mon = bm.ActiveMonsters[i];
+                if (mon == null || !mon.IsAlive) allAlive = false;
+                if (mon != null && !Mathf.Approximately(mon.transform.position.y, -0.3f)) distinctYMinus03 = false;
+            }
             var m1 = bm.ActiveMonsters[0];
             var m2 = bm.ActiveMonsters[1];
-            var hero = bm.CurrentHero;
-            bool orderOk = (bm.ActiveMonsters.Count >= 2);
-            bool bothAlive = (m1 != null && m1.IsAlive && m2 != null && m2.IsAlive);
-            Debug.Log($"[PLAY MODE P08] Canonical monsters registered: {orderOk}, Both alive: {bothAlive}");
+            Debug.Log($"[PLAY MODE P08] Canonical wave monsters registered: Count={bm.ActiveMonsters.Count} (orderOk={orderOk}), AllAlive={allAlive}, YMinus03={distinctYMinus03}");
 
             // Take Screenshot 1: 01_TWO_MONSTERS_ALIVE.png
             CaptureScreenshot("01_TWO_MONSTERS_ALIVE.png");
@@ -2596,7 +3156,7 @@ namespace WuxiaGame.Editor
             var mm = MindMethodManager.Instance;
             if (mm != null)
             {
-                _tempAoeEffect = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 10.0f, 0);
+                _tempAoeEffect = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 20.0f, 0);
                 _tempAreaSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
                 _tempAreaSkill.InitializeSkill(
                     id: "skill_p08_playmode_aoe",
@@ -2658,17 +3218,18 @@ namespace WuxiaGame.Editor
             yield return new WaitForSeconds(0.3f);
 
             bool m1Dead = (m1 == null || !m1.IsAlive);
-            bool firstDeathRetargetOk = (m1Dead && bm.CurrentMonster == m2 && hero.CurrentTarget == m2 &&
+            var nextLiving = bm.GetNextLivingMonster();
+            bool firstDeathRetargetOk = (m1Dead && nextLiving != null && bm.CurrentMonster == nextLiving && hero.CurrentTarget == nextLiving &&
                                          bm.IsBattleActive && bm.CurrentBattleState == BattleState.InProgress);
             Debug.Log($"[PLAY MODE P08] First death natural retargeting: M1Dead={m1Dead}, CurrentMonster={bm.CurrentMonster?.EntityName}, HeroTarget={hero.CurrentTarget?.EntityName}, BattleActive={bm.IsBattleActive} | {(firstDeathRetargetOk ? "PASS" : "FAIL")}");
 
             // Take Screenshot 3: 03_RETARGET_AFTER_FIRST_DEATH.png
             CaptureScreenshot("03_RETARGET_AFTER_FIRST_DEATH.png");
 
-            // 5. Natural Auto-Combat to Second Death
-            currentPhase = "SCENARIO_1_COMBAT_SECOND_DEATH";
-            Debug.Log("[PLAY MODE P08] Natural auto-combat progressing to secondary monster defeat...");
-            while (m2 != null && m2.IsAlive && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            // 5. Natural Auto-Combat until FULL wave defeat
+            currentPhase = "SCENARIO_1_COMBAT_FULL_WAVE_DEFEAT";
+            Debug.Log("[PLAY MODE P08] Natural auto-combat progressing to full wave defeat...");
+            while (bm.HasLivingMonster() && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
@@ -2766,24 +3327,45 @@ namespace WuxiaGame.Editor
             Debug.Log("[PLAY MODE P08] Invoking Dismantle button click on modal 2...");
             lootUI.DismantleButton.onClick.Invoke();
 
-            // 8. Wait for modal 2 to close and encounter advance
+            // Resolve any remaining queued drops to let encounter advance naturally
+            while (bm.PendingLootItem != null || bm.PendingLootQueueCount > 0)
+            {
+                yield return new WaitForSeconds(0.2f);
+                if (LootDecisionUI.Instance != null && LootDecisionUI.Instance.IsVisible && LootDecisionUI.Instance.DismantleButton != null && LootDecisionUI.Instance.DismantleButton.interactable)
+                {
+                    LootDecisionUI.Instance.DismantleButton.onClick.Invoke();
+                }
+            }
+
+            // 8. Wait for encounter advance to Encounter 2
             currentPhase = "SCENARIO_1_WAIT_ENCOUNTER_ADVANCE";
             while ((ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount > 0 || bm.EncounterIndex <= initialEncounterIndex) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
-            bool m2Dead = (m2 == null || !m2.IsAlive);
-            bool secondDeathAdvanceOk = (m2Dead && bm.EncounterIndex > initialEncounterIndex);
+            // Wait until new wave in Encounter 2 is ready in InProgress
+            while ((bm.ActiveMonsters.Count < 4 || bm.CurrentBattleState != BattleState.InProgress) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            {
+                yield return null;
+            }
+
+            bool enc2CountOk = (bm.ActiveMonsters.Count == 4 || bm.ActiveMonsters.Count == 5);
+            bool enc2IndexOk = (bm.EncounterIndex == 2);
+            bool enc2CompletedCountOk = (bm.CompletedNormalWaveCount == 1);
+            bool enc2StatMultiplierOk = Mathf.Approximately(bm.CurrentWaveStatMultiplier, 1.01f);
+            bool enc2BaseHpScaled = (bm.ActiveWaveMonsterConfig != null && Mathf.Approximately(bm.ActiveWaveMonsterConfig.MaxHealth, 505f));
+
+            bool secondDeathAdvanceOk = bm.EncounterIndex > initialEncounterIndex && enc2CountOk && enc2IndexOk && enc2CompletedCountOk && enc2StatMultiplierOk && enc2BaseHpScaled;
             bool distinctItemsResolvedOnce = (firstItem != null && secondItem != null && firstItem != secondItem && (firstItemId != secondItemId || firstItemName != secondItemName) && !string.IsNullOrEmpty(firstItemName) && !string.IsNullOrEmpty(secondItemName));
             bool finalModalClosedBeforeAdvance = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount == 0 && ModalCoordinator.Instance.TotalQueuedCount == 0);
-            bool aoeLootScenarioPass = orderOk && bothAlive && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk &&
+            bool aoeLootScenarioPass = orderOk && allAlive && distinctYMinus03 && aoeHitBoth && firstDeathRetargetOk && secondDeathAdvanceOk &&
                                        modal1PreAssertOk && modal2PreAssertOk && distinctItemsResolvedOnce &&
                                        finalModalClosedBeforeAdvance && modal1HeldPast15s && modal1StillActiveAfter16s &&
                                        deferralHeldPast15s && blockingModalActive && secondLootNotPrematurelyShown &&
                                        encounterNotPrematurelyAdvanced;
 
-            Debug.Log($"[PLAY MODE P08] Scenario 1 Summary: AdvanceOk={secondDeathAdvanceOk}, DistinctItems={distinctItemsResolvedOnce} ('{firstItemName}' [{firstItemId}] vs '{secondItemName}' [{secondItemId}]), FinalModalClosed={finalModalClosedBeforeAdvance} | {(aoeLootScenarioPass ? "PASS" : "FAIL")}");
+            Debug.Log($"[PLAY MODE P08] Scenario 1 Summary: AdvanceOk={secondDeathAdvanceOk}, Enc2Count={bm.ActiveMonsters.Count} (CountOk={enc2CountOk}), Enc2Idx={bm.EncounterIndex} (IdxOk={enc2IndexOk}), WaveCount={bm.CompletedNormalWaveCount} (WaveOk={enc2CompletedCountOk}), Mult={bm.CurrentWaveStatMultiplier} (MultOk={enc2StatMultiplierOk}), BaseHp={bm.ActiveWaveMonsterConfig?.MaxHealth} (HpOk={enc2BaseHpScaled}), DistinctItems={distinctItemsResolvedOnce} | {(aoeLootScenarioPass ? "PASS" : "FAIL")}");
 
             // ====================================================================
             // SCENARIO 2: REAL CHANNEL PLAY MODE EVIDENCE (NATURAL UNITY FRAMES)
@@ -2806,11 +3388,35 @@ namespace WuxiaGame.Editor
             bool origHeroAttack = hero.Attack != null ? hero.Attack.IsAttackEnabled : true;
             if (hero.Attack != null) hero.Attack.SetAttackEnabled(false);
 
-            // Clear lingering dead monsters from Scenario 1 before registering fresh channel test monsters
+            // Safely destroy all existing scene monsters from Encounter 2 so they do not linger or re-register via Start()
+            for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+            {
+                var m = bm.ActiveMonsters[i];
+                if (m != null && m.gameObject != null)
+                {
+                    m.DisableEntityActions();
+                    m.SetCurrentTarget(null);
+                    UnityEngine.Object.DestroyImmediate(m.gameObject);
+                }
+            }
             bm.ClearActiveMonsters();
 
+            var lingeringMonsters = UnityEngine.Object.FindObjectsByType<Monster>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < lingeringMonsters.Length; i++)
+            {
+                var sm = lingeringMonsters[i];
+                if (sm != null && sm.gameObject != null)
+                {
+                    sm.DisableEntityActions();
+                    sm.SetCurrentTarget(null);
+                    UnityEngine.Object.DestroyImmediate(sm.gameObject);
+                }
+            }
+            yield return null;
+
             // Setup fresh encounter monsters for channel test
-            // chanM1 has 50 HP so pulse 1's ~109.1 damage defeats it naturally (ZERO forced HP/death)
+            // chanM1 has 50 HP so pulse 1's ~152 damage defeats it naturally (ZERO forced HP/death)
+            // chanM2 has 220 HP so pulse 1 leaves ~68 HP, and pulse 2 defeats it as the FINAL monster of the encounter
             var (chanM1GO, chanM1) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Chan1", new Vector3(2f, 0f, 0f));
             var (chanM2GO, chanM2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Chan2", new Vector3(3f, 0f, 0f));
             var initF = typeof(Monster).GetField("isInitialized", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -2820,13 +3426,19 @@ namespace WuxiaGame.Editor
                 initF.SetValue(chanM2, true);
             }
             chanM1.Health.InitializeHealth(50f, chanM1);
+            chanM2.Health.InitializeHealth(220f, chanM2);
             if (chanM1.Stats != null)
             {
                 chanM1.Stats.SetBaseValue(StatType.Health, 50f);
                 chanM1.Stats.SetBaseValue(StatType.MaxHealth, 50f);
                 chanM1.Stats.SetBaseValue(StatType.Dodge, 0f);
             }
-            if (chanM2.Stats != null) chanM2.Stats.SetBaseValue(StatType.Dodge, 0f);
+            if (chanM2.Stats != null)
+            {
+                chanM2.Stats.SetBaseValue(StatType.Health, 220f);
+                chanM2.Stats.SetBaseValue(StatType.MaxHealth, 220f);
+                chanM2.Stats.SetBaseValue(StatType.Dodge, 0f);
+            }
             if (chanM1.Attack != null) chanM1.Attack.SetAttackEnabled(false);
             if (chanM2.Attack != null) chanM2.Attack.SetAttackEnabled(false);
 
@@ -2906,7 +3518,7 @@ namespace WuxiaGame.Editor
             float chanM2HpP1 = chanM2.Health.CurrentHealth;
             float chanMLateHpP1 = chanMLate.Health.CurrentHealth;
             bool pulse1M1Hit = (chanM1HpP1 <= 0f && !chanM1.IsAlive);
-            bool pulse1M2Hit = (chanM2HpP1 < 500f);
+            bool pulse1M2Hit = (chanM2HpP1 < 220f && chanM2.IsAlive);
             bool lateMonsterExcludedP1 = Mathf.Approximately(chanMLateHpP1, 500f);
 
             // Tech Lead P08 Corrective V2 Invariants:
@@ -2920,19 +3532,25 @@ namespace WuxiaGame.Editor
             bool noEarlyCooldownAtP1 = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
             Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 1: M1HitAndDeadNaturally={pulse1M1Hit} ({chanM1HpP1}), M2Hit={pulse1M2Hit} ({chanM2HpP1}), LateExcluded={lateMonsterExcludedP1} ({chanMLateHpP1}), NotCcInterrupted={notCcInterruptedAtP1}, NotEarlyCompleted={notEarlyCompletedAtP1}, NextEncBlocked={nextEncounterNotSpawnedAtP1}, NoEarlyCd={noEarlyCooldownAtP1}");
 
-            // 4. Progress naturally to Pulse 2 (ticks at 1.0s via natural Unity frames, skips naturally dead M1 without replacement)
+            // Remove late monster now so chanM2 is the SOLE surviving monster in the entire registry for Pulse 2
+            bm.UnregisterMonster(chanMLate);
+            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
+
+            // 4. Progress naturally to Pulse 2 (ticks at 1.0s via natural Unity frames, defeats chanM2 as FINAL monster of encounter)
             while (hero.CastState.ChannelTicksExecuted < 2 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
             float chanM2HpP2 = chanM2.Health.CurrentHealth;
-            float chanMLateHpP2 = chanMLate.Health.CurrentHealth;
-            bool pulse2M2Hit = (chanM2HpP2 < chanM2HpP1);
-            bool lateMonsterStillExcludedP2 = Mathf.Approximately(chanMLateHpP2, 500f);
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 2: M2HitAgain={pulse2M2Hit} ({chanM2HpP2}), LateStillExcludedNoReplacements={lateMonsterStillExcludedP2} ({chanMLateHpP2})");
+            bool pulse2M2HitAndDead = (chanM2HpP2 <= 0f && !chanM2.IsAlive);
+            bool finalMonsterDeadAtP2 = pulse2M2HitAndDead && !bm.HasLivingMonster();
+            bool channelStillActiveDuringTransition = hero.IsCasting && hero.IsChanneling && bm.CanEntityTickDuringTransition(hero);
+            bool nextEncounterBlockedAtP2 = (bm.EncounterIndex == chanStartEncounterIndex);
+            bool noEarlyCooldownAtP2 = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 2: FinalMonsterDefeatedNaturally={finalMonsterDeadAtP2}, ChannelContinuingThroughTransition={channelStillActiveDuringTransition}, NextEncBlocked={nextEncounterBlockedAtP2}, NoEarlyCdAtP2={noEarlyCooldownAtP2}");
 
-            // 5. Natural Channel Completion (completes naturally at 1.5s via natural Unity frames)
+            // 5. Natural Channel Completion (completes naturally at 1.5s via natural Unity frames through transition)
             while (hero.CastState.IsActive && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
@@ -2950,6 +3568,31 @@ namespace WuxiaGame.Editor
             CooldownManager.ResetAllCooldowns();
             hero.CastState.Reset();
             hero.Rage.ResetRage(100f);
+            bm.IsBattleActive = true;
+
+            // Clean up any lingering GameObjects from Execution A
+            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
+            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
+            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
+            bm.ClearActiveMonsters();
+
+            // Spawn fresh targets for Execution B:
+            // - chanMLate at (4, 0, 0) (anchor, in range of B)
+            // - chanM2 at (3, 0, 0) (dist 1.0m <= 2.0m, in range of B)
+            // - chanMOut at (10, 0, 0) (dist 6.0m > 2.0m, out of range of B)
+            (chanMLateGO, chanMLate) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Late_B", new Vector3(4.0f, 0f, 0f));
+            if (initF != null) initF.SetValue(chanMLate, true);
+            chanMLate.Health.InitializeHealth(500f, chanMLate);
+            if (chanMLate.Attack != null) chanMLate.Attack.SetAttackEnabled(false);
+            chanMLate.Stats.SetBaseValue(StatType.Dodge, 0f);
+            bm.RegisterMonster(chanMLate);
+
+            (chanM2GO, chanM2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M2_B", new Vector3(3.0f, 0f, 0f));
+            if (initF != null) initF.SetValue(chanM2, true);
+            chanM2.Health.InitializeHealth(500f, chanM2);
+            if (chanM2.Attack != null) chanM2.Attack.SetAttackEnabled(false);
+            chanM2.Stats.SetBaseValue(StatType.Dodge, 0f);
+            bm.RegisterMonster(chanM2);
 
             // Spawn valid out-of-range target M_Out at (10, 0, 0)
             var (chanMOutGO, chanMOut) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Out", new Vector3(10.0f, 0f, 0f));
@@ -3045,6 +3688,7 @@ namespace WuxiaGame.Editor
             CooldownManager.ResetAllCooldowns();
             hero.CastState.Reset();
             hero.Rage.ResetRage(100f);
+            bm.IsBattleActive = true;
 
             // Caster 1: hero at (0, 0, 0)
             var caster1 = hero;
@@ -3229,7 +3873,8 @@ namespace WuxiaGame.Editor
                                        snapshotBelongsToExecution && pulse1M1Hit && pulse1M2Hit &&
                                        lateMonsterExcludedP1 && notCcInterruptedAtP1 && notEarlyCompletedAtP1 &&
                                        nextEncounterNotSpawnedAtP1 && noEarlyCooldownAtP1 &&
-                                       pulse2M2Hit && lateMonsterStillExcludedP2 &&
+                                       pulse2M2HitAndDead && finalMonsterDeadAtP2 && channelStillActiveDuringTransition &&
+                                       nextEncounterBlockedAtP2 && noEarlyCooldownAtP2 &&
                                        channelFinishedNaturally && rageStillPreservedAtEnd &&
                                        cooldownTriggeredOnCompletion && bScenarioPass && separateCastersPass;
 
@@ -3415,25 +4060,28 @@ namespace WuxiaGame.Editor
             var bm = BattleManager.Instance;
             var hero = bm != null ? bm.CurrentHero : null;
 
-            GUILayout.BeginArea(new Rect(10, 10, 480, 420), "P08 Verification Observer", GUI.skin.window);
-            GUILayout.Label($"Encounter: {(bm != null ? bm.EncounterIndex.ToString() : "N/A")} | BattleState: {(bm != null ? bm.CurrentBattleState.ToString() : "N/A")}");
-            GUILayout.Label($"Hero Casting: {(hero != null && hero.IsCasting)} | Channeling: {(hero != null && hero.IsChanneling)}");
-            if (hero != null && hero.CastState != null)
+            GUILayout.BeginArea(new Rect(10, 10, 520, 520), "P08 Manual Direct Verification Observer", GUI.skin.window);
+            GUILayout.Label($"<b>Wave ID:</b> {(bm != null ? bm.CurrentWaveId.ToString() : "N/A")} | <b>Encounter:</b> {(bm != null ? bm.EncounterIndex.ToString() : "N/A")} | <b>State:</b> {(bm != null ? bm.CurrentBattleState.ToString() : "N/A")}");
+            GUILayout.Label($"<b>Monster Counts:</b> Expected={(bm != null ? bm.LastWaveMonsterCount.ToString() : "N/A")} | Registered={(bm != null ? bm.ActiveMonsters.Count.ToString() : "N/A")} | Living={(bm != null ? bm.GetLivingMonsterCount().ToString() : "N/A")}");
+            GUILayout.Label($"<b>Wave Tier:</b> Current={(bm != null ? bm.CurrentWaveTier.ToString() : "N/A")} (x{(bm != null ? bm.CurrentWaveStatMultiplier.ToString("F4") : "1.0000")}) | Next={(bm != null ? bm.CompletedNormalWaveCount.ToString() : "N/A")} (x{(bm != null ? bm.NextWaveStatMultiplier.ToString("F4") : "1.0000")})");
+            
+            var cfg = bm != null ? bm.ActiveWaveMonsterConfig : null;
+            GUILayout.Label($"<b>Spawn Base Stats:</b> HP={(cfg != null ? cfg.MaxHealth.ToString("F1") : "500.0")} | ATK={(cfg != null ? cfg.Attack.ToString("F2") : "50.00")} | DEF={(cfg != null ? cfg.Defense.ToString("F2") : "10.00")}");
+            
+            float rage = hero != null && hero.Rage != null ? hero.Rage.CurrentRage : 0f;
+            GUILayout.Label($"<b>Hero State:</b> Rage={rage:F1} | Casting={(hero != null && hero.IsCasting)} | Channeling={(hero != null && hero.IsChanneling)} | TransitionTick={(bm != null && hero != null && bm.CanEntityTickDuringTransition(hero))}");
+            if (hero != null && hero.CastState != null && hero.IsCasting)
             {
-                GUILayout.Label($"Cast Phase: {hero.CastState.CurrentPhase} | Elapsed: {hero.CastState.ElapsedChannelTime:F2}s / {hero.CastState.ChannelDuration:F2}s");
-                GUILayout.Label($"Ticks Executed: {hero.CastState.ChannelTicksExecuted} | InterruptSource: {hero.CastState.InterruptSource}");
+                GUILayout.Label($"<b>Cast Details:</b> Phase={hero.CastState.CurrentPhase} | Elapsed={hero.CastState.ElapsedChannelTime:F2}s / {hero.CastState.ChannelDuration:F2}s | Ticks={hero.CastState.ChannelTicksExecuted}");
             }
-            GUILayout.Label($"Pending Loot: {(bm != null && bm.PendingLootItem != null ? bm.PendingLootItem.ItemName : "None")}");
-            GUILayout.Label($"Loot Queue: {(bm != null ? bm.PendingLootQueueCount.ToString() : "0")}");
-            var coord = ModalCoordinator.Instance;
-            GUILayout.Label($"Blocking Modals: {(coord != null ? coord.ActiveBlockingModalCount.ToString() : "0")}");
+            GUILayout.Label($"<b>Loot State:</b> Pending={(bm != null && bm.PendingLootItem != null ? bm.PendingLootItem.ItemName : "None")} | Queue={(bm != null ? bm.PendingLootQueueCount.ToString() : "0")} | Modals={(ModalCoordinator.Instance != null ? ModalCoordinator.Instance.ActiveBlockingModalCount.ToString() : "0")}");
 
-            GUILayout.Space(10);
-            GUILayout.Label("Recent Observer Events (saved to manual_direct_test.log):");
-            int start = Mathf.Max(0, _eventsLog.Count - 6);
+            GUILayout.Space(8);
+            GUILayout.Label("<b>Recent Events</b> (logged to <i>manual_direct_test.log</i>):");
+            int start = Mathf.Max(0, _eventsLog.Count - 5);
             for (int i = start; i < _eventsLog.Count; i++)
             {
-                GUILayout.Label(_eventsLog[i]);
+                GUILayout.Label("<size=10>" + _eventsLog[i] + "</size>");
             }
             GUILayout.EndArea();
         }

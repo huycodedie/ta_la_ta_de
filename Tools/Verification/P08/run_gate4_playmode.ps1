@@ -5,7 +5,7 @@ $ErrorActionPreference = "Continue"
 
 $projectRoot = "E:\code\TLTD"
 $runId = Get-Date -Format "yyyyMMdd_HHmmss"
-$reviewPkgDir = "$projectRoot\review_package_p08_corrective_v2"
+$reviewPkgDir = "$projectRoot\review_package_p08_normal_wave_stat_growth"
 $runOutputDir = "$reviewPkgDir\runs\run_$runId"
 $archiveDir = "$projectRoot\.logs_archive"
 $logFile = "$projectRoot\gate4_playmode_scenario.log"

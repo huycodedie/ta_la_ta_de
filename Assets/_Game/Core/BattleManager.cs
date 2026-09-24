@@ -32,6 +32,46 @@ namespace WuxiaGame.Core
         private readonly Dictionary<Entity, WuxiaGame.Combat.SkillExecutionRequest> _finishingCasters = new();
         private int _finishingEncounterIndex = 0;
 
+        // P08 Normal Wave Spawning & Exponential Stat Growth State
+        private int _completedNormalWaveCount = 0;
+        public int CompletedNormalWaveCount => _completedNormalWaveCount;
+
+        private int _currentWaveId = 0;
+        public int CurrentWaveId => _currentWaveId;
+
+        private int _lastCompletedWaveId = -1;
+
+        private int _currentWaveTier = 0;
+        public int CurrentWaveTier => _currentWaveTier;
+
+        private float _currentWaveStatMultiplier = 1.0f;
+        public float CurrentWaveStatMultiplier => _currentWaveStatMultiplier;
+
+        public float NextWaveStatMultiplier => Mathf.Pow(1.01f, _completedNormalWaveCount);
+
+        private int _lastWaveMonsterCount = 0;
+        public int LastWaveMonsterCount => _lastWaveMonsterCount;
+
+        private MonsterConfigSO _activeWaveMonsterConfig;
+        public MonsterConfigSO ActiveWaveMonsterConfig => _activeWaveMonsterConfig;
+
+        public static readonly Vector3[] WaveSpawnPositions5 = new Vector3[]
+        {
+            new Vector3(2.2f, -0.3f, 0f),
+            new Vector3(3.0f, -0.3f, 0f),
+            new Vector3(3.8f, -0.3f, 0f),
+            new Vector3(4.6f, -0.3f, 0f),
+            new Vector3(5.4f, -0.3f, 0f)
+        };
+
+        public static readonly Vector3[] WaveSpawnPositions4 = new Vector3[]
+        {
+            new Vector3(2.2f, -0.3f, 0f),
+            new Vector3(3.2f, -0.3f, 0f),
+            new Vector3(4.2f, -0.3f, 0f),
+            new Vector3(5.2f, -0.3f, 0f)
+        };
+
         public bool CanEntityTickDuringTransition(Entity entity)
         {
             if (isCombatPausedByUI) return false;
@@ -67,7 +107,7 @@ namespace WuxiaGame.Core
         public Hero CurrentHero => currentHero;
         public Monster CurrentMonster => currentMonster;
         public int EncounterIndex { get; private set; } = 1;
-        public bool IsBattleActive { get; private set; }
+        public bool IsBattleActive { get; set; }
         public bool IsAutoBattle => isAutoBattle;
 
         public int GetRegistrationOrder(Monster monster)
@@ -95,6 +135,69 @@ namespace WuxiaGame.Core
             return GetNextLivingMonster() != null;
         }
 
+        public int GetLivingMonsterCount()
+        {
+            int count = 0;
+            for (int i = 0; i < activeMonsters.Count; i++)
+            {
+                var m = activeMonsters[i];
+                if (m != null && m.gameObject.activeInHierarchy && m.IsAlive && m.Health != null && m.Health.CurrentHealth > 0f)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        public bool IsWaveFullyDefeated()
+        {
+            if (activeMonsters.Count == 0) return false;
+
+            for (int i = 0; i < activeMonsters.Count; i++)
+            {
+                var m = activeMonsters[i];
+                if (m == null) continue;
+                if (m.IsAlive && m.Health != null && m.Health.CurrentHealth > 0f)
+                {
+                    return false;
+                }
+                if (!_processedDeaths.Contains(m))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public void DeactivateAmbientSceneMonsters()
+        {
+            var allSceneMonsters = Object.FindObjectsByType<Monster>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < allSceneMonsters.Length; i++)
+            {
+                var sm = allSceneMonsters[i];
+                if (sm != null && !activeMonsters.Contains(sm))
+                {
+                    sm.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        public void ResetWaveProgression()
+        {
+            _completedNormalWaveCount = 0;
+            _lastCompletedWaveId = -1;
+            _currentWaveTier = 0;
+            _currentWaveStatMultiplier = 1.0f;
+            _lastWaveMonsterCount = 0;
+            _currentWaveId = 0;
+            if (_activeWaveMonsterConfig != null)
+            {
+                if (Application.isPlaying) Destroy(_activeWaveMonsterConfig);
+                else DestroyImmediate(_activeWaveMonsterConfig);
+                _activeWaveMonsterConfig = null;
+            }
+        }
+
         public void SetAutoBattle(bool enabled)
         {
             if (isAutoBattle != enabled)
@@ -115,6 +218,8 @@ namespace WuxiaGame.Core
             Instance = this;
             LoadConfigsIfMissing();
             ClearActiveMonsters();
+            EventBus.OnEntityDied -= HandleEntityDied;
+            EventBus.OnEntityDied += HandleEntityDied;
         }
 
         public int PendingLootQueueCount => _pendingLootQueue.Count;
@@ -128,44 +233,13 @@ namespace WuxiaGame.Core
             }
             Instance = this;
             LoadConfigsIfMissing();
-            EstablishCanonicalEncounterMonsters();
+            DeactivateAmbientSceneMonsters();
         }
 
         public void EstablishCanonicalEncounterMonsters()
         {
             if (activeMonsters.Count > 0) return;
-
-            // 1. Spawn/obtain primary monster
-            Monster primary = currentMonster;
-            if (primary == null)
-            {
-                var pObj = GameObject.Find("Monster_Wild");
-                if (pObj != null) primary = pObj.GetComponent<Monster>();
-            }
-            if (primary != null)
-            {
-                RegisterMonster(primary);
-            }
-
-            // 2. Spawn/obtain secondary monster
-            var sObj = GameObject.Find("Monster_Wild_2");
-            Monster secondary = sObj != null ? sObj.GetComponent<Monster>() : null;
-            if (secondary != null)
-            {
-#if UNITY_EDITOR
-                if (Application.isPlaying || UnityEditor.SessionState.GetBool("RunP08PlayModeScenario", false))
-                {
-                    sObj.SetActive(true);
-                    RegisterMonster(secondary);
-                }
-                else
-                {
-                    sObj.SetActive(false);
-                }
-#else
-                RegisterMonster(secondary);
-#endif
-            }
+            PrepareAndStartNormalWave();
         }
 
         private void OnEnable()
@@ -183,6 +257,12 @@ namespace WuxiaGame.Core
         private void OnDestroy()
         {
             CancelLootLifecycle();
+            if (_activeWaveMonsterConfig != null)
+            {
+                if (Application.isPlaying) Destroy(_activeWaveMonsterConfig);
+                else DestroyImmediate(_activeWaveMonsterConfig);
+                _activeWaveMonsterConfig = null;
+            }
             if (Instance == this)
             {
                 Instance = null;
@@ -277,12 +357,141 @@ namespace WuxiaGame.Core
             currentMonster = null;
         }
 
+        public void PrepareAndStartNormalWave(int monsterCount = 0)
+        {
+            CancelLootLifecycle();
+            LoadConfigsIfMissing();
+            EventBus.OnEntityDied -= HandleEntityDied;
+            EventBus.OnEntityDied += HandleEntityDied;
+
+            // 1. Safely clean up previous wave monsters
+            for (int i = 0; i < activeMonsters.Count; i++)
+            {
+                var m = activeMonsters[i];
+                if (m != null && m.gameObject != null)
+                {
+                    m.DisableEntityActions();
+                    m.SetCurrentTarget(null);
+                    if (Application.isPlaying) Destroy(m.gameObject);
+                    else DestroyImmediate(m.gameObject);
+                }
+            }
+            activeMonsters.Clear();
+            _processedDeaths.Clear();
+            currentMonster = null;
+
+            // 2. Clean up previous runtime monster config if exists
+            if (_activeWaveMonsterConfig != null)
+            {
+                if (Application.isPlaying) Destroy(_activeWaveMonsterConfig);
+                else DestroyImmediate(_activeWaveMonsterConfig);
+                _activeWaveMonsterConfig = null;
+            }
+
+            // 3. Deactivate any unmanaged ambient scene monsters
+            DeactivateAmbientSceneMonsters();
+
+            // 4. Update wave ID
+            _currentWaveId++;
+
+            // 5. Invariant tier & multiplier for this wave
+            _currentWaveTier = _completedNormalWaveCount;
+            _currentWaveStatMultiplier = Mathf.Pow(1.01f, _currentWaveTier);
+
+            // 6. Create scaled runtime MonsterConfigSO clone
+            _activeWaveMonsterConfig = ScriptableObject.Instantiate(defaultMonsterConfig);
+            _activeWaveMonsterConfig.name = $"MonsterConfig_Wave_{_currentWaveId}_Tier{_currentWaveTier}_x{_currentWaveStatMultiplier:F4}";
+            _activeWaveMonsterConfig.hideFlags = HideFlags.DontSave;
+            _activeWaveMonsterConfig.InitializeMonsterConfig(
+                defaultMonsterConfig.MonsterName,
+                defaultMonsterConfig.MaxHealth * _currentWaveStatMultiplier,
+                defaultMonsterConfig.Attack * _currentWaveStatMultiplier,
+                defaultMonsterConfig.Defense * _currentWaveStatMultiplier,
+                defaultMonsterConfig.MovementSpeed,
+                defaultMonsterConfig.AttackInterval,
+                defaultMonsterConfig.AttackRange,
+                defaultMonsterConfig.ExpReward
+            );
+
+            // 7. Choose count in {4, 5}
+            int count = (monsterCount == 4 || monsterCount == 5) ? monsterCount : Random.Range(4, 6);
+            _lastWaveMonsterCount = count;
+            Vector3[] spawnPositions = count == 5 ? WaveSpawnPositions5 : WaveSpawnPositions4;
+
+            if (currentHero == null)
+            {
+                currentHero = Object.FindAnyObjectByType<Hero>();
+            }
+
+            // 8. Spawn, initialize, and register all wave monsters
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 pos = i < spawnPositions.Length ? spawnPositions[i] : new Vector3(2.2f + i * 0.8f, -0.3f, 0f);
+                GameObject monsterGO = new GameObject($"Monster_Wave_{_currentWaveId}_{i + 1}");
+                monsterGO.transform.position = pos;
+                monsterGO.transform.localScale = new Vector3(1.1f, 1.1f, 1f);
+
+                SpriteRenderer sr = monsterGO.AddComponent<SpriteRenderer>();
+                sr.sprite = UIProceduralTextureFactory.GetMonsterStandeeSprite();
+                sr.color = Color.white;
+                sr.sortingOrder = 10;
+                sr.flipX = true;
+
+                Monster monster = monsterGO.AddComponent<Monster>();
+                monster.InitializeMonster(_activeWaveMonsterConfig, defaultCombatConfig);
+
+                RegisterMonster(monster);
+                EventBus.RaiseEntitySpawned(monster);
+            }
+
+            // 9. Assign targets before enabling combat
+            if (activeMonsters.Count > 0)
+            {
+                currentMonster = activeMonsters[0];
+            }
+
+            if (currentHero != null)
+            {
+                currentHero.SetCurrentTarget(currentMonster);
+            }
+
+            for (int i = 0; i < activeMonsters.Count; i++)
+            {
+                var m = activeMonsters[i];
+                if (m != null && m.IsAlive && currentHero != null)
+                {
+                    m.SetCurrentTarget(currentHero);
+                }
+            }
+
+            // 10. Enable entity actions
+            if (currentHero != null)
+            {
+                currentHero.EnableEntityActions();
+            }
+
+            for (int i = 0; i < activeMonsters.Count; i++)
+            {
+                var m = activeMonsters[i];
+                if (m != null && m.IsAlive)
+                {
+                    m.EnableEntityActions();
+                }
+            }
+
+            // 11. Enter combat state
+            IsBattleActive = true;
+            CurrentBattleState = BattleState.InProgress;
+            EventBus.RaiseBattleStateChanged(BattleState.InProgress);
+
+            Debug.Log($"[WAVE START] Wave #{_currentWaveId} (Encounter #{EncounterIndex}, Tier {_currentWaveTier}) Started with {activeMonsters.Count} monsters. StatMultiplier: {_currentWaveStatMultiplier:F6}. Base HP: {_activeWaveMonsterConfig.MaxHealth:F2}, Atk: {_activeWaveMonsterConfig.Attack:F3}, Def: {_activeWaveMonsterConfig.Defense:F3}");
+        }
+
         public void StartBattle()
         {
             CancelLootLifecycle();
             if (Instance == null) Instance = this;
             LoadConfigsIfMissing();
-            IsBattleActive = true;
             EventBus.OnEntityDied -= HandleEntityDied;
             EventBus.OnEntityDied += HandleEntityDied;
 
@@ -291,30 +500,20 @@ namespace WuxiaGame.Core
                 currentHero = Object.FindAnyObjectByType<Hero>();
             }
 
-            // Establish explicit canonical encounter registration order
+            // If combat already active and valid, don't recreate wave
+            if (IsBattleActive && CurrentBattleState == BattleState.InProgress && activeMonsters.Count > 0 && HasLivingMonster())
+            {
+                return;
+            }
+
+            // Production wave creation
             if (activeMonsters.Count == 0)
             {
-                EstablishCanonicalEncounterMonsters();
-
-                if (activeMonsters.Count == 0)
-                {
-                    Monster primary = SpawnMonster(position: new Vector3(2.2f, -0.3f, 0f));
-#if UNITY_EDITOR
-                    if (Application.isPlaying || UnityEditor.SessionState.GetBool("RunP08PlayModeScenario", false))
-                    {
-                        Monster secondary = SpawnMonster(position: new Vector3(3.8f, -0.3f, 0f));
-                    }
-#endif
-                }
+                PrepareAndStartNormalWave();
+                return;
             }
 
-            for (int i = 0; i < activeMonsters.Count; i++)
-            {
-                var m = activeMonsters[i];
-                string role = i == 0 ? "primary" : (i == 1 ? "secondary" : $"monster_{i}");
-                Debug.Log($"RegistrationOrder[{i}] = {role} ({(m != null ? m.EntityName : "null")})");
-            }
-
+            // If a unit test pre-registered fixture monsters into activeMonsters:
             if (currentMonster == null && activeMonsters.Count > 0)
             {
                 currentMonster = activeMonsters[0];
@@ -324,6 +523,11 @@ namespace WuxiaGame.Core
             {
                 currentHero.EnableEntityActions();
                 if (currentMonster != null) currentHero.SetCurrentTarget(currentMonster);
+            }
+
+            if (_currentWaveId <= 0)
+            {
+                _currentWaveId = 1;
             }
 
             for (int i = 0; i < activeMonsters.Count; i++)
@@ -336,17 +540,7 @@ namespace WuxiaGame.Core
                 }
             }
 
-            Debug.Log($"[REAL PLAY TEST]\nEncounter #{EncounterIndex} START\nHero HP: {(currentHero != null && currentHero.Health != null ? currentHero.Health.CurrentHealth.ToString("F2") : "1000.00")}\nMonster HP: {(currentMonster != null && currentMonster.Health != null ? currentMonster.Health.CurrentHealth.ToString("F2") : "500.00")}");
-            Debug.Log($"[ENCOUNTER] Monster #{EncounterIndex} Started");
-            if (currentMonster != null && currentMonster.Health != null)
-            {
-                Debug.Log($"[HP] Monster HP: {currentMonster.Health.CurrentHealth:F2} / {currentMonster.Health.MaxHealth:F2}");
-            }
-            if (currentHero != null && currentHero.Health != null)
-            {
-                Debug.Log($"[HP] Hero HP: {currentHero.Health.CurrentHealth:F2} / {currentHero.Health.MaxHealth:F2}");
-            }
-
+            IsBattleActive = true;
             CurrentBattleState = BattleState.InProgress;
             EventBus.RaiseBattleStateChanged(BattleState.InProgress);
             Debug.Log("[BattleManager] Battle Started!");
@@ -355,7 +549,7 @@ namespace WuxiaGame.Core
         public Monster SpawnMonster(MonsterConfigSO config = null, Vector3? position = null)
         {
             LoadConfigsIfMissing();
-            MonsterConfigSO cfg = config != null ? config : defaultMonsterConfig;
+            MonsterConfigSO cfg = config != null ? config : (_activeWaveMonsterConfig != null ? _activeWaveMonsterConfig : defaultMonsterConfig);
             Vector3 pos = position.HasValue ? position.Value : monsterSpawnPosition;
 
             Debug.Log($"[COMBAT] Spawning Monster #{EncounterIndex}");
@@ -388,24 +582,6 @@ namespace WuxiaGame.Core
                     currentHero.SetCurrentTarget(monster);
                 }
             }
-            float curHp = monster.Health != null ? monster.Health.CurrentHealth : 0f;
-            float maxHp = monster.Health != null ? monster.Health.MaxHealth : 0f;
-
-            Debug.Log($"[MONSTER LIFECYCLE]\nSpawned:\nEncounterIndex={EncounterIndex}\nHP={curHp:F0}/{maxHp:F0}\nTarget={(monster.CurrentTarget != null ? monster.CurrentTarget.EntityName : "None")}\nCombatReady={monster.CombatReady}");
-            if (currentHero != null)
-            {
-                Debug.Log($"[MONSTER TARGET]\nMonster #{EncounterIndex} -> Hero\nTargetValid: {monster.CurrentTarget != null && monster.CurrentTarget.IsAlive}");
-            }
-
-            Debug.Log($"[COMBAT] Monster #{EncounterIndex} SPAWNED");
-            if (currentHero != null)
-            {
-                Debug.Log($"[COMBAT] Monster #{EncounterIndex} Target = {currentHero.EntityName}");
-            }
-            Debug.Log($"[COMBAT] Monster #{EncounterIndex} Combat State = READY");
-
-            Debug.Log($"[COMBAT] Monster #{EncounterIndex} HP = {curHp:F0} / {maxHp:F0}");
-            Debug.Log($"[COMBAT] CurrentTarget = Monster #{EncounterIndex}");
 
             EventBus.RaiseEntitySpawned(monster);
             return monster;
@@ -413,56 +589,16 @@ namespace WuxiaGame.Core
 
         public void EndEncounterAndStartNext()
         {
-            Debug.Log($"[ENCOUNTER] Monster #{EncounterIndex} Defeated");
-            Debug.Log($"[REAL PLAY TEST]\nMonster #{EncounterIndex} DEAD");
+            Debug.Log($"[ENCOUNTER] Wave #{_currentWaveId} Defeated");
+            Debug.Log($"[REAL PLAY TEST]\nWave #{_currentWaveId} DEAD");
 
             if (currentHero != null)
             {
                 currentHero.SetCurrentTarget(null);
             }
 
-            // Clean up dead monsters in activeMonsters
-            for (int i = 0; i < activeMonsters.Count; i++)
-            {
-                var m = activeMonsters[i];
-                if (m != null && m.gameObject != null)
-                {
-                    if (Application.isPlaying)
-                    {
-                        Destroy(m.gameObject);
-                    }
-                    else
-                    {
-                        DestroyImmediate(m.gameObject);
-                    }
-                }
-            }
-            activeMonsters.Clear();
-            _processedDeaths.Clear();
-            currentMonster = null;
-
             EncounterIndex++;
-
-            Monster nextMonster = SpawnMonster();
-
-            if (currentHero != null)
-            {
-                currentHero.EnableEntityActions();
-                currentHero.SetCurrentTarget(nextMonster);
-            }
-
-            if (nextMonster != null)
-            {
-                nextMonster.EnableEntityActions();
-                if (currentHero != null) nextMonster.SetCurrentTarget(currentHero);
-            }
-
-            Debug.Log($"[REAL PLAY TEST]\nEncounter #{EncounterIndex} START\nHero HP: {(currentHero != null && currentHero.Health != null ? currentHero.Health.CurrentHealth.ToString("F2") : "1000.00")}\nMonster HP: {(nextMonster != null && nextMonster.Health != null ? nextMonster.Health.CurrentHealth.ToString("F2") : "500.00")}");
-            Debug.Log($"[COMBAT] Encounter #{EncounterIndex} START");
-
-            IsBattleActive = true;
-            CurrentBattleState = BattleState.InProgress;
-            EventBus.RaiseBattleStateChanged(BattleState.InProgress);
+            PrepareAndStartNormalWave();
         }
 
         public void RestartBattle()
@@ -470,25 +606,8 @@ namespace WuxiaGame.Core
             CancelLootLifecycle();
             Debug.Log("[BattleManager] Restarting combat encounter (Preserving persistent hero progression)...");
 
-            for (int i = 0; i < activeMonsters.Count; i++)
-            {
-                var m = activeMonsters[i];
-                if (m != null)
-                {
-                    m.DisableEntityActions();
-                    m.SetCurrentTarget(null);
-                    if (m.gameObject != null)
-                    {
-                        if (Application.isPlaying) Destroy(m.gameObject);
-                        else DestroyImmediate(m.gameObject);
-                    }
-                }
-            }
-            activeMonsters.Clear();
-            _processedDeaths.Clear();
             _pendingLootQueue.Clear();
             pendingLootItem = null;
-            currentMonster = null;
 
             if (currentHero != null)
             {
@@ -499,25 +618,8 @@ namespace WuxiaGame.Core
                 }
             }
 
-            Monster nextMonster = SpawnMonster();
-
-            if (currentHero != null)
-            {
-                currentHero.EnableEntityActions();
-                currentHero.SetCurrentTarget(nextMonster);
-            }
-
-            if (nextMonster != null)
-            {
-                nextMonster.EnableEntityActions();
-                if (currentHero != null) nextMonster.SetCurrentTarget(currentHero);
-            }
-
-            Debug.Log($"[COMBAT] Encounter #{EncounterIndex} START");
-
-            IsBattleActive = true;
-            CurrentBattleState = BattleState.InProgress;
-            EventBus.RaiseBattleStateChanged(BattleState.InProgress);
+            int retryCount = _lastWaveMonsterCount > 0 ? _lastWaveMonsterCount : 0;
+            PrepareAndStartNormalWave(retryCount);
         }
 
         public BattleState CurrentBattleState { get; private set; } = BattleState.None;
@@ -560,6 +662,11 @@ namespace WuxiaGame.Core
                 return false;
             }
 
+            if (IsBattleActive && CurrentBattleState == BattleState.InProgress && HasLivingMonster())
+            {
+                return true;
+            }
+
             Debug.Log("[RESUME] Resume conditions validated");
             LoadConfigsIfMissing();
 
@@ -570,50 +677,40 @@ namespace WuxiaGame.Core
 
             if (activeMonsters.Count == 0 || !HasLivingMonster())
             {
+                int retryCount = _lastWaveMonsterCount > 0 ? _lastWaveMonsterCount : 0;
+                PrepareAndStartNormalWave(retryCount);
+            }
+            else
+            {
+                Monster targetMonster = GetNextLivingMonster();
+                currentMonster = targetMonster;
+
+                if (currentHero != null)
+                {
+                    currentHero.EnableEntityActions();
+                    if (currentMonster != null) currentHero.SetCurrentTarget(currentMonster);
+                    Debug.Log("[RESUME] Hero combat re-enabled");
+                }
+
                 for (int i = 0; i < activeMonsters.Count; i++)
                 {
                     var m = activeMonsters[i];
-                    if (m != null && m.gameObject != null)
+                    if (m != null && m.IsAlive)
                     {
-                        if (Application.isPlaying) Destroy(m.gameObject);
-                        else DestroyImmediate(m.gameObject);
+                        m.EnableEntityActions();
+                        if (currentHero != null) m.SetCurrentTarget(currentHero);
                     }
                 }
-                activeMonsters.Clear();
-                _processedDeaths.Clear();
-                currentMonster = null;
 
-                SpawnMonster();
+                Debug.Log("[RESUME] Monster combat re-enabled");
+                Debug.Log("[RESUME] Target references rebuilt");
+
+                IsBattleActive = true;
+                CurrentBattleState = BattleState.InProgress;
+                EventBus.OnEntityDied -= HandleEntityDied;
+                EventBus.OnEntityDied += HandleEntityDied;
+                EventBus.RaiseBattleStateChanged(BattleState.InProgress);
             }
-
-            Monster targetMonster = GetNextLivingMonster();
-            currentMonster = targetMonster;
-
-            if (currentHero != null)
-            {
-                currentHero.EnableEntityActions();
-                if (currentMonster != null) currentHero.SetCurrentTarget(currentMonster);
-                Debug.Log("[RESUME] Hero combat re-enabled");
-            }
-
-            for (int i = 0; i < activeMonsters.Count; i++)
-            {
-                var m = activeMonsters[i];
-                if (m != null && m.IsAlive)
-                {
-                    m.EnableEntityActions();
-                    if (currentHero != null) m.SetCurrentTarget(currentHero);
-                }
-            }
-
-            Debug.Log("[RESUME] Monster combat re-enabled");
-            Debug.Log("[RESUME] Target references rebuilt");
-
-            IsBattleActive = true;
-            CurrentBattleState = BattleState.InProgress;
-            EventBus.OnEntityDied -= HandleEntityDied;
-            EventBus.OnEntityDied += HandleEntityDied;
-            EventBus.RaiseBattleStateChanged(BattleState.InProgress);
 
             Debug.Log("[COMBAT] Combat resumed");
             return true;
@@ -632,8 +729,6 @@ namespace WuxiaGame.Core
 
         private void HandleEntityDied(Entity entity)
         {
-            if (!IsBattleActive && CurrentBattleState != BattleState.InProgress) return;
-
             if (entity is Hero)
             {
                 CancelLootLifecycle();
@@ -646,8 +741,12 @@ namespace WuxiaGame.Core
                 Debug.Log("[BattleManager] Hero has fallen! Entering HeroDead / AwaitingPlayerStart state.");
                 StopAllCombatants();
                 EventBus.RaiseBattleStateChanged(BattleState.AwaitingPlayerStart);
+                return;
             }
-            else if (entity is Monster monster)
+
+            if (!IsBattleActive && CurrentBattleState != BattleState.InProgress) return;
+
+            if (entity is Monster monster)
             {
                 // Strict encounter membership check BEFORE _processedDeaths.Add, GenerateDrop, enqueue or retarget
                 if (!activeMonsters.Contains(monster)) return;
@@ -687,29 +786,37 @@ namespace WuxiaGame.Core
                     {
                         nextLiving.SetCurrentTarget(currentHero);
                     }
-                    Debug.Log($"[COMBAT RETARGET] Primary defeated. Hero retargeted to {nextLiving.EntityName}. Auto-combat continues.");
+                    Debug.Log($"[COMBAT RETARGET] Monster defeated. Hero retargeted to {nextLiving.EntityName}. Auto-combat continues. Living remaining: {GetLivingMonsterCount()}");
                 }
-                else
+                else if (IsWaveFullyDefeated())
                 {
                     // Final death: all registered encounter monsters are dead
+                    if (_lastCompletedWaveId != _currentWaveId)
+                    {
+                        _lastCompletedWaveId = _currentWaveId;
+                        _completedNormalWaveCount++;
+                        Debug.Log($"[WAVE COMPLETE] Wave #{_currentWaveId} fully defeated! CompletedNormalWaveCount={_completedNormalWaveCount}, NextWaveMultiplier={NextWaveStatMultiplier:F6}");
+                    }
+
                     CurrentBattleState = BattleState.MonsterDead;
                     EventBus.RaiseBattleStateChanged(BattleState.MonsterDead);
                     StopAllCombatants();
 
-                    // Cancel any previous transition and track living combatants currently executing an active skill/channel
+                    // Cancel any previous transition and track ALL living combatants / supported casters belonging to encounter
                     CancelEncounterTransition();
                     _finishingEncounterIndex = EncounterIndex;
 
-                    if (currentHero != null && currentHero.IsAlive && currentHero.IsCasting && currentHero.CastState != null && currentHero.CastState.IsActive)
+                    var allEntities = Object.FindObjectsByType<Entity>(FindObjectsSortMode.None);
+                    for (int i = 0; i < allEntities.Length; i++)
                     {
-                        _finishingCasters[currentHero] = currentHero.CastState.ActiveRequest;
-                    }
-                    for (int i = 0; i < activeMonsters.Count; i++)
-                    {
-                        var m = activeMonsters[i];
-                        if (m != null && m.IsAlive && m.IsCasting && m.CastState != null && m.CastState.IsActive)
+                        var ent = allEntities[i];
+                        if (ent != null && ent.gameObject.activeInHierarchy && ent.enabled && ent.IsAlive &&
+                            ent.IsCasting && ent.CastState != null && ent.CastState.IsActive && ent.CastState.ActiveRequest != null)
                         {
-                            _finishingCasters[m] = m.CastState.ActiveRequest;
+                            if (ent.EntityType != EntityType.Monster)
+                            {
+                                _finishingCasters[ent] = ent.CastState.ActiveRequest;
+                            }
                         }
                     }
 
@@ -769,8 +876,15 @@ namespace WuxiaGame.Core
         {
             if (pendingLootItem == null)
             {
-                Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but no pending loot item!");
-                return false;
+                if (_pendingLootQueue.Count > 0)
+                {
+                    pendingLootItem = _pendingLootQueue.Dequeue();
+                }
+                else
+                {
+                    Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but no pending loot item!");
+                    return false;
+                }
             }
 
             WuxiaGame.Items.EquipmentInstance item = pendingLootItem;
@@ -862,41 +976,10 @@ namespace WuxiaGame.Core
             CurrentBattleState = BattleState.EncounterTransition;
             EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
 
-            // Destroy the dead encounter monsters
-            for (int i = 0; i < activeMonsters.Count; i++)
-            {
-                var m = activeMonsters[i];
-                if (m != null && m.gameObject != null)
-                {
-                    if (Application.isPlaying) Destroy(m.gameObject);
-                    else DestroyImmediate(m.gameObject);
-                }
-            }
-            activeMonsters.Clear();
-            _processedDeaths.Clear();
-            currentMonster = null;
-
-            // Advance encounter & spawn next monster
             EncounterIndex++;
-            Monster nextMonster = SpawnMonster();
-
-            if (currentHero != null)
-            {
-                currentHero.EnableEntityActions();
-                currentHero.SetCurrentTarget(nextMonster);
-            }
-
-            if (nextMonster != null)
-            {
-                nextMonster.EnableEntityActions();
-                if (currentHero != null) nextMonster.SetCurrentTarget(currentHero);
-            }
+            PrepareAndStartNormalWave();
 
             Debug.Log($"[P05.7.1] Next Encounter Created");
-
-            IsBattleActive = true;
-            CurrentBattleState = BattleState.InProgress;
-            EventBus.RaiseBattleStateChanged(BattleState.InProgress);
             Debug.Log("[P05.7.1] Combat Resumed");
             Debug.Log($"[LOOT] Loot decision completed. Resuming combat into Encounter #{EncounterIndex}");
         }
@@ -1040,57 +1123,62 @@ namespace WuxiaGame.Core
         {
             var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
 
-            while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            while (true)
             {
+                while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+                {
+                    if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+                    {
+                        yield break;
+                    }
+
+                    if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
+                    {
+                        yield break;
+                    }
+
+                    yield return null;
+                }
+
                 if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
                 {
                     yield break;
                 }
 
-                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
                 {
                     yield break;
                 }
 
+                if (pendingLootItem != expectedItem)
+                {
+                    Debug.LogWarning($"[LOOT LIFECYCLE] Pending loot item changed before request. Expected: {expectedItem?.ItemName}, Current: {pendingLootItem?.ItemName}");
+                    yield break;
+                }
+
                 yield return null;
-            }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
-            {
-                yield break;
-            }
+                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+                {
+                    yield break;
+                }
 
-            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
-            {
-                yield break;
-            }
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
+                {
+                    yield break;
+                }
 
-            if (pendingLootItem != expectedItem)
-            {
-                Debug.LogWarning($"[LOOT LIFECYCLE] Pending loot item changed before request. Expected: {expectedItem?.ItemName}, Current: {pendingLootItem?.ItemName}");
-                yield break;
-            }
+                if (pendingLootItem != expectedItem)
+                {
+                    yield break;
+                }
 
-            yield return null;
+                if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+                {
+                    continue;
+                }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
-            {
-                yield break;
-            }
-
-            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
-            {
-                yield break;
-            }
-
-            if (pendingLootItem != expectedItem)
-            {
-                yield break;
-            }
-
-            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
-            {
-                yield break;
+                break;
             }
 
             _activeLootLifecycleCoroutine = null;
@@ -1101,46 +1189,51 @@ namespace WuxiaGame.Core
         {
             var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
 
-            while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            while (true)
             {
+                while (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+                {
+                    if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+                    {
+                        yield break;
+                    }
+
+                    if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
+                    {
+                        yield break;
+                    }
+
+                    yield return null;
+                }
+
                 if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
                 {
                     yield break;
                 }
 
-                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
                 {
                     yield break;
                 }
 
                 yield return null;
-            }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
-            {
-                yield break;
-            }
+                if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
+                {
+                    yield break;
+                }
 
-            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
-            {
-                yield break;
-            }
+                if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
+                {
+                    yield break;
+                }
 
-            yield return null;
+                if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+                {
+                    continue;
+                }
 
-            if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
-            {
-                yield break;
-            }
-
-            if (currentHero != null && (!currentHero.IsAlive || currentHero.Health.CurrentHealth <= 0f))
-            {
-                yield break;
-            }
-
-            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
-            {
-                yield break;
+                break;
             }
 
             _activeLootLifecycleCoroutine = null;

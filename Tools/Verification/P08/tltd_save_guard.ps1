@@ -634,12 +634,23 @@ Start-Sleep -Seconds 60
         # SUITE H: Negative Check - Binary Byte-Exact Mutation
         # -------------------------------------------------------------
         LogMsg "[SUITE H] Negative Check: Mutating 1 byte in Binary value..."
+        Safe-DeleteRegistryKey $fullKeyPath $disposableKey
+        Remove-Item -Recurse -Force $disposableDir -ErrorAction SilentlyContinue
+        & reg.exe add $fullKeyPath /v "Baseline_DWord" /t REG_DWORD /d 1337 /f | Out-Null
+        & reg.exe add $fullKeyPath /v "Baseline_String" /t REG_SZ /d "StandardText" /f | Out-Null
+        & reg.exe add $fullKeyPath /v "Baseline_Binary" /t REG_BINARY /d "0102030405AABBCCDDEEFF" /f | Out-Null
+        Backup-SaveState $disposableDir $disposableKey -allowUnity | Out-Null
+        $journalH = Get-Content (Join-Path $disposableDir "journal.json") -Raw | ConvertFrom-Json
+
         & reg.exe add $fullKeyPath /v "Baseline_Binary" /t REG_BINARY /d "0102030405AABBCCDDEEFE" /f | Out-Null
         $diffH = ""
         $currSnapH = Get-RegistryScopeSnapshot $disposableKey
-        $matchH = Compare-RegistryScopeSnapshots $journalClean.Snapshot $currSnapH ([ref]$diffH)
+        $matchH = Compare-RegistryScopeSnapshots $journalH.Snapshot $currSnapH ([ref]$diffH)
         if ($matchH) {
             throw "[SUITE H FATAL] Comparison falsely PASSED on Binary single-byte mutation!"
+        }
+        if ($diffH -notlike "*Binary byte mismatch*") {
+            throw "[SUITE H FATAL] Comparison rejected for wrong reason (expected Binary byte mismatch): $diffH"
         }
         LogMsg "[SUITE H] Comparison correctly REJECTED Binary byte mutation ($diffH): PASS"
 
