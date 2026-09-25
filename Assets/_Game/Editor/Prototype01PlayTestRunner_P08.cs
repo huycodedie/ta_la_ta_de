@@ -90,7 +90,7 @@ namespace WuxiaGame.Editor
             }
         }
 
-        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T46)")]
+        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T49)")]
         public static bool RunP08AutomatedTests()
         {
             Debug.Log("================================================================================");
@@ -149,7 +149,10 @@ namespace WuxiaGame.Editor
                 ("T43_CompanionCasterTrackedDuringFinishingExecution", T43_CompanionCasterTrackedDuringFinishingExecution),
                 ("T44_UnregisteredOrDeactivatedMonsterDoesNotCountAsWaveDefeat", T44_UnregisteredOrDeactivatedMonsterDoesNotCountAsWaveDefeat),
                 ("T45_EntryPointsProtectedAgainstInvalidStartAndLootState", T45_EntryPointsProtectedAgainstInvalidStartAndLootState),
-                ("T46_SeparateSupportedCastersExecuteIndependently", T46_SeparateSupportedCastersExecuteIndependently)
+                ("T46_SeparateSupportedCastersExecuteIndependently", T46_SeparateSupportedCastersExecuteIndependently),
+                ("T47_IssueA_TransitionLockedAgainstExternalWaveCreation", T47_IssueA_TransitionLockedAgainstExternalWaveCreation),
+                ("T48_IssueB_DeferredLootProtectedAgainstDuplicateOrPrematureDecision", T48_IssueB_DeferredLootProtectedAgainstDuplicateOrPrematureDecision),
+                ("T49_IssueC_ForeignCompanionExcludedFromEncounterAndTransitionTick", T49_IssueC_ForeignCompanionExcludedFromEncounterAndTransitionTick)
             };
 
             int passed = 0;
@@ -2270,7 +2273,7 @@ namespace WuxiaGame.Editor
                 bool w1DefeatedOk = (bm.CompletedNormalWaveCount == 1 && Mathf.Abs(bm.NextWaveStatMultiplier - 1.01f) < 0.0001f);
 
                 // Wave 2: Completed=1 -> multiplier = 1.01 (505 / 50.5 / 10.1)
-                bm.PrepareAndStartNormalWave(4);
+                bm.EndEncounterAndStartNext();
                 bool w2StatsOk = (bm.CurrentWaveTier == 1 && Mathf.Abs(bm.CurrentWaveStatMultiplier - 1.01f) < 0.0001f);
                 for (int i = 0; i < bm.ActiveMonsters.Count; i++)
                 {
@@ -2289,7 +2292,7 @@ namespace WuxiaGame.Editor
                 bool w2DefeatedOk = (bm.CompletedNormalWaveCount == 2 && Mathf.Abs(bm.NextWaveStatMultiplier - 1.0201f) < 0.0001f);
 
                 // Wave 3: Completed=2 -> multiplier = 1.0201 (510.05 / 51.005 / 10.201)
-                bm.PrepareAndStartNormalWave(4);
+                bm.EndEncounterAndStartNext();
                 bool w3StatsOk = (bm.CurrentWaveTier == 2 && Mathf.Abs(bm.CurrentWaveStatMultiplier - 1.0201f) < 0.0001f);
                 for (int i = 0; i < bm.ActiveMonsters.Count; i++)
                 {
@@ -2395,7 +2398,7 @@ namespace WuxiaGame.Editor
                 {
                     bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
                 }
-                bm.PrepareAndStartNormalWave(4);
+                bm.EndEncounterAndStartNext();
 
                 var monster = bm.ActiveMonsters[0];
                 float hpBefore = monster.Health.MaxHealth;
@@ -2662,15 +2665,13 @@ namespace WuxiaGame.Editor
                 bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
                 bool rogueDequeueBlocked = (queue.Count == 1 && bm.PendingLootItem == null);
 
-                // Now present item legitimately
-                pendingLootField.SetValue(bm, dummyItem);
-                queue.Dequeue();
-                bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
-                bool legitimateDecisionWorked = (bm.PendingLootItem == null);
+                // Now present item legitimately via TryPresentNextQueuedLoot
+                bool presented = bm.TryPresentNextQueuedLoot();
+                bool legitimateDecisionWorked = presented && bm.CompleteLootDecisionAndResume(equip: false, dismantle: true) && (bm.PendingLootItem == null);
 
-                // Stale duplicate call to CompleteLootDecisionAndResume
-                bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
-                bool duplicateCallSafe = (bm.PendingLootItem == null && queue.Count == 0);
+                // Stale duplicate call to CompleteLootDecisionAndResume must be safely rejected
+                bool duplicateRejected = !bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+                bool duplicateCallSafe = duplicateRejected && (bm.PendingLootItem == null && queue.Count == 0);
 
                 pass = startBattleRejectedInLoot && playerStartRejectedInLoot && prepareWaveRejectedInLoot &&
                        rogueDequeueBlocked && legitimateDecisionWorked && duplicateCallSafe;
@@ -2747,6 +2748,7 @@ namespace WuxiaGame.Editor
             try
             {
                 bm.RegisterHero(hero);
+                bm.RegisterAlly(comp);
                 bm.PrepareAndStartNormalWave(4);
 
                 // Set companion entity type to Companion
@@ -2777,6 +2779,239 @@ namespace WuxiaGame.Editor
             {
                 if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
                 if (compGO != null) UnityEngine.Object.DestroyImmediate(compGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+                if (mmGO != null) UnityEngine.Object.DestroyImmediate(mmGO);
+                MindMethodManager.ResetInstance();
+            }
+            return pass;
+        }
+
+        public static bool T47_IssueA_TransitionLockedAgainstExternalWaveCreation()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T47", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            GameObject coordGO = null;
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                var coord = ModalCoordinator.Instance;
+                if (coord == null)
+                {
+                    coordGO = new GameObject("ModalCoordinator_T47");
+                    coord = coordGO.AddComponent<ModalCoordinator>();
+                }
+                var dummyView = new DummyModalView_P08 { ModalId = "TestModal_T47" };
+                coord.RegisterModalView(dummyView);
+
+                // Request blocking modal first
+                var req = new ModalRequest("TestModal_T47", ModalPriority.SystemProgression, true, null);
+                coord.RequestModal(req);
+                bool modalActive = coord.ActiveBlockingModalCount > 0;
+
+                // Defeat wave to trigger encounter transition
+                for (int i = 0; i < bm.ActiveMonsters.Count; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
+                }
+
+                // Verify in transition state
+                bool inTransition = (bm.CurrentBattleState == BattleState.EncounterTransition);
+
+                int baselineWaveId = bm.CurrentWaveId;
+                int baselineEncIndex = bm.EncounterIndex;
+                int baselineRosterCount = bm.ActiveMonsters.Count;
+                int baselineCompletedCount = bm.CompletedNormalWaveCount;
+
+                // 1. Attempt PrepareAndStartNormalWave from outside during transition
+                bm.PrepareAndStartNormalWave(5);
+                bool prepareRejected = (bm.CurrentWaveId == baselineWaveId &&
+                                        bm.EncounterIndex == baselineEncIndex &&
+                                        bm.ActiveMonsters.Count == baselineRosterCount &&
+                                        bm.CompletedNormalWaveCount == baselineCompletedCount);
+
+                // 2. Attempt StartBattle during transition
+                bm.StartBattle();
+                bool startBattleRejected = (bm.CurrentWaveId == baselineWaveId &&
+                                            bm.EncounterIndex == baselineEncIndex);
+
+                // 3. Attempt ExecutePlayerStartCommand during transition
+                bool playerStartRejected = !bm.ExecutePlayerStartCommand() &&
+                                           (bm.CurrentWaveId == baselineWaveId &&
+                                            bm.EncounterIndex == baselineEncIndex);
+
+                // 4. Now dismiss modal: internal transition proceeds legitimately
+                coord.DismissActiveModal(DismissalReason.SystemDismissed);
+
+                // Legitimate transition proceeds
+                bm.EndEncounterAndStartNext();
+
+                bool legitimateAdvanced = (bm.EncounterIndex == baselineEncIndex + 1);
+                bool newWaveSpawned = (bm.ActiveMonsters.Count == 4 || bm.ActiveMonsters.Count == 5);
+
+                coord.UnregisterModalView(dummyView);
+                if (coordGO != null) UnityEngine.Object.DestroyImmediate(coordGO);
+                ModalCoordinator.ResetInstance();
+
+                pass = inTransition && prepareRejected && startBattleRejected && playerStartRejected && legitimateAdvanced && newWaveSpawned;
+                Debug.Log($"[P08 T47] Issue A Transition Lock: InTransition={inTransition}, PrepareRejected={prepareRejected}, StartBattleRejected={startBattleRejected}, PlayerStartRejected={playerStartRejected}, Advanced={legitimateAdvanced}, NewWave={newWaveSpawned} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T48_IssueB_DeferredLootProtectedAgainstDuplicateOrPrematureDecision()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T48", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            GameObject coordGO = null;
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                var coord = ModalCoordinator.Instance;
+                if (coord == null)
+                {
+                    coordGO = new GameObject("ModalCoordinator_T48");
+                    coord = coordGO.AddComponent<ModalCoordinator>();
+                }
+                var dummyView = new DummyModalView_P08 { ModalId = "TestModal_T48" };
+                coord.RegisterModalView(dummyView);
+
+                var itemA = new EquipmentInstance("item_a", "Thanh Long Đao", EquipmentSlotType.Weapon, 1, null, new List<AffixInstance>());
+                var itemB = new EquipmentInstance("item_b", "Chu Tước Kiếm", EquipmentSlotType.Weapon, 2, null, new List<AffixInstance>());
+
+                // Enqueue item B first, present item A
+                bm.EnqueuePendingLoot(itemB);
+
+                // Set item A as actively presented drop
+                var field = typeof(BattleManager).GetField("pendingLootItem", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null) field.SetValue(bm, itemA);
+                var openField = typeof(BattleManager).GetField("_isLootDecisionOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (openField != null) openField.SetValue(bm, true);
+                typeof(BattleManager).GetProperty("CurrentBattleState").GetSetMethod(true).Invoke(bm, new object[] { BattleState.LootPending });
+
+                // Open blocking modal before completing A so that B will be held in queue awaiting presentation
+                var req = new ModalRequest("TestModal_T48", ModalPriority.SystemProgression, true, null);
+                coord.RequestModal(req);
+
+                int itemBRequestedCount = 0;
+                int itemBCompletedCount = 0;
+                Action<EquipmentInstance> reqHandler = (it) => { if (it == itemB) itemBRequestedCount++; };
+                Action<EquipmentInstance> compHandler = (it) => { if (it == itemB) itemBCompletedCount++; };
+                EventBus.OnLootDecisionRequested += reqHandler;
+                EventBus.OnLootDecisionCompleted += compHandler;
+
+                // 1. Process Item A
+                bool aHandled = bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+
+                // At this point, item A was decided. Item B was NOT dequeued and remains in queue because modal is blocking.
+                // In this waiting interval, pendingLootItem must be null and decision not open!
+                bool bNotOpenYet = !bm.IsLootDecisionOpen && bm.PendingLootItem == null && bm.HasPendingLootItem == false;
+
+                // 2. Call CompleteLootDecisionAndResume during waiting window
+                bool prematureDecisionRejected = !bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+
+                // Assert B was not equipped or dismantled, and completion event was not raised
+                bool bNotDecidedPrematurely = (itemBCompletedCount == 0);
+
+                // 3. Close blocking modal
+                coord.DismissActiveModal(DismissalReason.SystemDismissed);
+
+                // Legitimate presentation of B after modal dismissal
+                bool bPresented = bm.TryPresentNextQueuedLoot();
+                bool bNowOpen = bm.IsLootDecisionOpen && bm.PendingLootItem == itemB && (itemBRequestedCount == 1);
+
+                // 4. Now B is legitimately presented, decide B
+                bool bHandledLegitimately = bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+                bool bCompletedOnce = (itemBCompletedCount == 1);
+
+                // 5. Stale duplicate call to CompleteLootDecisionAndResume after B is done
+                bool duplicateRejected = !bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+
+                EventBus.OnLootDecisionRequested -= reqHandler;
+                EventBus.OnLootDecisionCompleted -= compHandler;
+
+                coord.UnregisterModalView(dummyView);
+                if (coordGO != null) UnityEngine.Object.DestroyImmediate(coordGO);
+                ModalCoordinator.ResetInstance();
+
+                pass = aHandled && bNotOpenYet && prematureDecisionRejected && bNotDecidedPrematurely &&
+                       bPresented && bNowOpen && bHandledLegitimately && bCompletedOnce && duplicateRejected;
+                Debug.Log($"[P08 T48] Issue B Deferred Loot Protection: AHandled={aHandled}, BNotOpenYet={bNotOpenYet}, PrematureRejected={prematureDecisionRejected}, BNotDecidedEarly={bNotDecidedPrematurely}, BPresented={bPresented}, BNowOpen={bNowOpen}, BHandledLegitimately={bHandledLegitimately}, BCompletedOnce={bCompletedOnce}, DuplicateRejected={duplicateRejected} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T49_IssueC_ForeignCompanionExcludedFromEncounterAndTransitionTick()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T49", new Vector3(-2.2f, -0.3f, 0f));
+            var (compGO, foreignComp) = CreateMockHero("Foreign_Companion_T49", new Vector3(-3.0f, -0.3f, 0f));
+            var (allyGO, legitimateAlly) = CreateMockHero("Legitimate_Ally_T49", new Vector3(-1.5f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+            var (mmGO, mm) = CreateMockMindMethodManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                var typeF = typeof(Entity).GetField("entityType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (typeF != null) typeF.SetValue(foreignComp, EntityType.Companion);
+                if (typeF != null) typeF.SetValue(legitimateAlly, EntityType.Companion);
+
+                var effect = CreateConfiguredEffect(SkillTargetPolicy.Area, 10f, 0);
+                var skill = CreateConfiguredSkill("skill_t49_foreign", effect, rageCost: 20f, cooldown: 5f, isChannel: true, channelDuration: 1.5f, channelTickInterval: 0.5f);
+                RegisterTestSkillToMindMethod(mm, skill, SkillSlotType.Skill);
+
+                foreignComp.Rage.ResetRage(100f);
+                var req = new SkillExecutionRequest(foreignComp, skill, SkillSlotType.Skill, bm.ActiveMonsters[0]);
+                var startResult = SkillExecutor.Execute(req);
+
+                // Case 1: Ally list is empty. Foreign companion is unregistered.
+                bool foreignBelongsEmptyAllies = bm.BelongsToEncounter(foreignComp); // MUST BE FALSE
+                bool foreignCanTickEmptyAllies = bm.CanEntityTickDuringTransition(foreignComp); // MUST BE FALSE
+
+                // Case 2: Ally list has legitimateAlly. Foreign companion is still unregistered.
+                bm.RegisterAlly(legitimateAlly);
+                bool legitimateAllyBelongs = bm.BelongsToEncounter(legitimateAlly); // MUST BE TRUE
+                bool foreignBelongsNonEmptyAllies = bm.BelongsToEncounter(foreignComp); // MUST BE FALSE
+                bool foreignCanTickNonEmptyAllies = bm.CanEntityTickDuringTransition(foreignComp); // MUST BE FALSE
+
+                // Case 3: When foreign companion is legitimately registered, it belongs
+                bm.RegisterAlly(foreignComp);
+                bool registeredCompBelongs = bm.BelongsToEncounter(foreignComp); // MUST BE TRUE
+
+                pass = !foreignBelongsEmptyAllies &&
+                       !foreignCanTickEmptyAllies &&
+                       legitimateAllyBelongs &&
+                       !foreignBelongsNonEmptyAllies &&
+                       !foreignCanTickNonEmptyAllies &&
+                       registeredCompBelongs;
+
+                Debug.Log($"[P08 T49] Issue C Ownership Strictness: EmptyAlliesForeignExcluded={!foreignBelongsEmptyAllies}, NonEmptyAlliesForeignExcluded={!foreignBelongsNonEmptyAllies}, LegitimateAllyIncluded={legitimateAllyBelongs}, RegisteredCompIncluded={registeredCompBelongs} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (compGO != null) UnityEngine.Object.DestroyImmediate(compGO);
+                if (allyGO != null) UnityEngine.Object.DestroyImmediate(allyGO);
                 if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
                 if (mmGO != null) UnityEngine.Object.DestroyImmediate(mmGO);
                 MindMethodManager.ResetInstance();

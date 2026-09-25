@@ -68,11 +68,6 @@ namespace WuxiaGame.Core
             if (entity == null) return false;
             if (entity == currentHero) return true;
             if (_encounterAllies.Contains(entity)) return true;
-            if (entity.EntityType == EntityType.Companion)
-            {
-                if (entity.CurrentTarget is Monster m && activeMonsters.Contains(m)) return true;
-                if (currentHero != null && _encounterAllies.Count == 0) return true;
-            }
             return false;
         }
 
@@ -129,6 +124,8 @@ namespace WuxiaGame.Core
         private void CancelLootLifecycle()
         {
             _lootTransactionCounter++;
+            _isLootDecisionOpen = false;
+            pendingLootItem = null;
             if (_activeLootLifecycleCoroutine != null)
             {
                 StopCoroutine(_activeLootLifecycleCoroutine);
@@ -441,12 +438,23 @@ namespace WuxiaGame.Core
 
         public void PrepareAndStartNormalWave(int monsterCount = 0)
         {
-            if (CurrentBattleState == BattleState.LootPending || _finishingCasters.Count > 0 || HasPendingLootItem)
+            if (CurrentBattleState == BattleState.LootPending ||
+                CurrentBattleState == BattleState.EncounterTransition ||
+                _activeEncounterTransitionCoroutine != null ||
+                _activeLootLifecycleCoroutine != null ||
+                _finishingCasters.Count > 0 ||
+                HasPendingLootItem ||
+                _pendingLootQueue.Count > 0)
             {
                 Debug.LogWarning("[BattleManager] PrepareAndStartNormalWave rejected: Battle is in a locked transition or loot state.");
                 return;
             }
 
+            SpawnAndStartNormalWaveInternal(monsterCount);
+        }
+
+        private void SpawnAndStartNormalWaveInternal(int monsterCount = 0)
+        {
             CancelLootLifecycle();
             LoadConfigsIfMissing();
             EventBus.OnEntityDied -= HandleEntityDied;
@@ -582,6 +590,8 @@ namespace WuxiaGame.Core
         {
             if (CurrentBattleState == BattleState.LootPending ||
                 CurrentBattleState == BattleState.EncounterTransition ||
+                _activeEncounterTransitionCoroutine != null ||
+                _activeLootLifecycleCoroutine != null ||
                 _finishingCasters.Count > 0 ||
                 HasPendingLootItem ||
                 _pendingLootQueue.Count > 0)
@@ -604,7 +614,7 @@ namespace WuxiaGame.Core
             // Production wave creation
             if (activeMonsters.Count == 0)
             {
-                PrepareAndStartNormalWave();
+                SpawnAndStartNormalWaveInternal();
                 return;
             }
 
@@ -685,6 +695,13 @@ namespace WuxiaGame.Core
 
         public void EndEncounterAndStartNext()
         {
+            var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
+            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            {
+                Debug.LogWarning("[BattleManager] EndEncounterAndStartNext blocked: modal is actively blocking.");
+                return;
+            }
+
             Debug.Log($"[ENCOUNTER] Wave #{_currentWaveId} Defeated");
             Debug.Log($"[REAL PLAY TEST]\nWave #{_currentWaveId} DEAD");
 
@@ -693,8 +710,9 @@ namespace WuxiaGame.Core
                 currentHero.SetCurrentTarget(null);
             }
 
+            CancelLootLifecycle();
             EncounterIndex++;
-            PrepareAndStartNormalWave();
+            SpawnAndStartNormalWaveInternal();
         }
 
         public void RestartBattle()
@@ -703,6 +721,7 @@ namespace WuxiaGame.Core
             Debug.Log("[BattleManager] Restarting combat encounter (Preserving persistent hero progression)...");
 
             _pendingLootQueue.Clear();
+            _isLootDecisionOpen = false;
             pendingLootItem = null;
 
             if (currentHero != null)
@@ -722,7 +741,13 @@ namespace WuxiaGame.Core
 
         public bool CanStartCombat(out string reason)
         {
-            if (CurrentBattleState == BattleState.LootPending || CurrentBattleState == BattleState.EncounterTransition || _finishingCasters.Count > 0)
+            if (CurrentBattleState == BattleState.LootPending ||
+                CurrentBattleState == BattleState.EncounterTransition ||
+                _activeEncounterTransitionCoroutine != null ||
+                _activeLootLifecycleCoroutine != null ||
+                _finishingCasters.Count > 0 ||
+                HasPendingLootItem ||
+                _pendingLootQueue.Count > 0)
             {
                 reason = "Loot decision or encounter transition is in progress.";
                 return false;
@@ -766,6 +791,8 @@ namespace WuxiaGame.Core
 
             if (CurrentBattleState == BattleState.LootPending ||
                 CurrentBattleState == BattleState.EncounterTransition ||
+                _activeEncounterTransitionCoroutine != null ||
+                _activeLootLifecycleCoroutine != null ||
                 _finishingCasters.Count > 0 ||
                 HasPendingLootItem ||
                 _pendingLootQueue.Count > 0)
@@ -830,7 +857,11 @@ namespace WuxiaGame.Core
 
         [SerializeField] private WuxiaGame.Items.EquipmentInstance pendingLootItem;
         public WuxiaGame.Items.EquipmentInstance PendingLootItem => pendingLootItem;
-        public bool HasPendingLootItem => pendingLootItem != null && !string.IsNullOrEmpty(pendingLootItem.InstanceId);
+
+        private bool _isLootDecisionOpen = false;
+        public bool IsLootDecisionOpen => _isLootDecisionOpen;
+
+        public bool HasPendingLootItem => _isLootDecisionOpen && pendingLootItem != null && !string.IsNullOrEmpty(pendingLootItem.InstanceId);
 
         public void EnqueuePendingLoot(WuxiaGame.Items.EquipmentInstance item)
         {
@@ -840,12 +871,32 @@ namespace WuxiaGame.Core
             }
         }
 
+        public bool TryPresentNextQueuedLoot()
+        {
+            if (CurrentBattleState != BattleState.LootPending) return false;
+            if (_isLootDecisionOpen || pendingLootItem != null) return false;
+            if (_pendingLootQueue.Count == 0) return false;
+
+            var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
+            if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+            {
+                return false;
+            }
+
+            pendingLootItem = _pendingLootQueue.Dequeue();
+            _isLootDecisionOpen = true;
+            Debug.Log($"[LOOT] Presenting next queued drop: {pendingLootItem.ItemName}. Remaining in queue: {_pendingLootQueue.Count}");
+            EventBus.RaiseLootDecisionRequested(pendingLootItem);
+            return true;
+        }
+
         private void HandleEntityDied(Entity entity)
         {
             if (entity == currentHero)
             {
                 CancelLootLifecycle();
                 IsBattleActive = false;
+                _isLootDecisionOpen = false;
                 pendingLootItem = null;
                 _pendingLootQueue.Clear();
                 CurrentBattleState = BattleState.AwaitingPlayerStart;
@@ -950,13 +1001,19 @@ namespace WuxiaGame.Core
                         {
                             if (_pendingLootQueue.Count > 0)
                             {
-                                pendingLootItem = _pendingLootQueue.Dequeue();
                                 IsBattleActive = false;
                                 CurrentBattleState = BattleState.LootPending;
-                                Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
-                                Debug.Log("[P05.7.1] LootPending Entered");
                                 EventBus.RaiseBattleStateChanged(BattleState.LootPending);
-                                EventBus.RaiseLootDecisionRequested(pendingLootItem);
+                                var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
+                                if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
+                                {
+                                    if (_activeLootLifecycleCoroutine != null) StopCoroutine(_activeLootLifecycleCoroutine);
+                                    _activeLootLifecycleCoroutine = StartCoroutine(DeferNextLootDecisionRequest(EncounterIndex, _lootTransactionCounter));
+                                }
+                                else
+                                {
+                                    TryPresentNextQueuedLoot();
+                                }
                             }
                             else
                             {
@@ -971,13 +1028,10 @@ namespace WuxiaGame.Core
                     {
                         if (_pendingLootQueue.Count > 0)
                         {
-                            pendingLootItem = _pendingLootQueue.Dequeue();
                             IsBattleActive = false;
                             CurrentBattleState = BattleState.LootPending;
-                            Debug.Log($"[LOOT] Equipment dropped: {pendingLootItem.ItemName}. Entering LOOT_PENDING. Remaining: {_pendingLootQueue.Count}");
-                            Debug.Log("[P05.7.1] LootPending Entered");
                             EventBus.RaiseBattleStateChanged(BattleState.LootPending);
-                            EventBus.RaiseLootDecisionRequested(pendingLootItem);
+                            TryPresentNextQueuedLoot();
                         }
                         else
                         {
@@ -993,12 +1047,30 @@ namespace WuxiaGame.Core
 
         public bool CompleteLootDecisionAndResume(bool equip = false, bool dismantle = false)
         {
-            if (!HasPendingLootItem || (Application.isPlaying ? CurrentBattleState != BattleState.LootPending : CurrentBattleState == BattleState.InProgress))
+            if (Application.isPlaying)
             {
-                Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but no valid loot decision is currently presented!");
-                return false;
+                if (!_isLootDecisionOpen || CurrentBattleState != BattleState.LootPending || pendingLootItem == null || string.IsNullOrEmpty(pendingLootItem.InstanceId))
+                {
+                    Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but no valid loot decision is currently presented!");
+                    return false;
+                }
+            }
+            else
+            {
+                if (pendingLootItem == null || string.IsNullOrEmpty(pendingLootItem.InstanceId) || CurrentBattleState == BattleState.InProgress)
+                {
+                    Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but no valid loot decision is currently presented!");
+                    return false;
+                }
+                if (CurrentBattleState == BattleState.LootPending && !_isLootDecisionOpen && _pendingLootQueue.Count > 0)
+                {
+                    Debug.LogWarning("[LOOT TRANSACTION INVALID] CompleteLootDecision called but decision is not open!");
+                    return false;
+                }
             }
 
+            // Immediately close decision acceptance window before executing side effects
+            _isLootDecisionOpen = false;
             WuxiaGame.Items.EquipmentInstance item = pendingLootItem;
             pendingLootItem = null;
 
@@ -1053,18 +1125,20 @@ namespace WuxiaGame.Core
             // Sequential loot resolution: check if more drops remain in queue
             if (_pendingLootQueue.Count > 0)
             {
-                pendingLootItem = _pendingLootQueue.Dequeue();
                 CurrentBattleState = BattleState.LootPending;
-                Debug.Log($"[LOOT] Presenting next queued drop: {pendingLootItem.ItemName}. Remaining in queue: {_pendingLootQueue.Count}");
                 EventBus.RaiseBattleStateChanged(BattleState.LootPending);
-                if (Application.isPlaying && WuxiaGame.UI.Modal.ModalCoordinator.Instance != null)
+                var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
+                if (coordinator != null && (coordinator.ActiveBlockingModalCount > 0 || coordinator.TotalQueuedCount > 0))
                 {
-                    if (_activeLootLifecycleCoroutine != null) StopCoroutine(_activeLootLifecycleCoroutine);
-                    _activeLootLifecycleCoroutine = StartCoroutine(DeferNextLootDecisionRequest(pendingLootItem, currentEncounter, txId));
+                    if (Application.isPlaying)
+                    {
+                        if (_activeLootLifecycleCoroutine != null) StopCoroutine(_activeLootLifecycleCoroutine);
+                        _activeLootLifecycleCoroutine = StartCoroutine(DeferNextLootDecisionRequest(currentEncounter, txId));
+                    }
                 }
                 else
                 {
-                    EventBus.RaiseLootDecisionRequested(pendingLootItem);
+                    TryPresentNextQueuedLoot();
                 }
                 return true;
             }
@@ -1089,7 +1163,7 @@ namespace WuxiaGame.Core
             EventBus.RaiseBattleStateChanged(BattleState.EncounterTransition);
 
             EncounterIndex++;
-            PrepareAndStartNormalWave();
+            SpawnAndStartNormalWaveInternal();
 
             Debug.Log($"[P05.7.1] Next Encounter Created");
             Debug.Log("[P05.7.1] Combat Resumed");
@@ -1231,7 +1305,7 @@ namespace WuxiaGame.Core
             }
         }
 
-        private System.Collections.IEnumerator DeferNextLootDecisionRequest(WuxiaGame.Items.EquipmentInstance expectedItem, int expectedEncounter, int txId)
+        private System.Collections.IEnumerator DeferNextLootDecisionRequest(int expectedEncounter, int txId)
         {
             var coordinator = WuxiaGame.UI.Modal.ModalCoordinator.Instance;
 
@@ -1262,12 +1336,6 @@ namespace WuxiaGame.Core
                     yield break;
                 }
 
-                if (pendingLootItem != expectedItem)
-                {
-                    Debug.LogWarning($"[LOOT LIFECYCLE] Pending loot item changed before request. Expected: {expectedItem?.ItemName}, Current: {pendingLootItem?.ItemName}");
-                    yield break;
-                }
-
                 yield return null;
 
                 if (txId != _lootTransactionCounter || expectedEncounter != EncounterIndex || CurrentBattleState == BattleState.AwaitingPlayerStart)
@@ -1276,11 +1344,6 @@ namespace WuxiaGame.Core
                 }
 
                 if (currentHero != null && (!currentHero.IsAlive || currentHero.Health == null || currentHero.Health.CurrentHealth <= 0f))
-                {
-                    yield break;
-                }
-
-                if (pendingLootItem != expectedItem)
                 {
                     yield break;
                 }
@@ -1294,7 +1357,7 @@ namespace WuxiaGame.Core
             }
 
             _activeLootLifecycleCoroutine = null;
-            EventBus.RaiseLootDecisionRequested(expectedItem);
+            TryPresentNextQueuedLoot();
         }
 
         private System.Collections.IEnumerator DeferEncounterAdvanceAfterFinalModal(int expectedEncounter, int txId)

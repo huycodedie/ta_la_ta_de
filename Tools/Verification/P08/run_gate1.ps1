@@ -5,7 +5,7 @@ $logFile = "$projectRoot\gate1_p08_tests.log"
 Remove-Item -Force -ErrorAction SilentlyContinue $logFile
 
 Write-Host "============================================================"
-Write-Host " Running Gate 1: P08 Automated Tests (T01 - T46)"
+Write-Host " Running Gate 1: P08 Automated Tests (T01 - T49)"
 Write-Host " Unity Path: $unityPath"
 Write-Host " Log File:   $logFile"
 Write-Host "============================================================"
