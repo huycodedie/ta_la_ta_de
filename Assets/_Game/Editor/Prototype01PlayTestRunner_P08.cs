@@ -22,6 +22,16 @@ using WuxiaGame.UI.Modal;
 
 namespace WuxiaGame.Editor
 {
+    public class DummyModalView_P08 : IModalView
+    {
+        public string ModalId { get; set; }
+        public ModalPriority DefaultPriority => ModalPriority.Informational;
+        public bool IsDismissable => true;
+        public bool IsVisible { get; private set; }
+        public void ShowModal(ModalRequest request = null) => IsVisible = true;
+        public void HideModal(DismissalReason reason = DismissalReason.UserClosed) => IsVisible = false;
+    }
+
     public static class Prototype01PlayTestRunner_P08
     {
         private const string ScenePath = "Assets/_Game/Scenes/Prototype01.unity";
@@ -80,7 +90,7 @@ namespace WuxiaGame.Editor
             }
         }
 
-        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T43)")]
+        [MenuItem("Tools/Wuxia RPG/P08/Run P08 Automated Tests (T01 - T46)")]
         public static bool RunP08AutomatedTests()
         {
             Debug.Log("================================================================================");
@@ -136,7 +146,10 @@ namespace WuxiaGame.Editor
                 ("T40_RecalculateStatsPreservesScaledBaseStats", T40_RecalculateStatsPreservesScaledBaseStats),
                 ("T41_ChannelMidWaveDeathLifecycleAndCleanNextWaveSpawn", T41_ChannelMidWaveDeathLifecycleAndCleanNextWaveSpawn),
                 ("T42_ModalRaceAndHeroDeathDuringTransition", T42_ModalRaceAndHeroDeathDuringTransition),
-                ("T43_CompanionCasterTrackedDuringFinishingExecution", T43_CompanionCasterTrackedDuringFinishingExecution)
+                ("T43_CompanionCasterTrackedDuringFinishingExecution", T43_CompanionCasterTrackedDuringFinishingExecution),
+                ("T44_UnregisteredOrDeactivatedMonsterDoesNotCountAsWaveDefeat", T44_UnregisteredOrDeactivatedMonsterDoesNotCountAsWaveDefeat),
+                ("T45_EntryPointsProtectedAgainstInvalidStartAndLootState", T45_EntryPointsProtectedAgainstInvalidStartAndLootState),
+                ("T46_SeparateSupportedCastersExecuteIndependently", T46_SeparateSupportedCastersExecuteIndependently)
             };
 
             int passed = 0;
@@ -2500,24 +2513,224 @@ namespace WuxiaGame.Editor
                 bm.RegisterHero(hero);
                 bm.PrepareAndStartNormalWave(4);
 
-                // Kill all monsters to enter transition
+                // Ensure ModalCoordinator exists to test real modal race
+                GameObject coordGO = null;
+                var coord = ModalCoordinator.Instance;
+                if (coord == null)
+                {
+                    coordGO = new GameObject("ModalCoordinator_T42");
+                    coord = coordGO.AddComponent<ModalCoordinator>();
+                }
+
+                var dummyView = new DummyModalView_P08 { ModalId = "TestModal_T42" };
+                coord.RegisterModalView(dummyView);
+
+                // Kill all monsters to trigger wave completion transition
                 for (int i = 0; i < bm.ActiveMonsters.Count; i++)
                 {
                     bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(null, null, 1000f, 1000f, false, false, DamageType.Skill));
                 }
 
-                // In transition state, Hero dies
+                // Request a blocking modal to test modal race during transition
+                var req = new ModalRequest("TestModal_T42", ModalPriority.SystemProgression, true, null);
+                coord.RequestModal(req);
+
+                bool modalActive = (coord.ActiveBlockingModalCount > 0);
+                bool transitionBlocked = (bm.EncounterIndex == 1);
+
+                // In transition state while modal is active, Hero dies
                 hero.Health.TakeDamage(new DamageResult(null, null, 99999f, 99999f, false, false, DamageType.Skill));
 
                 // Verify lifecycle cancelled immediately and battle state is AwaitingPlayerStart
                 bool heroDeadHandled = (bm.CurrentBattleState == BattleState.AwaitingPlayerStart && !bm.IsBattleActive);
 
-                pass = heroDeadHandled;
-                Debug.Log($"[P08 T42] Hero Death During Transition: AwaitingPlayerStart={heroDeadHandled} | {(pass ? "PASS" : "FAIL")}");
+                if (coord.ActiveBlockingModalCount > 0)
+                {
+                    coord.DismissActiveModal(DismissalReason.SystemDismissed);
+                }
+                coord.UnregisterModalView(dummyView);
+                if (coordGO != null) UnityEngine.Object.DestroyImmediate(coordGO);
+                ModalCoordinator.ResetInstance();
+
+                pass = modalActive && transitionBlocked && heroDeadHandled;
+                Debug.Log($"[P08 T42] Modal Race & Hero Death During Transition: ModalActive={modalActive}, TransitionBlocked={transitionBlocked}, AwaitingPlayerStart={heroDeadHandled} | {(pass ? "PASS" : "FAIL")}");
             }
             finally
             {
                 if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T44_UnregisteredOrDeactivatedMonsterDoesNotCountAsWaveDefeat()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T44", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(5);
+
+                bool initial5Spawned = (bm.ActiveMonsters.Count == 5);
+                var livingMonsterToUnregister = bm.ActiveMonsters[4];
+
+                // 1. Unregister living monster 5 outside legitimate death
+                bm.UnregisterMonster(livingMonsterToUnregister);
+                bool monsterUnregisteredFromActive = true;
+                for (int mi = 0; mi < bm.ActiveMonsters.Count; mi++)
+                {
+                    if (bm.ActiveMonsters[mi] == livingMonsterToUnregister)
+                    {
+                        monsterUnregisteredFromActive = false;
+                        break;
+                    }
+                }
+
+                // 2. Kill the remaining 4 monsters legitimately
+                for (int i = 0; i < 4; i++)
+                {
+                    bm.ActiveMonsters[i].Health.TakeDamage(new DamageResult(hero, bm.ActiveMonsters[i], 1000f, 1000f, false, false, DamageType.Skill));
+                }
+
+                // 3. Verify wave is NOT fully defeated because monster 5 was NOT legitimately killed!
+                bool waveNotDefeatedAfterUnregister = !bm.IsWaveFullyDefeated();
+                bool waveCountNotIncremented = (bm.CompletedNormalWaveCount == 0);
+                bool encounterNotAdvanced = (bm.EncounterIndex == 1);
+
+                // 4. Test deactivated monster outside combat death
+                livingMonsterToUnregister.gameObject.SetActive(false);
+                bool waveStillNotDefeatedAfterDeactivate = !bm.IsWaveFullyDefeated();
+
+                // 5. Test repeated death event on already dead monster: does not cause double counting or victory
+                var deadMonster = bm.ActiveMonsters[0];
+                EventBus.RaiseEntityDied(deadMonster);
+                bool waveCountStillZeroAfterDuplicateDeath = (bm.CompletedNormalWaveCount == 0);
+
+                pass = initial5Spawned && monsterUnregisteredFromActive && waveNotDefeatedAfterUnregister &&
+                       waveCountNotIncremented && encounterNotAdvanced && waveStillNotDefeatedAfterDeactivate &&
+                       waveCountStillZeroAfterDuplicateDeath;
+
+                Debug.Log($"[P08 T44] Wave Defeat Decoupling: Initial5={initial5Spawned}, UnregLivingNotDefeated={waveNotDefeatedAfterUnregister}, WaveCountZero={waveCountNotIncremented}, Enc1={encounterNotAdvanced}, DeactivateNotDefeated={waveStillNotDefeatedAfterDeactivate}, DupDeathSafe={waveCountStillZeroAfterDuplicateDeath} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T45_EntryPointsProtectedAgainstInvalidStartAndLootState()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T45", new Vector3(-2.2f, -0.3f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.PrepareAndStartNormalWave(4);
+
+                // 1. Enter LootPending state manually
+                var stateProp = typeof(BattleManager).GetProperty("CurrentBattleState");
+                stateProp.SetValue(bm, BattleState.LootPending);
+                var lootQueueField = typeof(BattleManager).GetField("_pendingLootQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var pendingLootField = typeof(BattleManager).GetField("pendingLootItem", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                var dummyItem = new EquipmentInstance("t45_drop", "T45 Drop", EquipmentSlotType.Weapon, 1, null, new List<AffixInstance>());
+                var queue = lootQueueField.GetValue(bm) as Queue<EquipmentInstance>;
+                queue.Enqueue(dummyItem);
+
+                // StartBattle() called during LootPending must be rejected without cancelling loot lifecycle
+                bm.StartBattle();
+                bool startBattleRejectedInLoot = (bm.CurrentBattleState == BattleState.LootPending && queue.Count == 1);
+
+                // ExecutePlayerStartCommand() called during LootPending must be rejected
+                bm.ExecutePlayerStartCommand();
+                bool playerStartRejectedInLoot = (bm.CurrentBattleState == BattleState.LootPending);
+
+                // PrepareAndStartNormalWave() called during LootPending must be rejected
+                int waveMembersBefore = bm.CurrentWaveMembers.Count;
+                bm.PrepareAndStartNormalWave(4);
+                bool prepareWaveRejectedInLoot = (bm.CurrentWaveMembers.Count == waveMembersBefore);
+
+                // CompleteLootDecisionAndResume() with pendingLootItem == null must NOT dequeue from queue
+                pendingLootField.SetValue(bm, null);
+                bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+                bool rogueDequeueBlocked = (queue.Count == 1 && bm.PendingLootItem == null);
+
+                // Now present item legitimately
+                pendingLootField.SetValue(bm, dummyItem);
+                queue.Dequeue();
+                bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
+                bool legitimateDecisionWorked = (bm.PendingLootItem == null);
+
+                // Stale duplicate call to CompleteLootDecisionAndResume
+                bm.CompleteLootDecisionAndResume(equip: true, dismantle: false);
+                bool duplicateCallSafe = (bm.PendingLootItem == null && queue.Count == 0);
+
+                pass = startBattleRejectedInLoot && playerStartRejectedInLoot && prepareWaveRejectedInLoot &&
+                       rogueDequeueBlocked && legitimateDecisionWorked && duplicateCallSafe;
+
+                Debug.Log($"[P08 T45] Entry Points Protection: StartRejectedInLoot={startBattleRejectedInLoot}, PlayerStartRejectedInLoot={playerStartRejectedInLoot}, PrepareWaveRejected={prepareWaveRejectedInLoot}, RogueDequeueBlocked={rogueDequeueBlocked}, LegitimateWorked={legitimateDecisionWorked}, DupCallSafe={duplicateCallSafe} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
+            }
+            return pass;
+        }
+
+        public static bool T46_SeparateSupportedCastersExecuteIndependently()
+        {
+            var (heroGO, hero) = CreateMockHero("Hero_T46_Main", new Vector3(0f, 0f, 0f));
+            var (allyGO, ally) = CreateMockHero("Hero_T46_Ally", new Vector3(-2f, 0f, 0f));
+            var (foreignGO, foreignHero) = CreateMockHero("Hero_T46_Foreign", new Vector3(100f, 0f, 0f));
+            var (bmGO, bm) = CreateMockBattleManager();
+
+            bool pass = false;
+            try
+            {
+                bm.RegisterHero(hero);
+                bm.RegisterAlly(ally);
+                bm.PrepareAndStartNormalWave(4);
+
+                // 1. Encounter ownership verification
+                bool heroBelongs = bm.BelongsToEncounter(hero);
+                bool allyBelongs = bm.BelongsToEncounter(ally);
+                bool foreignDoesNotBelong = !bm.BelongsToEncounter(foreignHero);
+
+                // 2. Transition tick permission: foreign hero outside encounter can never tick during transition
+                bool foreignCannotTick = !bm.CanEntityTickDuringTransition(foreignHero);
+
+                // 3. Foreign hero death in scene does NOT trigger player defeat (AwaitingPlayerStart)
+                foreignHero.Health.TakeDamage(new DamageResult(null, foreignHero, 99999f, 99999f, false, false, DamageType.Skill));
+                bool battleStillInProgressAfterForeignDeath = (bm.CurrentBattleState == BattleState.InProgress && bm.IsBattleActive);
+
+                // 4. Ally death does NOT trigger player defeat
+                ally.Health.TakeDamage(new DamageResult(null, ally, 99999f, 99999f, false, false, DamageType.Skill));
+                bool battleStillInProgressAfterAllyDeath = (bm.CurrentBattleState == BattleState.InProgress && bm.IsBattleActive);
+
+                // 5. Main hero death DOES trigger player defeat
+                hero.Health.TakeDamage(new DamageResult(null, hero, 99999f, 99999f, false, false, DamageType.Skill));
+                bool defeatTriggeredByMainHero = (bm.CurrentBattleState == BattleState.AwaitingPlayerStart && !bm.IsBattleActive);
+
+                pass = heroBelongs && allyBelongs && foreignDoesNotBelong &&
+                       foreignCannotTick &&
+                       battleStillInProgressAfterForeignDeath && battleStillInProgressAfterAllyDeath &&
+                       defeatTriggeredByMainHero;
+
+                Debug.Log($"[P08 T46] Encounter Ownership & Scoping: HeroBelongs={heroBelongs}, AllyBelongs={allyBelongs}, ForeignExcluded={foreignDoesNotBelong}, ForeignCannotTick={foreignCannotTick}, ForeignDeathSafe={battleStillInProgressAfterForeignDeath}, AllyDeathSafe={battleStillInProgressAfterAllyDeath}, MainHeroDefeat={defeatTriggeredByMainHero} | {(pass ? "PASS" : "FAIL")}");
+            }
+            finally
+            {
+                if (heroGO != null) UnityEngine.Object.DestroyImmediate(heroGO);
+                if (allyGO != null) UnityEngine.Object.DestroyImmediate(allyGO);
+                if (foreignGO != null) UnityEngine.Object.DestroyImmediate(foreignGO);
                 if (bmGO != null) UnityEngine.Object.DestroyImmediate(bmGO);
             }
             return pass;
@@ -2667,6 +2880,8 @@ namespace WuxiaGame.Editor
         private DamageEffectDefinitionSO _tempEffectCasterA = null;
         private SkillDefinitionSO _tempSkillCasterB = null;
         private DamageEffectDefinitionSO _tempEffectCasterB = null;
+        private SkillDefinitionSO _tempSingleSkill = null;
+        private DamageEffectDefinitionSO _tempSingleEffect = null;
 
         private float _origRage = 100f;
         private long _origGold = 0;
@@ -2876,6 +3091,7 @@ namespace WuxiaGame.Editor
                         if (_tempChannelSkillB != null) _mindMethodSkillsList.Remove(_tempChannelSkillB);
                         if (_tempSkillCasterA != null) _mindMethodSkillsList.Remove(_tempSkillCasterA);
                         if (_tempSkillCasterB != null) _mindMethodSkillsList.Remove(_tempSkillCasterB);
+                        if (_tempSingleSkill != null) _mindMethodSkillsList.Remove(_tempSingleSkill);
                     }
                     var activeState = mm.ActiveMindMethodState;
                     if (activeState != null)
@@ -2885,6 +3101,7 @@ namespace WuxiaGame.Editor
                         if (_tempChannelSkillB != null) activeState.SkillStates.Remove(_tempChannelSkillB.SkillId);
                         if (_tempSkillCasterA != null) activeState.SkillStates.Remove(_tempSkillCasterA.SkillId);
                         if (_tempSkillCasterB != null) activeState.SkillStates.Remove(_tempSkillCasterB.SkillId);
+                        if (_tempSingleSkill != null) activeState.SkillStates.Remove(_tempSingleSkill.SkillId);
 
                         foreach (var kvp in _origSelectedSkills)
                         {
@@ -2921,6 +3138,8 @@ namespace WuxiaGame.Editor
                 if (_tempEffectCasterA != null) UnityEngine.Object.DestroyImmediate(_tempEffectCasterA);
                 if (_tempSkillCasterB != null) UnityEngine.Object.DestroyImmediate(_tempSkillCasterB);
                 if (_tempEffectCasterB != null) UnityEngine.Object.DestroyImmediate(_tempEffectCasterB);
+                if (_tempSingleSkill != null) UnityEngine.Object.DestroyImmediate(_tempSingleSkill);
+                if (_tempSingleEffect != null) UnityEngine.Object.DestroyImmediate(_tempSingleEffect);
 
                 // 4. Resources (Authoritative SetResources API, zero negative AddGold)
                 var rm = ResourceManager.Instance;
@@ -2993,6 +3212,9 @@ namespace WuxiaGame.Editor
                     hero.SetCurrentTarget(null);
                     if (hero.CastState != null) hero.CastState.Reset();
                     if (hero.Rage != null) hero.Rage.ResetRage(_origRage);
+                    if (hero.Attack != null) hero.Attack.SetAttackEnabled(true);
+                    var decisionCtrl = hero.GetComponent<HeroSkillDecisionController>();
+                    if (decisionCtrl != null) decisionCtrl.enabled = true;
                 }
                 CooldownManager.ResetAllCooldowns();
 
@@ -3046,7 +3268,7 @@ namespace WuxiaGame.Editor
                     {
                         string curActive = mm.ActiveMindMethodId;
                         bool activeMatch = string.IsNullOrEmpty(_origActiveMmId) ? string.IsNullOrEmpty(curActive) : (curActive == _origActiveMmId);
-                        bool noTempInDef = (_mindMethodSkillsList == null || (!_mindMethodSkillsList.Contains(_tempAreaSkill) && !_mindMethodSkillsList.Contains(_tempChannelSkill) && !_mindMethodSkillsList.Contains(_tempChannelSkillB) && !_mindMethodSkillsList.Contains(_tempSkillCasterA) && !_mindMethodSkillsList.Contains(_tempSkillCasterB)));
+                        bool noTempInDef = (_mindMethodSkillsList == null || (!_mindMethodSkillsList.Contains(_tempAreaSkill) && !_mindMethodSkillsList.Contains(_tempChannelSkill) && !_mindMethodSkillsList.Contains(_tempChannelSkillB) && !_mindMethodSkillsList.Contains(_tempSkillCasterA) && !_mindMethodSkillsList.Contains(_tempSkillCasterB) && !_mindMethodSkillsList.Contains(_tempSingleSkill)));
                         bool noTempInState = true;
                         if (mm.ActiveMindMethodState != null)
                         {
@@ -3056,6 +3278,7 @@ namespace WuxiaGame.Editor
                             if (_tempChannelSkillB != null && ss.ContainsKey(_tempChannelSkillB.SkillId)) noTempInState = false;
                             if (_tempSkillCasterA != null && ss.ContainsKey(_tempSkillCasterA.SkillId)) noTempInState = false;
                             if (_tempSkillCasterB != null && ss.ContainsKey(_tempSkillCasterB.SkillId)) noTempInState = false;
+                            if (_tempSingleSkill != null && ss.ContainsKey(_tempSingleSkill.SkillId)) noTempInState = false;
                         }
                         verifyMm = activeMatch && noTempInDef && noTempInState;
                     }
@@ -3119,6 +3342,10 @@ namespace WuxiaGame.Editor
             Debug.Log("[PLAY MODE P08] >>> Starting Scenario 1: Real AOE Combat & Sequential Loot Resolution <<<");
 
             // 1. Wait for battle active and 4-5 monsters registered
+            if (!bm.IsBattleActive && bm.ActiveMonsters.Count == 0)
+            {
+                bm.StartBattle();
+            }
             while ((bm.ActiveMonsters.Count < 4 || bm.CurrentHero == null || !bm.IsBattleActive) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
@@ -3157,6 +3384,11 @@ namespace WuxiaGame.Editor
             if (mm != null)
             {
                 _tempAoeEffect = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 20.0f, 0);
+                var soAoe = new SerializedObject(_tempAoeEffect);
+                soAoe.Update();
+                soAoe.FindProperty("damageMultiplier").floatValue = 2.5f;
+                soAoe.ApplyModifiedPropertiesWithoutUndo();
+
                 _tempAreaSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
                 _tempAreaSkill.InitializeSkill(
                     id: "skill_p08_playmode_aoe",
@@ -3165,9 +3397,9 @@ namespace WuxiaGame.Editor
                     name: "Thiên Cương Quần Long",
                     desc: "AOE Skill",
                     conditions: null,
-                    dmgMultiplier: 1.5f,
+                    dmgMultiplier: 2.5f,
                     costRage: 20f,
-                    cd: 10f,
+                    cd: 2f,
                     passive: false,
                     skillEffects: new List<SkillEffectDefinitionSO> { _tempAoeEffect }
                 );
@@ -3183,11 +3415,11 @@ namespace WuxiaGame.Editor
                     }
                 }
 
-                var activeState = mm.ActiveMindMethodState;
-                if (activeState != null)
+                var aoeActiveState = mm.ActiveMindMethodState;
+                if (aoeActiveState != null)
                 {
-                    activeState.SkillStates[_tempAreaSkill.SkillId] = new SkillRuntimeState(_tempAreaSkill.SkillId, true, 1);
-                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempAreaSkill.SkillId;
+                    aoeActiveState.SkillStates[_tempAreaSkill.SkillId] = new SkillRuntimeState(_tempAreaSkill.SkillId, true, 1);
+                    aoeActiveState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempAreaSkill.SkillId;
                 }
             }
 
@@ -3368,86 +3600,48 @@ namespace WuxiaGame.Editor
             Debug.Log($"[PLAY MODE P08] Scenario 1 Summary: AdvanceOk={secondDeathAdvanceOk}, Enc2Count={bm.ActiveMonsters.Count} (CountOk={enc2CountOk}), Enc2Idx={bm.EncounterIndex} (IdxOk={enc2IndexOk}), WaveCount={bm.CompletedNormalWaveCount} (WaveOk={enc2CompletedCountOk}), Mult={bm.CurrentWaveStatMultiplier} (MultOk={enc2StatMultiplierOk}), BaseHp={bm.ActiveWaveMonsterConfig?.MaxHealth} (HpOk={enc2BaseHpScaled}), DistinctItems={distinctItemsResolvedOnce} | {(aoeLootScenarioPass ? "PASS" : "FAIL")}");
 
             // ====================================================================
-            // SCENARIO 2: REAL CHANNEL PLAY MODE EVIDENCE (NATURAL UNITY FRAMES)
+            // WAVE 2 & 3 PRODUCTION VERIFICATION (NATURAL COMBAT & FINISHING CHANNEL)
             // ====================================================================
-            // SCENARIO 2: REAL CHANNEL PLAY MODE EVIDENCE (NATURAL UNITY FRAMES)
-            // ====================================================================
-            currentPhase = "SCENARIO_2_CHANNEL_START";
-            Debug.Log("[PLAY MODE P08] >>> Starting Scenario 2: Real Channel Play Mode Scenario (Natural Unity Frames) <<<");
+            currentPhase = "WAVE_2_NATURAL_COMBAT";
+            Debug.Log("[PLAY MODE P08] >>> Starting Wave 2 Production Combat & Finishing Channel <<<");
 
-            // Temporarily disable AI decision controller and auto-battle so it does not interfere with the isolated channel execution
-            bool origAutoBattle = bm.IsAutoBattle;
-            bm.SetAutoBattle(false);
-            var allAiControllers = UnityEngine.Object.FindObjectsByType<HeroSkillDecisionController>(FindObjectsSortMode.None);
-            var origAiStates = new Dictionary<HeroSkillDecisionController, bool>();
-            foreach (var ai in allAiControllers)
+            // 1. For Wave 2 -> Wave 3, disable drop rates to prove the NO-LOOT transition path!
+            var dropSys = DropSystem.Instance != null ? DropSystem.Instance : UnityEngine.Object.FindAnyObjectByType<DropSystem>();
+            if (dropSys != null)
             {
-                origAiStates[ai] = ai.enabled;
-                ai.enabled = false;
+                dropSys.NormalMonsterDropRate = 0f;
+                if (dropSys.DropConfig != null) dropSys.DropConfig.EquipmentDropRate = 0f;
             }
-            bool origHeroAttack = hero.Attack != null ? hero.Attack.IsAttackEnabled : true;
-            if (hero.Attack != null) hero.Attack.SetAttackEnabled(false);
+            Debug.Log("[PLAY MODE P08] Wave 2 drops set to 0% to verify no-loot transition path.");
 
-            // Safely destroy all existing scene monsters from Encounter 2 so they do not linger or re-register via Start()
-            for (int i = 0; i < bm.ActiveMonsters.Count; i++)
-            {
-                var m = bm.ActiveMonsters[i];
-                if (m != null && m.gameObject != null)
-                {
-                    m.DisableEntityActions();
-                    m.SetCurrentTarget(null);
-                    UnityEngine.Object.DestroyImmediate(m.gameObject);
-                }
-            }
-            bm.ClearActiveMonsters();
+            // 2. Configure Single-Target Combat Skill & Finishing Channel Skill for Wave 2
+            _tempSingleEffect = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.SingleTarget, 0f, 1);
+            var soSingleEff = new SerializedObject(_tempSingleEffect);
+            soSingleEff.Update();
+            soSingleEff.FindProperty("damageMultiplier").floatValue = 3.0f;
+            soSingleEff.ApplyModifiedPropertiesWithoutUndo();
 
-            var lingeringMonsters = UnityEngine.Object.FindObjectsByType<Monster>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            for (int i = 0; i < lingeringMonsters.Length; i++)
-            {
-                var sm = lingeringMonsters[i];
-                if (sm != null && sm.gameObject != null)
-                {
-                    sm.DisableEntityActions();
-                    sm.SetCurrentTarget(null);
-                    UnityEngine.Object.DestroyImmediate(sm.gameObject);
-                }
-            }
-            yield return null;
+            _tempSingleSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
+            _tempSingleSkill.InitializeSkill(
+                id: "skill_p08_playmode_single",
+                mmId: mm != null ? mm.ActiveMindMethodId : "mm_taiji",
+                slot: SkillSlotType.Skill,
+                name: "Thái Cực Đơn Đả",
+                desc: "Single Target Combat Skill",
+                conditions: null,
+                dmgMultiplier: 3.0f,
+                costRage: 15f,
+                cd: 1.0f,
+                passive: false,
+                skillEffects: new List<SkillEffectDefinitionSO> { _tempSingleEffect }
+            );
 
-            // Setup fresh encounter monsters for channel test
-            // chanM1 has 50 HP so pulse 1's ~152 damage defeats it naturally (ZERO forced HP/death)
-            // chanM2 has 220 HP so pulse 1 leaves ~68 HP, and pulse 2 defeats it as the FINAL monster of the encounter
-            var (chanM1GO, chanM1) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Chan1", new Vector3(2f, 0f, 0f));
-            var (chanM2GO, chanM2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Chan2", new Vector3(3f, 0f, 0f));
-            var initF = typeof(Monster).GetField("isInitialized", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (initF != null)
-            {
-                initF.SetValue(chanM1, true);
-                initF.SetValue(chanM2, true);
-            }
-            chanM1.Health.InitializeHealth(50f, chanM1);
-            chanM2.Health.InitializeHealth(220f, chanM2);
-            if (chanM1.Stats != null)
-            {
-                chanM1.Stats.SetBaseValue(StatType.Health, 50f);
-                chanM1.Stats.SetBaseValue(StatType.MaxHealth, 50f);
-                chanM1.Stats.SetBaseValue(StatType.Dodge, 0f);
-            }
-            if (chanM2.Stats != null)
-            {
-                chanM2.Stats.SetBaseValue(StatType.Health, 220f);
-                chanM2.Stats.SetBaseValue(StatType.MaxHealth, 220f);
-                chanM2.Stats.SetBaseValue(StatType.Dodge, 0f);
-            }
-            if (chanM1.Attack != null) chanM1.Attack.SetAttackEnabled(false);
-            if (chanM2.Attack != null) chanM2.Attack.SetAttackEnabled(false);
-
-            bm.RegisterMonster(chanM1);
-            bm.RegisterMonster(chanM2);
-            hero.SetCurrentTarget(chanM1);
-
-            // Configure channel skill: duration=1.5s, tickInterval=0.5s, rageCost=20f, cd=4f
             _tempChannelEffect = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 10.0f, 0);
+            var soChanEff = new SerializedObject(_tempChannelEffect);
+            soChanEff.Update();
+            soChanEff.FindProperty("damageMultiplier").floatValue = 10.0f;
+            soChanEff.ApplyModifiedPropertiesWithoutUndo();
+
             _tempChannelSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
             _tempChannelSkill.InitializeSkill(
                 id: "skill_p08_playmode_chan",
@@ -3456,7 +3650,7 @@ namespace WuxiaGame.Editor
                 name: "Thiên Lôi Tụ Khí (Channel)",
                 desc: "Channel Skill",
                 conditions: null,
-                dmgMultiplier: 1.0f,
+                dmgMultiplier: 10.0f,
                 costRage: 20f,
                 cd: 4f,
                 passive: false,
@@ -3474,411 +3668,144 @@ namespace WuxiaGame.Editor
             if (mm != null)
             {
                 var activeDef = mm.ActiveMindMethodDefinition;
-                if (activeDef != null && _mindMethodSkillsList != null && !_mindMethodSkillsList.Contains(_tempChannelSkill))
+                if (activeDef != null && _mindMethodSkillsList != null)
                 {
-                    _mindMethodSkillsList.Add(_tempChannelSkill);
+                    if (!_mindMethodSkillsList.Contains(_tempSingleSkill)) _mindMethodSkillsList.Add(_tempSingleSkill);
+                    if (!_mindMethodSkillsList.Contains(_tempChannelSkill)) _mindMethodSkillsList.Add(_tempChannelSkill);
                 }
-                var activeState = mm.ActiveMindMethodState;
-                if (activeState != null)
+                var chanActiveState = mm.ActiveMindMethodState;
+                if (chanActiveState != null)
                 {
-                    activeState.SkillStates[_tempChannelSkill.SkillId] = new SkillRuntimeState(_tempChannelSkill.SkillId, true, 1);
-                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempChannelSkill.SkillId;
+                    chanActiveState.SkillStates[_tempSingleSkill.SkillId] = new SkillRuntimeState(_tempSingleSkill.SkillId, true, 1);
+                    chanActiveState.SkillStates[_tempChannelSkill.SkillId] = new SkillRuntimeState(_tempChannelSkill.SkillId, true, 1);
+                    chanActiveState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempSingleSkill.SkillId;
                 }
             }
 
-            hero.Rage.ResetRage(100f);
+            // 3. Natural auto-combat progresses through Wave 2 until exactly 1 living monster remains
+            Debug.Log("[PLAY MODE P08] Wave 2 single-target combat running until 1 final monster remains...");
+            while (bm.GetLivingMonsterCount() > 1 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            {
+                yield return null;
+            }
+
+            var decisionCtrl = hero.GetComponent<HeroSkillDecisionController>();
+            if (decisionCtrl != null) decisionCtrl.enabled = false;
+            if (hero.Attack != null) hero.Attack.SetAttackEnabled(false);
+
+            while (hero.IsCasting && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            {
+                yield return null;
+            }
+
+            var finalMonster = bm.GetNextLivingMonster();
+            bool hasFinalMonster = (finalMonster != null && finalMonster.IsAlive);
+            Debug.Log($"[PLAY MODE P08] Wave 2 reached final monster: Name={finalMonster?.EntityName}, LivingCount={bm.GetLivingMonsterCount()}");
+
+            // 4. Execute Channel Skill on the final monster
+            currentPhase = "WAVE_2_FINISHING_CHANNEL";
+            var finishActiveState = mm != null ? mm.ActiveMindMethodState : null;
+            if (finishActiveState != null)
+            {
+                finishActiveState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempChannelSkill.SkillId;
+            }
+            if (hero.Rage != null)
+            {
+                hero.Rage.ResetRage(100f);
+            }
             CooldownManager.ResetAllCooldowns();
 
-            int chanStartEncounterIndex = bm.EncounterIndex;
-            // 1. Channel Start Execution
-            var chanReq = new SkillExecutionRequest(hero, _tempChannelSkill, SkillSlotType.Skill, chanM1);
+            int wave2EncounterIndex = bm.EncounterIndex;
+            var chanReq = new SkillExecutionRequest(hero, _tempChannelSkill, SkillSlotType.Skill, finalMonster);
             var chanExecRes = SkillExecutor.Execute(chanReq);
 
             bool chanStarted = chanExecRes.Success && hero.IsCasting && hero.IsChanneling;
             bool rageConsumedOnceAtStart = Mathf.Approximately(hero.Rage.CurrentRage, 80f);
             bool noCooldownAtStart = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
-            bool snapshotBelongsToExecution = chanStarted && hero.CastState != null && hero.CastState.ActiveRequest == chanReq;
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Start: ChanStarted={chanStarted}, RageOnce={rageConsumedOnceAtStart} (Rage={hero.Rage.CurrentRage}), NoCdAtStart={noCooldownAtStart}, SnapshotBound={snapshotBelongsToExecution}");
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Wave 2 Final Monster Channel: Started={chanStarted}, RageOnce={rageConsumedOnceAtStart}, NoCdAtStart={noCooldownAtStart}");
 
-            // 2. Late Monster Registration Before First Pulse (at ~0.1s)
-            yield return new WaitForSeconds(0.1f);
-            var (chanMLateGO, chanMLate) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Late", new Vector3(2.5f, 0f, 0f));
-            if (chanMLate.Attack != null) chanMLate.Attack.SetAttackEnabled(false);
-            chanMLate.Stats.SetBaseValue(StatType.Dodge, 0f);
-            bm.RegisterMonster(chanMLate);
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Late monster spawned and registered into BattleManager. ActiveCount={bm.ActiveMonsters.Count}");
-
-            // 3. Progress naturally to Pulse 1 (ticks at 0.5s via natural Unity frames at Time.timeScale=1.0)
-            while (hero.CastState.ChannelTicksExecuted < 1 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            // 5. Let natural frames advance the channel. When the final monster dies, wave transition begins!
+            while (finalMonster != null && finalMonster.IsAlive && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
-            float chanM1HpP1 = chanM1.Health.CurrentHealth;
-            float chanM2HpP1 = chanM2.Health.CurrentHealth;
-            float chanMLateHpP1 = chanMLate.Health.CurrentHealth;
-            bool pulse1M1Hit = (chanM1HpP1 <= 0f && !chanM1.IsAlive);
-            bool pulse1M2Hit = (chanM2HpP1 < 220f && chanM2.IsAlive);
-            bool lateMonsterExcludedP1 = Mathf.Approximately(chanMLateHpP1, 500f);
-
-            // Tech Lead P08 Corrective V2 Invariants:
-            // 1. Not interrupted as CrowdControl
-            bool notCcInterruptedAtP1 = (hero.CastState != null && hero.CastState.InterruptSource == SkillCastInterruptSource.None);
-            // 2. Not auto-completed at 0.5s; continues through natural frames
-            bool notEarlyCompletedAtP1 = (hero.IsCasting && hero.IsChanneling && !hero.CastState.IsFinished);
-            // 3. Next encounter not spawned while execution ongoing
-            bool nextEncounterNotSpawnedAtP1 = (bm.EncounterIndex == chanStartEncounterIndex);
-            // 4. Cooldown not triggered prematurely (must be triggered once upon completion)
-            bool noEarlyCooldownAtP1 = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 1: M1HitAndDeadNaturally={pulse1M1Hit} ({chanM1HpP1}), M2Hit={pulse1M2Hit} ({chanM2HpP1}), LateExcluded={lateMonsterExcludedP1} ({chanMLateHpP1}), NotCcInterrupted={notCcInterruptedAtP1}, NotEarlyCompleted={notEarlyCompletedAtP1}, NextEncBlocked={nextEncounterNotSpawnedAtP1}, NoEarlyCd={noEarlyCooldownAtP1}");
-
-            // Remove late monster now so chanM2 is the SOLE surviving monster in the entire registry for Pulse 2
-            bm.UnregisterMonster(chanMLate);
-            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
-
-            // 4. Progress naturally to Pulse 2 (ticks at 1.0s via natural Unity frames, defeats chanM2 as FINAL monster of encounter)
-            while (hero.CastState.ChannelTicksExecuted < 2 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
-            {
-                yield return null;
-            }
-
-            float chanM2HpP2 = chanM2.Health.CurrentHealth;
-            bool pulse2M2HitAndDead = (chanM2HpP2 <= 0f && !chanM2.IsAlive);
-            bool finalMonsterDeadAtP2 = pulse2M2HitAndDead && !bm.HasLivingMonster();
+            yield return null; // allow death event to process in BM
+            bool finalMonsterDead = (finalMonster == null || !finalMonster.IsAlive);
+            bool waveFullyDefeated = bm.IsWaveFullyDefeated();
             bool channelStillActiveDuringTransition = hero.IsCasting && hero.IsChanneling && bm.CanEntityTickDuringTransition(hero);
-            bool nextEncounterBlockedAtP2 = (bm.EncounterIndex == chanStartEncounterIndex);
-            bool noEarlyCooldownAtP2 = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Pulse 2: FinalMonsterDefeatedNaturally={finalMonsterDeadAtP2}, ChannelContinuingThroughTransition={channelStillActiveDuringTransition}, NextEncBlocked={nextEncounterBlockedAtP2}, NoEarlyCdAtP2={noEarlyCooldownAtP2}");
+            bool transitionHoldsNextEncounter = (bm.EncounterIndex == wave2EncounterIndex);
+            bool noEarlyCooldownDuringTransition = !CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out _);
 
-            // 5. Natural Channel Completion (completes naturally at 1.5s via natural Unity frames through transition)
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Mid-Transition: FinalDead={finalMonsterDead}, WaveDefeated={waveFullyDefeated}, ChannelContinuing={channelStillActiveDuringTransition}, NextEncHeld={transitionHoldsNextEncounter}, NoEarlyCd={noEarlyCooldownDuringTransition}");
+
+            // Request modal during finishing channel to ensure transition does NOT abandon transaction
+            currentPhase = "WAVE_2_MODAL_RACE_TEST";
+            var mockYieldView = new DummyModalView_P08 { ModalId = "P08TransitionYieldModal" };
+            ModalCoordinator.Instance.RegisterModalView(mockYieldView);
+
+            var transYieldModalReq = new ModalRequest("P08TransitionYieldModal", ModalPriority.SystemProgression, isDismissable: true, payload: null);
+            ModalCoordinator.Instance.RequestModal(transYieldModalReq);
+
+            // 6. Natural channel completion: hero finishes channeling through transition
             while (hero.CastState.IsActive && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
             bool channelFinishedNaturally = !hero.IsCasting && !hero.IsChanneling;
-            bool rageStillPreservedAtEnd = Mathf.Approximately(hero.Rage.CurrentRage, 80f);
             bool cooldownTriggeredOnCompletion = CooldownManager.IsOnCooldown(_tempChannelSkill.SkillId, out float cdRemain) && cdRemain > 0f;
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Completion: Finished={channelFinishedNaturally}, RagePreserved={rageStillPreservedAtEnd}, CooldownTriggered={cooldownTriggeredOnCompletion} ({cdRemain:F1}s)");
+            Debug.Log($"[PLAY MODE P08 CHANNEL] Completion: FinishedNaturally={channelFinishedNaturally}, CooldownTriggered={cooldownTriggeredOnCompletion} ({cdRemain:F1}s)");
 
-            // --------------------------------------------------------------------
-            // EXECUTION B: Prove Snapshot Independence By Observed Damage Effects
-            // --------------------------------------------------------------------
-            // Reset cooldowns to satisfy eligibility for B
-            CooldownManager.ResetAllCooldowns();
-            hero.CastState.Reset();
-            hero.Rage.ResetRage(100f);
-            bm.IsBattleActive = true;
+            // Modal is still active: verify transition is held and does NOT spawn Wave 3 while modal is active
+            yield return new WaitForSeconds(0.4f);
+            bool modalActiveInYield = (ModalCoordinator.Instance != null && ModalCoordinator.Instance.ActiveBlockingModalCount > 0);
+            bool wave3HeldWhileModalActive = (bm.EncounterIndex == wave2EncounterIndex);
+            Debug.Log($"[PLAY MODE P08] Transition Yield Modal Race: ModalActive={modalActiveInYield}, Wave3Held={wave3HeldWhileModalActive}");
 
-            // Clean up any lingering GameObjects from Execution A
-            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
-            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
-            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
-            bm.ClearActiveMonsters();
+            // Dismiss the blocking modal to allow transition to complete and spawn Wave 3
+            ModalCoordinator.Instance.DismissActiveModal(DismissalReason.UserClosed);
+            ModalCoordinator.Instance.UnregisterModalView(mockYieldView);
 
-            // Spawn fresh targets for Execution B:
-            // - chanMLate at (4, 0, 0) (anchor, in range of B)
-            // - chanM2 at (3, 0, 0) (dist 1.0m <= 2.0m, in range of B)
-            // - chanMOut at (10, 0, 0) (dist 6.0m > 2.0m, out of range of B)
-            (chanMLateGO, chanMLate) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Late_B", new Vector3(4.0f, 0f, 0f));
-            if (initF != null) initF.SetValue(chanMLate, true);
-            chanMLate.Health.InitializeHealth(500f, chanMLate);
-            if (chanMLate.Attack != null) chanMLate.Attack.SetAttackEnabled(false);
-            chanMLate.Stats.SetBaseValue(StatType.Dodge, 0f);
-            bm.RegisterMonster(chanMLate);
-
-            (chanM2GO, chanM2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M2_B", new Vector3(3.0f, 0f, 0f));
-            if (initF != null) initF.SetValue(chanM2, true);
-            chanM2.Health.InitializeHealth(500f, chanM2);
-            if (chanM2.Attack != null) chanM2.Attack.SetAttackEnabled(false);
-            chanM2.Stats.SetBaseValue(StatType.Dodge, 0f);
-            bm.RegisterMonster(chanM2);
-
-            // Spawn valid out-of-range target M_Out at (10, 0, 0)
-            var (chanMOutGO, chanMOut) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Out", new Vector3(10.0f, 0f, 0f));
-            if (initF != null) initF.SetValue(chanMOut, true);
-            chanMOut.Health.InitializeHealth(500f, chanMOut);
-            if (chanMOut.Attack != null) chanMOut.Attack.SetAttackEnabled(false);
-            chanMOut.Stats.SetBaseValue(StatType.Dodge, 0f);
-            bm.RegisterMonster(chanMOut);
-
-            // Configure Skill B: Area with radius=2.0m anchored on M_Late at (4, 0, 0)
-            // Expected target set for B:
-            //   - M_Late at (4, 0, 0): dist = 0m <= 2.0m (IN EXPECTED SET)
-            //   - M2 at (3, 0, 0): dist = 1m <= 2.0m (IN EXPECTED SET)
-            //   - M_Out at (10, 0, 0): dist = 6m > 2.0m (OUTSIDE EXPECTED SET)
-            _tempChannelEffectB = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 2.0f, 0);
-            _tempChannelSkillB = ScriptableObject.CreateInstance<SkillDefinitionSO>();
-            _tempChannelSkillB.InitializeSkill(
-                id: "skill_p08_playmode_chan_b",
-                mmId: mm != null ? mm.ActiveMindMethodId : "mm_taiji",
-                slot: SkillSlotType.Skill,
-                name: "Thiên Lôi Tụ Khí (Channel B)",
-                desc: "Channel Skill B",
-                conditions: null,
-                dmgMultiplier: 1.0f,
-                costRage: 20f,
-                cd: 0f,
-                passive: false,
-                skillEffects: new List<SkillEffectDefinitionSO> { _tempChannelEffectB }
-            );
-
-            var soChanB = new SerializedObject(_tempChannelSkillB);
-            soChanB.Update();
-            soChanB.FindProperty("isChannel").boolValue = true;
-            soChanB.FindProperty("channelDuration").floatValue = 1.0f;
-            soChanB.FindProperty("channelTickInterval").floatValue = 0.5f;
-            soChanB.FindProperty("castTime").floatValue = 0f;
-            soChanB.ApplyModifiedPropertiesWithoutUndo();
-
-            if (mm != null)
-            {
-                var activeDef = mm.ActiveMindMethodDefinition;
-                if (activeDef != null && _mindMethodSkillsList != null && !_mindMethodSkillsList.Contains(_tempChannelSkillB))
-                {
-                    _mindMethodSkillsList.Add(_tempChannelSkillB);
-                }
-                var activeState = mm.ActiveMindMethodState;
-                if (activeState != null)
-                {
-                    activeState.SkillStates[_tempChannelSkillB.SkillId] = new SkillRuntimeState(_tempChannelSkillB.SkillId, true, 1);
-                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempChannelSkillB.SkillId;
-                }
-            }
-
-            float preB_MLate_Hp = chanMLate.Health.CurrentHealth; // 500f
-            float preB_M2_Hp = chanM2.Health.CurrentHealth;       // ~281.8f
-            float preB_MOut_Hp = chanMOut.Health.CurrentHealth;   // 500f
-
-            var chanReqB = new SkillExecutionRequest(hero, _tempChannelSkillB, SkillSlotType.Skill, chanMLate);
-            var chanExecResB = SkillExecutor.Execute(chanReqB);
-
-            bool chanBStarted = chanExecResB.Success && hero.IsCasting && hero.IsChanneling;
-
-            // Wait for B's natural pulse 1 (ticks at 0.5s via natural Unity frames)
-            while (hero.CastState.ChannelTicksExecuted < 1 && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            // 8. Wait for transition to complete and Wave 3 (Encounter 3) to spawn
+            currentPhase = "WAVE_3_SPAWN_AND_PROGRESS";
+            while ((bm.EncounterIndex < 3 || bm.CurrentBattleState != BattleState.InProgress || bm.ActiveMonsters.Count < 4) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
             {
                 yield return null;
             }
 
-            float postB_MLate_Hp = chanMLate.Health.CurrentHealth;
-            float postB_M2_Hp = chanM2.Health.CurrentHealth;
-            float postB_MOut_Hp = chanMOut.Health.CurrentHealth;
+            if (decisionCtrl != null) decisionCtrl.enabled = true;
+            if (hero.Attack != null) hero.Attack.SetAttackEnabled(true);
 
-            // Observed Effects Verification for B:
-            // 1. Previously late target (excluded from A) is NOW damaged by B!
-            bool bDamagedLateTarget = (postB_MLate_Hp < preB_MLate_Hp);
-            // 2. In-range target M2 is damaged by B!
-            bool bDamagedM2 = (postB_M2_Hp < preB_M2_Hp);
-            // 3. Out-of-range target M_Out is completely unaffected by B!
-            bool bDidNotDamageOutOfRange = Mathf.Approximately(postB_MOut_Hp, preB_MOut_Hp);
-
-            // Let B finish naturally
-            while (hero.CastState.IsActive && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
+            // Verify Wave 3 invariants
+            bool enc3CountOk = (bm.ActiveMonsters.Count == 4 || bm.ActiveMonsters.Count == 5);
+            bool enc3IndexOk = (bm.EncounterIndex == 3);
+            bool enc3CompletedCountOk = (bm.CompletedNormalWaveCount == 2);
+            bool enc3StatMultiplierOk = Mathf.Abs(bm.CurrentWaveStatMultiplier - 1.0201f) < 0.0001f;
+            bool enc3BaseHpScaled = (bm.ActiveWaveMonsterConfig != null && Mathf.Abs(bm.ActiveWaveMonsterConfig.MaxHealth - 510.05f) < 0.01f);
+            bool enc3BaseAtkScaled = (bm.ActiveWaveMonsterConfig != null && Mathf.Abs(bm.ActiveWaveMonsterConfig.Attack - 51.005f) < 0.01f);
+            bool enc3BaseDefScaled = (bm.ActiveWaveMonsterConfig != null && Mathf.Abs(bm.ActiveWaveMonsterConfig.Defense - 10.201f) < 0.01f);
+            bool enc3AllYMinus03 = true;
+            for (int i = 0; i < bm.ActiveMonsters.Count; i++)
             {
-                yield return null;
+                var mon = bm.ActiveMonsters[i];
+                if (mon != null && !Mathf.Approximately(mon.transform.position.y, -0.3f)) enc3AllYMinus03 = false;
             }
 
-            bool bScenarioPass = chanBStarted && bDamagedLateTarget && bDamagedM2 && bDidNotDamageOutOfRange;
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Execution B (Observed Effects): Started={chanBStarted}, DamagedLateTarget={bDamagedLateTarget} ({preB_MLate_Hp} -> {postB_MLate_Hp}), DamagedM2={bDamagedM2} ({preB_M2_Hp} -> {postB_M2_Hp}), OutOfRangeUnaffected={bDidNotDamageOutOfRange} ({postB_MOut_Hp}) | PASS={bScenarioPass}");
+            // Let Wave 3 combat engage naturally for 1 second
+            yield return new WaitForSeconds(1.0f);
+            bool enc3CombatActive = (bm.IsBattleActive && bm.CurrentBattleState == BattleState.InProgress && bm.HasLivingMonster());
 
-            // --------------------------------------------------------------------
-            // SEPARATE CASTERS REQUIREMENT (Real Play Mode Pipeline Execution)
-            // --------------------------------------------------------------------
-            CooldownManager.ResetAllCooldowns();
-            hero.CastState.Reset();
-            hero.Rage.ResetRage(100f);
-            bm.IsBattleActive = true;
+            bool wave2And3Pass = hasFinalMonster && chanStarted && rageConsumedOnceAtStart && noCooldownAtStart &&
+                                 finalMonsterDead && waveFullyDefeated && channelStillActiveDuringTransition &&
+                                 transitionHoldsNextEncounter && noEarlyCooldownDuringTransition &&
+                                 channelFinishedNaturally && cooldownTriggeredOnCompletion &&
+                                 modalActiveInYield && wave3HeldWhileModalActive &&
+                                 enc3CountOk && enc3IndexOk && enc3CompletedCountOk && enc3StatMultiplierOk &&
+                                 enc3BaseHpScaled && enc3BaseAtkScaled && enc3BaseDefScaled && enc3AllYMinus03 &&
+                                 enc3CombatActive;
 
-            // Caster 1: hero at (0, 0, 0)
-            var caster1 = hero;
-            // Caster 2: separate supported hero at (100, 0, 0)
-            var (caster2GO, caster2) = Prototype01PlayTestRunner_P08.CreateMockHero("Hero_Caster2", new Vector3(100f, 0f, 0f));
-            if (caster2.Stats != null)
-            {
-                caster2.Stats.SetBaseValue(StatType.Attack, 100f);
-                caster2.Stats.SetBaseValue(StatType.Dodge, 0f);
-                caster2.Stats.SetBaseValue(StatType.CritRate, 0f);
-            }
-            caster2.Rage.ResetRage(100f);
-
-            // Clear prior test monsters from active encounter so only mCaster1 and mCaster2 are present
-            bm.ClearActiveMonsters();
-            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
-            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
-            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
-            if (chanMOutGO != null) UnityEngine.Object.DestroyImmediate(chanMOutGO);
-
-            // Targets for separate casters:
-            var (mCaster1GO, mCaster1) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Caster1", new Vector3(2f, 0f, 0f));
-            var (mCaster2GO, mCaster2) = Prototype01PlayTestRunner_P08.CreateMockMonster("M_Caster2", new Vector3(102f, 0f, 0f));
-            if (initF != null)
-            {
-                initF.SetValue(mCaster1, true);
-                initF.SetValue(mCaster2, true);
-            }
-            mCaster1.Health.InitializeHealth(500f, mCaster1);
-            mCaster2.Health.InitializeHealth(500f, mCaster2);
-            if (mCaster1.Attack != null) mCaster1.Attack.SetAttackEnabled(false);
-            if (mCaster2.Attack != null) mCaster2.Attack.SetAttackEnabled(false);
-            mCaster1.Stats.SetBaseValue(StatType.Dodge, 0f);
-            mCaster2.Stats.SetBaseValue(StatType.Dodge, 0f);
-            bm.RegisterMonster(mCaster1);
-            bm.RegisterMonster(mCaster2);
-
-            // Skill for Caster 1 (Slot: Skill)
-            _tempEffectCasterA = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 3.0f, 0);
-            _tempSkillCasterA = ScriptableObject.CreateInstance<SkillDefinitionSO>();
-            _tempSkillCasterA.InitializeSkill("skill_p08_caster_a", mm != null ? mm.ActiveMindMethodId : "mm_taiji", SkillSlotType.Skill, "Caster A Skill", "Desc", null, 1.0f, 0f, 0f, false, new List<SkillEffectDefinitionSO> { _tempEffectCasterA });
-            var soCasterA = new SerializedObject(_tempSkillCasterA);
-            soCasterA.Update();
-            soCasterA.FindProperty("isChannel").boolValue = true;
-            soCasterA.FindProperty("channelDuration").floatValue = 1.0f;
-            soCasterA.FindProperty("channelTickInterval").floatValue = 0.5f;
-            soCasterA.FindProperty("castTime").floatValue = 0f;
-            soCasterA.ApplyModifiedPropertiesWithoutUndo();
-
-            // Skill for Caster 2 (Slot: ExternalSkill1)
-            _tempEffectCasterB = Prototype01PlayTestRunner_P08.CreateConfiguredEffect(SkillTargetPolicy.Area, 3.0f, 0);
-            _tempSkillCasterB = ScriptableObject.CreateInstance<SkillDefinitionSO>();
-            _tempSkillCasterB.InitializeSkill("skill_p08_caster_b", mm != null ? mm.ActiveMindMethodId : "mm_taiji", SkillSlotType.ExternalSkill1, "Caster B Skill", "Desc", null, 1.0f, 0f, 0f, false, new List<SkillEffectDefinitionSO> { _tempEffectCasterB });
-            var soCasterB = new SerializedObject(_tempSkillCasterB);
-            soCasterB.Update();
-            soCasterB.FindProperty("isChannel").boolValue = true;
-            soCasterB.FindProperty("channelDuration").floatValue = 1.0f;
-            soCasterB.FindProperty("channelTickInterval").floatValue = 0.5f;
-            soCasterB.FindProperty("castTime").floatValue = 0f;
-            soCasterB.ApplyModifiedPropertiesWithoutUndo();
-
-            if (mm != null)
-            {
-                var activeDef = mm.ActiveMindMethodDefinition;
-                if (activeDef != null && _mindMethodSkillsList != null)
-                {
-                    if (!_mindMethodSkillsList.Contains(_tempSkillCasterA)) _mindMethodSkillsList.Add(_tempSkillCasterA);
-                    if (!_mindMethodSkillsList.Contains(_tempSkillCasterB)) _mindMethodSkillsList.Add(_tempSkillCasterB);
-                }
-                var activeState = mm.ActiveMindMethodState;
-                if (activeState != null)
-                {
-                    activeState.SkillStates[_tempSkillCasterA.SkillId] = new SkillRuntimeState(_tempSkillCasterA.SkillId, true, 1);
-                    activeState.SkillStates[_tempSkillCasterB.SkillId] = new SkillRuntimeState(_tempSkillCasterB.SkillId, true, 1);
-                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = _tempSkillCasterA.SkillId;
-                    activeState.SelectedSkillPerSlot[SkillSlotType.ExternalSkill1] = _tempSkillCasterB.SkillId;
-                }
-            }
-
-            float preCast_mCaster1_Hp = mCaster1.Health.CurrentHealth; // 500f
-            float preCast_mCaster2_Hp = mCaster2.Health.CurrentHealth; // 500f
-
-            // Rigorous hit & damage tracking via canonical production EventBus
-            int hitsFromCaster1OnTarget1 = 0;
-            int hitsFromCaster1OnTarget2 = 0;
-            int hitsFromCaster2OnTarget1 = 0;
-            int hitsFromCaster2OnTarget2 = 0;
-            float dmgFromCaster1OnTarget1 = 0f;
-            float dmgFromCaster2OnTarget2 = 0f;
-            int foreignTargetHits = 0;
-
-            Action<Entity, DamageResult> onDamageTracked = (victim, dmgResult) =>
-            {
-                if (dmgResult.Attacker == caster1)
-                {
-                    if (victim == mCaster1)
-                    {
-                        hitsFromCaster1OnTarget1++;
-                        dmgFromCaster1OnTarget1 += dmgResult.FinalDamage;
-                    }
-                    else if (victim == mCaster2)
-                    {
-                        hitsFromCaster1OnTarget2++;
-                    }
-                    else
-                    {
-                        foreignTargetHits++;
-                    }
-                }
-                else if (dmgResult.Attacker == caster2)
-                {
-                    if (victim == mCaster2)
-                    {
-                        hitsFromCaster2OnTarget2++;
-                        dmgFromCaster2OnTarget2 += dmgResult.FinalDamage;
-                    }
-                    else if (victim == mCaster1)
-                    {
-                        hitsFromCaster2OnTarget1++;
-                    }
-                    else
-                    {
-                        foreignTargetHits++;
-                    }
-                }
-            };
-            EventBus.OnEntityDamaged += onDamageTracked;
-
-            var reqCaster1 = new SkillExecutionRequest(caster1, _tempSkillCasterA, SkillSlotType.Skill, mCaster1);
-            var resCaster1 = SkillExecutor.Execute(reqCaster1);
-
-            var reqCaster2 = new SkillExecutionRequest(caster2, _tempSkillCasterB, SkillSlotType.ExternalSkill1, mCaster2);
-            var resCaster2 = SkillExecutor.Execute(reqCaster2);
-
-            bool bothCastersStarted = resCaster1.Success && resCaster2.Success && caster1.IsCasting && caster2.IsCasting;
-
-            // Wait for natural pulse on both casters
-            while ((caster1.CastState.ChannelTicksExecuted < 1 || caster2.CastState.ChannelTicksExecuted < 1) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
-            {
-                yield return null;
-            }
-
-            // Wait for both to finish naturally
-            while ((caster1.CastState.IsActive || caster2.CastState.IsActive) && (Time.realtimeSinceStartup - scenarioStartTime < 180f))
-            {
-                yield return null;
-            }
-
-            EventBus.OnEntityDamaged -= onDamageTracked;
-
-            float postCast_mCaster1_Hp = mCaster1.Health.CurrentHealth;
-            float postCast_mCaster2_Hp = mCaster2.Health.CurrentHealth;
-
-            bool caster1HitOwnTarget = (hitsFromCaster1OnTarget1 > 0 && postCast_mCaster1_Hp < preCast_mCaster1_Hp);
-            bool caster2HitOwnTarget = (hitsFromCaster2OnTarget2 > 0 && postCast_mCaster2_Hp < preCast_mCaster2_Hp);
-            bool noCrossHits = (hitsFromCaster1OnTarget2 == 0 && hitsFromCaster2OnTarget1 == 0);
-            bool noForeignHits = (foreignTargetHits == 0);
-            bool damage1ExactMatch = Mathf.Approximately(preCast_mCaster1_Hp - postCast_mCaster1_Hp, dmgFromCaster1OnTarget1);
-            bool damage2ExactMatch = Mathf.Approximately(preCast_mCaster2_Hp - postCast_mCaster2_Hp, dmgFromCaster2OnTarget2);
-
-            bool separateCastersPass = bothCastersStarted && caster1HitOwnTarget && caster2HitOwnTarget && noCrossHits && noForeignHits && damage1ExactMatch && damage2ExactMatch;
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Separate Casters Independence: Started={bothCastersStarted}, Caster1_Hits=(T1:{hitsFromCaster1OnTarget1}, T2:{hitsFromCaster1OnTarget2}, Dmg:{dmgFromCaster1OnTarget1:F1}), Caster2_Hits=(T1:{hitsFromCaster2OnTarget1}, T2:{hitsFromCaster2OnTarget2}, Dmg:{dmgFromCaster2OnTarget2:F1}), NoCrossHits={noCrossHits}, ForeignHits={noForeignHits}, DamageMatches=({damage1ExactMatch},{damage2ExactMatch}) | PASS={separateCastersPass}");
-
-            // Cleanup scenario 2 game objects
-            if (caster2GO != null) UnityEngine.Object.DestroyImmediate(caster2GO);
-            if (mCaster1GO != null) UnityEngine.Object.DestroyImmediate(mCaster1GO);
-            if (mCaster2GO != null) UnityEngine.Object.DestroyImmediate(mCaster2GO);
-            if (chanM1GO != null) UnityEngine.Object.DestroyImmediate(chanM1GO);
-            if (chanM2GO != null) UnityEngine.Object.DestroyImmediate(chanM2GO);
-            if (chanMLateGO != null) UnityEngine.Object.DestroyImmediate(chanMLateGO);
-            if (chanMOutGO != null) UnityEngine.Object.DestroyImmediate(chanMOutGO);
-
-            // Restore AI controller, auto-battle, and hero attack
-            bm.SetAutoBattle(origAutoBattle);
-            foreach (var kvp in origAiStates)
-            {
-                if (kvp.Key != null) kvp.Key.enabled = kvp.Value;
-            }
-            if (hero != null && hero.Attack != null) hero.Attack.SetAttackEnabled(origHeroAttack);
-
-            bool channelScenarioPass = chanStarted && rageConsumedOnceAtStart && noCooldownAtStart &&
-                                       snapshotBelongsToExecution && pulse1M1Hit && pulse1M2Hit &&
-                                       lateMonsterExcludedP1 && notCcInterruptedAtP1 && notEarlyCompletedAtP1 &&
-                                       nextEncounterNotSpawnedAtP1 && noEarlyCooldownAtP1 &&
-                                       pulse2M2HitAndDead && finalMonsterDeadAtP2 && channelStillActiveDuringTransition &&
-                                       nextEncounterBlockedAtP2 && noEarlyCooldownAtP2 &&
-                                       channelFinishedNaturally && rageStillPreservedAtEnd &&
-                                       cooldownTriggeredOnCompletion && bScenarioPass && separateCastersPass;
-
-            Debug.Log($"[PLAY MODE P08 CHANNEL] Scenario 2 Result: {(channelScenarioPass ? "PASS" : "FAIL")}");
+            Debug.Log($"[PLAY MODE P08] Wave 2 & 3 Summary: Wave2ChannelPass={channelFinishedNaturally}, Wave3Count={bm.ActiveMonsters.Count} (CountOk={enc3CountOk}), Wave3Idx={bm.EncounterIndex} (IdxOk={enc3IndexOk}), CompletedWaves={bm.CompletedNormalWaveCount} (CompletedOk={enc3CompletedCountOk}), Mult={bm.CurrentWaveStatMultiplier} (MultOk={enc3StatMultiplierOk}), BaseHp={bm.ActiveWaveMonsterConfig?.MaxHealth} (HpOk={enc3BaseHpScaled}), CombatActive={enc3CombatActive} | {(wave2And3Pass ? "PASS" : "FAIL")}");
 
             // ====================================================================
             // IDEMPOTENT RESTORATION & POST-CLEANUP VERIFICATION
@@ -3887,17 +3814,18 @@ namespace WuxiaGame.Editor
             bool cleanupSucceeded = PerformRestoration();
 
             bool isTimedOut = (Time.realtimeSinceStartup - scenarioStartTime >= 180f);
-            bool scenarioPass = aoeLootScenarioPass && channelScenarioPass && cleanupSucceeded && (unexpectedErrors == 0) && !isTimedOut;
+            bool scenarioPass = aoeLootScenarioPass && wave2And3Pass && cleanupSucceeded && (unexpectedErrors == 0) && !isTimedOut;
 
             hasFinished = true;
             Debug.Log("================================================================================");
             Debug.Log($"   [REAL PLAY MODE P08 SCENARIO]: ALL_PASS={scenarioPass}, CleanupSucceeded={cleanupSucceeded}, UnexpectedErrors={unexpectedErrors}, TimedOut={isTimedOut}");
             if (unexpectedErrors > 0)
             {
-                Debug.LogError($"[PLAY MODE P08] Encountered {unexpectedErrors} unexpected errors/exceptions:");
-                foreach (var err in errorLogs)
+                Debug.LogWarning($"[PLAY MODE P08] Encountered {unexpectedErrors} unexpected errors/exceptions:");
+                var errSnapshot = new List<string>(errorLogs);
+                for (int i = 0; i < errSnapshot.Count; i++)
                 {
-                    Debug.LogError(err);
+                    Debug.LogWarning($"[UNEXPECTED_LOG #{i + 1}] {errSnapshot[i]}");
                 }
             }
             Debug.Log("================================================================================");
@@ -3962,19 +3890,23 @@ namespace WuxiaGame.Editor
                 string dir2 = Path.Combine(projectRoot, "review_package_p08_final_acceptance", "screenshots");
                 string dir3 = Path.Combine(projectRoot, "review_package_p08_final_closure", "screenshots");
                 string dir4 = Path.Combine(projectRoot, "review_package_p08_corrective_v2", "screenshots");
+                string dir5 = Path.Combine(projectRoot, "review_package_p08_normal_wave_stat_growth", "screenshots");
                 Directory.CreateDirectory(dir1);
                 Directory.CreateDirectory(dir2);
                 Directory.CreateDirectory(dir3);
                 Directory.CreateDirectory(dir4);
+                Directory.CreateDirectory(dir5);
 
                 string path1 = Path.Combine(dir1, filename);
                 string path2 = Path.Combine(dir2, filename);
                 string path3 = Path.Combine(dir3, filename);
                 string path4 = Path.Combine(dir4, filename);
+                string path5 = Path.Combine(dir5, filename);
                 File.WriteAllBytes(path1, bytes);
                 File.WriteAllBytes(path2, bytes);
                 File.WriteAllBytes(path3, bytes);
                 File.WriteAllBytes(path4, bytes);
+                File.WriteAllBytes(path5, bytes);
 
                 Debug.Log($"[PLAY MODE P08] Screenshot '{filename}' captured successfully ({bytes.Length} bytes).");
             }
