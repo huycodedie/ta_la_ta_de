@@ -136,10 +136,10 @@ namespace WuxiaGame.Combat
                 {
                     foreach (var eff in resolvedEffects)
                     {
-                        if (eff != null && (eff.TargetPolicy == SkillTargetPolicy.Area || eff.TargetPolicy == SkillTargetPolicy.AllEnemies))
+                        if (eff != null && eff.TargetPolicy != SkillTargetPolicy.SingleTarget)
                         {
                             failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
-                            failureMessage = $"Projectile skill '{skill.SkillId}' cannot combine Projectile delivery with {eff.TargetPolicy} policy in P09-A.";
+                            failureMessage = $"Projectile skill '{skill.SkillId}' only supports SingleTarget effects in P09-A (found: {eff.TargetPolicy}).";
                             return false;
                         }
                     }

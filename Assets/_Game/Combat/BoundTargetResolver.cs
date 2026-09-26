@@ -20,6 +20,11 @@ namespace WuxiaGame.Combat
 
         public List<Entity> ResolveTargets(SkillExecutionRequest request, SkillEffectDefinitionSO effect)
         {
+            if (effect == null || effect.TargetPolicy != SkillTargetPolicy.SingleTarget)
+            {
+                return new List<Entity>();
+            }
+
             if (_boundTarget == null || !_boundTarget.gameObject.activeInHierarchy || !_boundTarget.IsAlive)
             {
                 return new List<Entity>();

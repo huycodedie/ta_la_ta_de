@@ -26,6 +26,7 @@ namespace WuxiaGame.Combat
         public SkillExecutionRequest Request { get; private set; }
         public Entity BoundTarget { get; private set; }
         public Entity Caster { get; private set; }
+        public BattleManager BoundBattleManager { get; private set; }
         public int BoundEncounterIndex { get; private set; }
         public float Speed { get; private set; } = 15f;
         public float Lifetime { get; private set; } = 5f;
@@ -88,6 +89,7 @@ namespace WuxiaGame.Combat
             Request = request;
             BoundTarget = boundTarget;
             Caster = caster;
+            BoundBattleManager = BattleManager.Instance;
             BoundEncounterIndex = encounterIndex;
             Speed = Mathf.Max(0.001f, speed);
             Lifetime = Mathf.Max(0.001f, lifetime);
@@ -154,45 +156,50 @@ namespace WuxiaGame.Combat
         public void SimulateTick(float deltaTime)
         {
             if (HasImpacted || IsCancelled) return;
+
+            // 1. Cancellation & Invalidation Conditions (evaluated BEFORE pause and deltaTime)
+
+            // 1.1 Encounter / BattleManager Guard: bound to specific BM and wave
+            var bm = BoundBattleManager != null ? BoundBattleManager : BattleManager.Instance;
+            if (bm == null || bm != BoundBattleManager || bm.EncounterIndex != BoundEncounterIndex)
+            {
+                Cancel($"Encounter or BattleManager changed or invalidated before arrival (BoundWave={BoundEncounterIndex}, CurrentWave={bm?.EncounterIndex}).");
+                return;
+            }
+
+            // 1.2 Target Validity Guard: cancel if target null, destroyed, inactive, or dead
+            if (BoundTarget == null || !BoundTarget.gameObject.activeInHierarchy || !BoundTarget.IsAlive ||
+                (BoundTarget.Health != null && BoundTarget.Health.CurrentHealth <= 0f))
+            {
+                Cancel("Bound target is null, destroyed, dead, or inactive.");
+                return;
+            }
+
+            // 1.3 Caster Validity Guard: cancel if caster null, destroyed, inactive, or dead
+            if (Caster == null || !Caster.gameObject.activeInHierarchy || !Caster.IsAlive ||
+                (Caster.Health != null && Caster.Health.CurrentHealth <= 0f))
+            {
+                Cancel("Caster is null, destroyed, dead, or inactive.");
+                return;
+            }
+
+            // 1.4 Immediate Expiry Guard: if already expired
+            if (ElapsedTime >= Lifetime)
+            {
+                Cancel("Projectile lifetime expired.");
+                return;
+            }
+
+            // 2. Combat Pause Guard: freeze travel during combat pause
+            if (!bm.IsBattleActive)
+            {
+                return;
+            }
+
+            // 3. DeltaTime check
             if (deltaTime <= 0f) return;
 
-            // 1. Combat Pause Guard: freeze travel during combat pause
-            if (BattleManager.Instance != null && !BattleManager.Instance.IsBattleActive)
-            {
-                return;
-            }
-
-            // 2. Encounter Replacement Guard: do not damage next wave
-            if (BattleManager.Instance != null && BattleManager.Instance.EncounterIndex != BoundEncounterIndex)
-            {
-                Cancel($"Encounter index changed before arrival (BM={BattleManager.Instance.EncounterIndex}, Bound={BoundEncounterIndex}).");
-                return;
-            }
-
-            // 3. Target Validity Guard: cancel if target dead, destroyed, or inactive
-            if (BoundTarget == null || !BoundTarget.gameObject.activeInHierarchy || !BoundTarget.IsAlive)
-            {
-                Cancel("Bound target is dead, destroyed, or inactive.");
-                return;
-            }
-            if (BoundTarget.Health != null && BoundTarget.Health.CurrentHealth <= 0f)
-            {
-                Cancel("Bound target has zero or negative health.");
-                return;
-            }
-
-            // 4. Caster Validity Guard: cancel if caster dead, destroyed, or inactive
-            if (Caster != null)
-            {
-                if (!Caster.gameObject.activeInHierarchy || !Caster.IsAlive ||
-                    (Caster.Health != null && Caster.Health.CurrentHealth <= 0f))
-                {
-                    Cancel("Caster is dead, destroyed, or inactive.");
-                    return;
-                }
-            }
-
-            // 5. Lifetime Expiry Guard
+            // 4. Lifetime Expiry Guard
             ElapsedTime += deltaTime;
             if (ElapsedTime >= Lifetime)
             {
@@ -200,7 +207,7 @@ namespace WuxiaGame.Combat
                 return;
             }
 
-            // 6. Homing Movement
+            // 5. Homing Movement
             Vector3 targetCenter = BoundTarget.transform.position + Vector3.up * 0.5f;
             Vector3 diff = targetCenter - transform.position;
             float dist = diff.magnitude;
@@ -238,6 +245,8 @@ namespace WuxiaGame.Combat
             }
             finally
             {
+                Effects = null;
+                Request = null;
                 DestroyCleanly();
             }
         }
@@ -247,6 +256,8 @@ namespace WuxiaGame.Combat
             if (HasImpacted || IsCancelled) return;
             IsCancelled = true;
             CancelReason = reason;
+            Effects = null;
+            Request = null;
 
             Debug.Log($"[PROJECTILE] Cancelled: {reason}");
             DestroyCleanly();

@@ -38448,6 +38448,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 2.5
   damageType: 1
+--- !u!114 &-6501986388723077613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_nyin_3_b_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 2.5
+  damageType: 1
 --- !u!114 &-6501737859345142985
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129412,7 +129430,7 @@ MonoBehaviour:
   cooldown: 5
   isPassive: 0
   effects:
-  - {fileID: 2028226775058744042}
+  - {fileID: -6501986388723077613}
   hasExplicitEffects: 1
   canShatterFreeze: 0
   castTime: 0
