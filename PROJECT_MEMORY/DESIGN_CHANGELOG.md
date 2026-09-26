@@ -1,5 +1,18 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-09-26 — P08 acceptance and gameplay-first continuation
+
+- LOCKED DECISION: the Project Owner personally tested the final conditions in Unity and confirmed they work. Tech Lead closes P08 as ACCEPTED / LOCKED.
+- Scope: 4-5 simultaneous normal monsters per wave; HP/ATK/DEF x1.01 once per legitimately completed normal wave; AOE; independent channel snapshots and natural completion; encounter membership; sequential loot with safe modal decisions.
+- Full contract, package SHA and provenance: P08_LOCKED.md.
+- USER-PROVIDED EVIDENCE: final report gives Gate 1 50/50; Gate 2 135/137 (exit 1); Gate 3 52/52; Gate 4 three natural waves with exit 0. Final manual acceptance is Project Owner evidence, not a new Unity run by Codex.
+- ACCEPTED EXCEPTIONS: UI02_HeightFix tests 07/09 retain old one-monster advancement assertions. Their raw failures remain failures; the single-monster expectation is superseded. No production workaround or silent test editing.
+- LOCKED DIRECTION: finish game functionality before finished UI. This supersedes the immediate UI-polish-next suggestion. Preserve existing functional UI; do not begin final presentation work.
+- NEXT TASK: P09-A Projectile Foundation. Historical combat planning placed projectile/dash work after AOE; this label avoids reopening accepted P08. Scope and technical implementation rules are in P09_PROJECTILE_FOUNDATION_TASK.md; P09 itself is not yet accepted.
+- PUBLICATION AUTHORITY: the Project Owner explicitly requested committing/pushing acceptance and LOCK documentation. This permits the scoped memory publication and game-memory mirror; it is not permission to publish unseen local source changes.
+- Historical September 17 pending B1/P08 statuses no longer describe current work. Update ACTIVE_WORK_HANDOFF instead of repeating those audits.
+- Source reference observed: ta_la_ta_de ff4fcec7fda4f6390b1212300249554a89ef4e3d; the manual-tested local working tree is the acceptance subject. Do not assert byte identity without local hashes.
+
 Purpose: preserve why locked decisions changed without destroying historical source material.
 
 ## Status vocabulary
