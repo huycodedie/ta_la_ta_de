@@ -4014,6 +4014,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-8919334627582305388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-8919330392850716397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7974,7 +7992,43 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-8629315511919825533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-8629180534945732519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-8628810282907212016
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9828,6 +9882,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-8505589814344071635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-8504707447303425768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11053,6 +11125,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-8411037878226834505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-8407616166091105680
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -22986,6 +23076,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-7569849897200499714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-7567865688442172041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28242,6 +28350,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-7156227707323579720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-7153648907873447884
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28711,6 +28837,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-7117116634989918140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-7116261512786071224
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -48528,6 +48672,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-5801883676237483518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-5801777029301456946
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49303,6 +49465,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-5739322920761370391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-5738319623314788103
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -54145,6 +54325,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-5417661764911916797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-5416797452823000496
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69174,6 +69372,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-4391051657492925141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-4390754984612444368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71299,6 +71515,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-4214476294702881015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-4212335023888239529
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -80100,6 +80334,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-3568237070508421508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-3565262301727314908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -82603,6 +82855,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-3385443629207314408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-3384780359227641981
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -88722,6 +88992,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-2961806280163588564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-2960873834179116584
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91891,6 +92179,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-2704713727027237208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-2702072014291893705
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -100566,6 +100872,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-2040219848405164243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-2039751106575538206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100693,6 +101017,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-2022604344293217093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-2022443235942279651
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -103428,6 +103770,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-1843768739873743363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-1840616092382230130
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104886,6 +105246,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-1751699740234880346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-1751635914619778541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -105121,6 +105499,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-1738505143606790797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-1737821162580346834
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -107587,6 +107983,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-1546757622288467788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-1545825384555265394
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -110215,6 +110629,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &-1345712452703523435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &-1341682634097673429
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -121374,6 +121806,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &-524078800251371577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &-522967734033165398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -128580,7 +129030,7 @@ MonoBehaviour:
   cooldown: 0
   isPassive: 0
   effects:
-  - {fileID: -5575141627320085192}
+  - {fileID: 4744423262694371290}
   hasExplicitEffects: 1
   canShatterFreeze: 0
   castTime: 0
@@ -128588,6 +129038,9 @@ MonoBehaviour:
   channelDuration: 0
   channelTickInterval: 0
   priority: 0
+  isProjectile: 0
+  projectileSpeed: 15
+  projectileLifetime: 5
 --- !u!114 &4480283570548397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133719,6 +134172,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &347622118993150012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &347995123319725475
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -146210,6 +146681,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &1208275229040780418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &1209074197026444130
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157694,6 +158183,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &1970881322831624549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &1971271593487331690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158144,6 +158651,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &2000739796759655881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &2001673220924551158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158469,6 +158994,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &2025574508144436905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &2026103433058004298
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -171284,6 +171827,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &2976570586772191914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &2980577652545653820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172545,6 +173106,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &3061194122715732631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &3061706914526463741
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -181976,6 +182555,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &3765687627925764839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &3766447483143807512
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182373,6 +182970,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &3798958166811307880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &3800083600258826373
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -186045,6 +186660,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &4066826467684295243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &4067272249207388608
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -195710,6 +196343,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &4744423262694371290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &4746116266107173992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -203846,6 +204497,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &5318626807535871384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &5320253893882044873
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204225,6 +204894,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &5344757365208750324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &5347261113403479606
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -209715,6 +210402,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &5760513178339828340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &5761503575715562355
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -215456,6 +216161,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &6134647005236946361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &6137475846243336927
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216249,6 +216972,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &6204019628501960944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &6205217249650084919
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -230918,6 +231659,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.1
   damageType: 1
+--- !u!114 &7274552025176371173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
 --- !u!114 &7274857620419083006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -234321,6 +235080,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &7485690047298186074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &7485921875662736675
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -250719,6 +251496,24 @@ MonoBehaviour:
   damageMultiplier: 1.1
   damageType: 1
 --- !u!114 &8658975858749658678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_ny_1_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.1
+  damageType: 1
+--- !u!114 &8661685039699944668
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

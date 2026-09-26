@@ -15,7 +15,8 @@ namespace WuxiaGame.Combat
         CooldownNotReady = 7,     // Reserved for P07.2
         InsufficientRage = 8,     // Reserved for P07.2
         SourceCrowdControlled = 9, // P07.6
-        SourceAlreadyCasting = 10  // P07.9 Phase 2.1
+        SourceAlreadyCasting = 10, // P07.9 Phase 2.1
+        InvalidDeliveryConfiguration = 11 // P09-A
     }
 
     public class SkillExecutionRequest

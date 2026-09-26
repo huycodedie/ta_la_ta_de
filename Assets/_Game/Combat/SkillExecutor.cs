@@ -175,6 +175,11 @@ namespace WuxiaGame.Combat
             }
 
             // 3. Execution Actions (Effect Pipeline via EffectResolver) - for Instant Skills
+            if (request.Skill.IsProjectile)
+            {
+                return ReleaseProjectileAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
+            }
+
             return ExecuteEffectsAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
         }
 
@@ -194,7 +199,75 @@ namespace WuxiaGame.Combat
                 return FinalizeChannelSuccess(request, curRage);
             }
 
+            if (request.Skill.IsProjectile)
+            {
+                return ReleaseProjectileAndFinalize(request, curRage, 0f, curRage, false);
+            }
+
             return ExecuteEffectsAndFinalize(request, curRage, 0f, curRage, false);
+        }
+
+        private SkillExecutionResult ReleaseProjectileAndFinalize(
+            SkillExecutionRequest request,
+            float rageBefore,
+            float rageCost,
+            float rageAfter,
+            bool rageConsumed)
+        {
+            var source = request.Source;
+            var rageComp = source is Hero hero ? hero.Rage : (source != null ? source.GetComponent<WuxiaGame.Entities.Components.RageComponent>() : null);
+            float curCdRemain = CooldownManager.GetRemainingCooldown(request.Skill?.SkillId);
+
+            try
+            {
+                var effectsToProcess = EffectResolver.ResolveEffectsForSkill(request.Skill);
+                var proj = ProjectileController.Launch(
+                    request,
+                    request.Target,
+                    request.Skill.ProjectileSpeed,
+                    request.Skill.ProjectileLifetime,
+                    effectsToProcess);
+
+                if (proj == null)
+                {
+                    throw new System.Exception("Failed to launch projectile instance.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                if (rageConsumed && rageComp != null)
+                {
+                    rageComp.AddRage(rageCost);
+                }
+                Debug.LogError($"[SKILL:PROJECTILE] Release Error: {ex}");
+                var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.None, ex.Message, rageBefore, curCdRemain);
+                EventBus.RaiseSkillExecutionFailed(request, failResult);
+                return failResult;
+            }
+
+            // Start Cooldown Only After Successful Release
+            float cdDuration = EnableCooldown ? request.Skill.Cooldown : 0f;
+            if (cdDuration > 0f)
+            {
+                CooldownManager.TriggerCooldown(request.Skill.SkillId, cdDuration);
+            }
+            float cdRemainAfter = CooldownManager.GetRemainingCooldown(request.Skill.SkillId);
+
+            // Create Success Result & Raise Event for Release
+            var successResult = SkillExecutionResult.CreateSuccess(
+                request,
+                null,
+                "Projectile released successfully.",
+                rageBefore,
+                rageCost,
+                rageAfter,
+                cdDuration,
+                cdRemainAfter,
+                null);
+
+            Debug.Log($"[SKILL:PROJECTILE] Result: SUCCESS (Released), Skill={request.Skill.SkillId}, Target={request.Target?.EntityName}, Speed={request.Skill.ProjectileSpeed}, Cooldown={cdDuration:F1}s");
+            EventBus.RaiseSkillExecutionSucceeded(request, successResult);
+            return successResult;
         }
 
         private void ExecuteChannelTick(SkillCastState castState, int tickIndex, ISkillTargetResolver targetResolver)

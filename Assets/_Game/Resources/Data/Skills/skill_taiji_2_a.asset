@@ -1206,6 +1206,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-9138633282591236801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-9137544826472463469
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1279,6 +1297,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-9133818257476152538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-9133681522950767739
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2269,6 +2305,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-9055073609383671712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-9052449943512048709
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6264,6 +6318,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-8737994750209037676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-8735267851640326262
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9433,6 +9505,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-8512633199045048635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-8512260137221959071
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -15733,6 +15823,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-8010645237354706151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-8009915718936135779
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -47034,6 +47142,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-5830717769630754871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-5830316284258358428
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -57205,6 +57331,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-5129331384073909638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-5128226766826886232
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69354,6 +69498,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-4308377289459244285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-4307841525861413776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73926,6 +74088,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-4004045133229909519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-4003076389245396449
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -77760,6 +77940,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-3710384884941468422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-3708841287574143622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79020,6 +79218,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-3632758013246116472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-3632703991891697150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79921,6 +80137,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-3566904056008309567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-3566470228442470837
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -85249,6 +85483,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-3170055468776596941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-3168896260610501099
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -94285,6 +94537,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-2556982883214856223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-2554032121103827292
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122868,6 +123138,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-489886251924165511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-486948844637709252
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124002,6 +124290,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-391950081829709448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-390516380965255469
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124111,6 +124417,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-380467097549207566
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-380280680646413631
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -126846,6 +127170,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &-164246252133806007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &-156290926751453052
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126901,6 +127243,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &-148636826877604793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &-147898009414426267
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -128958,7 +129318,7 @@ MonoBehaviour:
   cooldown: 3
   isPassive: 0
   effects:
-  - {fileID: 3348207418429989102}
+  - {fileID: -8737994750209037676}
   hasExplicitEffects: 1
   canShatterFreeze: 0
   castTime: 0
@@ -128966,6 +129326,9 @@ MonoBehaviour:
   channelDuration: 0
   channelTickInterval: 0
   priority: 60
+  isProjectile: 0
+  projectileSpeed: 15
+  projectileLifetime: 5
 --- !u!114 &120887303458479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129813,6 +130176,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &58384625181328073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &59192354493849733
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -133178,6 +133559,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &307386308751260997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &307916140151088349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -134547,6 +134946,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &398695068397402716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &399162693052526756
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -138201,6 +138618,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &661743888645884537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &669773040251895198
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143996,6 +144431,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &1079943219285374558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &1081430240229967928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149073,6 +149526,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &1452353980548052893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &1452728909833047520
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159818,6 +160289,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &2218549132587082121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &2219526210929327162
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167666,6 +168155,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &2750308356587984746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &2751274694287601674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172239,6 +172746,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &3057045973360449152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &3057694600390924864
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182300,6 +182825,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &3836400767819898973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &3836673331271282345
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -183273,6 +183816,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &3909652012290956176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &3909652804764475626
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -195333,6 +195894,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &4731326305291130407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &4731851496149818529
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -211496,6 +212075,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &5907370173808442427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &5908468185311257526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -217598,6 +218195,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &6353322944076669882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &6353844603815334433
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -219471,6 +220086,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &6498954972640559859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &6500003369856490190
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -222441,6 +223074,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &6702240223343226086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &6702451914830513888
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -229514,6 +230165,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &7181297774876250294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &7181837757817814576
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229965,6 +230634,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &7210369237257901400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &7212502343689668622
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -235149,6 +235836,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &7539263878838133964
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &7540634105725412684
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -253256,6 +253961,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &8815865480582710001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &8824521422379551674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -253725,6 +254448,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &8852113725720203386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &8852299334477526794
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -255668,6 +256409,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &9006013577256111070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &9007085232980895598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256532,6 +257291,24 @@ MonoBehaviour:
   maxTargetCount: 0
   damageMultiplier: 1.5
   damageType: 1
+--- !u!114 &9064866586412062882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
 --- !u!114 &9065620039221136971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256695,6 +257472,24 @@ MonoBehaviour:
   damageMultiplier: 1.5
   damageType: 1
 --- !u!114 &9081792655179741852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74013d394696fb448c299794c571a64, type: 3}
+  m_Name: skill_taiji_2_a_DamageEffect
+  m_EditorClassIdentifier: Assembly-CSharp::WuxiaGame.Combat.DamageEffectDefinitionSO
+  effectType: 1
+  targetPolicy: 1
+  targetRadius: 0
+  maxTargetCount: 0
+  damageMultiplier: 1.5
+  damageType: 1
+--- !u!114 &9082844115181679609
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

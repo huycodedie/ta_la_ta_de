@@ -88,6 +88,11 @@ namespace WuxiaGame.Data
         [Header("Skill Decision Priority (P07.9.1)")]
         [SerializeField] private int priority = 0;
 
+        [Header("Projectile Foundation (P09-A)")]
+        [SerializeField] private bool isProjectile = false;
+        [SerializeField] private float projectileSpeed = 15f;
+        [SerializeField] private float projectileLifetime = 5f;
+
         public string SkillId => skillId;
         public string MindMethodId => mindMethodId;
         public SkillSlotType SlotType => slotType;
@@ -108,9 +113,20 @@ namespace WuxiaGame.Data
         public float ChannelTickInterval => channelTickInterval;
         public bool IsInstant => castTime <= 0f && !isChannel;
 
+        public bool IsProjectile => isProjectile;
+        public float ProjectileSpeed => projectileSpeed;
+        public float ProjectileLifetime => projectileLifetime;
+
         public IReadOnlyList<WuxiaGame.Combat.SkillEffectDefinitionSO> Effects => effects;
         public bool HasExplicitEffects => hasExplicitEffects;
         public bool CanShatterFreeze => canShatterFreeze;
+
+        public void SetProjectile(bool projectile, float speed = 15f, float lifetime = 5f)
+        {
+            isProjectile = projectile;
+            projectileSpeed = speed;
+            projectileLifetime = lifetime;
+        }
 
         public void SetCastTime(float time)
         {
@@ -173,7 +189,10 @@ namespace WuxiaGame.Data
             bool channel = false,
             float chDuration = 0f,
             float chTickInterval = 0f,
-            int skillPriority = 0)
+            int skillPriority = 0,
+            bool projectile = false,
+            float projSpeed = 15f,
+            float projLifetime = 5f)
         {
             skillId = id;
             mindMethodId = mmId;
@@ -191,6 +210,9 @@ namespace WuxiaGame.Data
             channelDuration = Mathf.Max(0f, chDuration);
             channelTickInterval = Mathf.Max(0f, chTickInterval);
             priority = skillPriority;
+            isProjectile = projectile;
+            projectileSpeed = projSpeed;
+            projectileLifetime = projLifetime;
             if (skillEffects != null)
             {
                 effects = new List<WuxiaGame.Combat.SkillEffectDefinitionSO>(skillEffects);

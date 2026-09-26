@@ -107,9 +107,47 @@ namespace WuxiaGame.Combat
                 }
             }
 
-            // 6. Validate Target (for combat/offensive skills)
-            bool requiresSingleEnemyTarget = false;
+            // 5.5 Validate Projectile Delivery Configuration (P09-A)
             var resolvedEffects = EffectResolver.ResolveEffectsForSkill(skill);
+            if (skill.IsProjectile)
+            {
+                if (skill.IsChannel)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Skill '{skill.SkillId}' cannot combine Projectile delivery with Channel execution.";
+                    return false;
+                }
+
+                if (skill.ProjectileSpeed <= 0f || float.IsNaN(skill.ProjectileSpeed) || float.IsInfinity(skill.ProjectileSpeed))
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Projectile skill '{skill.SkillId}' requires a positive finite ProjectileSpeed (current: {skill.ProjectileSpeed}).";
+                    return false;
+                }
+
+                if (skill.ProjectileLifetime <= 0f || float.IsNaN(skill.ProjectileLifetime) || float.IsInfinity(skill.ProjectileLifetime))
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Projectile skill '{skill.SkillId}' requires a positive finite ProjectileLifetime (current: {skill.ProjectileLifetime}).";
+                    return false;
+                }
+
+                if (resolvedEffects != null && resolvedEffects.Count > 0)
+                {
+                    foreach (var eff in resolvedEffects)
+                    {
+                        if (eff != null && (eff.TargetPolicy == SkillTargetPolicy.Area || eff.TargetPolicy == SkillTargetPolicy.AllEnemies))
+                        {
+                            failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                            failureMessage = $"Projectile skill '{skill.SkillId}' cannot combine Projectile delivery with {eff.TargetPolicy} policy in P09-A.";
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // 6. Validate Target (for combat/offensive skills)
+            bool requiresSingleEnemyTarget = skill.IsProjectile;
             if (resolvedEffects != null && resolvedEffects.Count > 0)
             {
                 foreach (var eff in resolvedEffects)
