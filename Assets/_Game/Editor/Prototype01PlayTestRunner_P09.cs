@@ -17,15 +17,35 @@ namespace WuxiaGame.Editor
 {
     public static class Prototype01PlayTestRunner_P09
     {
-        [MenuItem("Tools/Wuxia RPG/Run P09-A Projectile Foundation Tests (T01 - T15)")]
+        private static string _savedActiveMmId;
+
+        [MenuItem("Tools/Wuxia RPG/Run P09-A Projectile Foundation Tests (T01 - T21)")]
         public static bool RunAllP09Tests()
         {
+            if (!Application.isBatchMode)
+            {
+                EditorUtility.DisplayDialog(
+                    "P09-A Safe Execution Notice",
+                    "Running P09-A foundation tests directly in the interactive Editor mutates PlayerPrefs.\n\n" +
+                    "To safely run these tests with full Save Guard isolation (pre-run backup, journal check, and exact restore), please execute the verification wrapper:\n\n" +
+                    "  Tools\\Verification\\P09\\run_gate1_p09.ps1\n\n" +
+                    "Direct Editor execution is blocked to protect your workspace persistence.",
+                    "OK"
+                );
+                return false;
+            }
+
+            return RunAllP09TestsInternal();
+        }
+
+        public static bool RunAllP09TestsInternal()
+        {
             Debug.Log("================================================================================");
-            Debug.Log("   STARTING P09-A PROJECTILE FOUNDATION AUTOMATED SUITE (T01 -> T15)");
+            Debug.Log("   STARTING P09-A PROJECTILE FOUNDATION AUTOMATED SUITE (T01 -> T21)");
             Debug.Log("================================================================================");
 
             int passed = 0;
-            int total = 15;
+            int total = 21;
 
             bool t01 = T01_DefaultImmediateSkillRetainsDamageRageCooldownAndTiming();
             if (t01) passed++;
@@ -72,6 +92,24 @@ namespace WuxiaGame.Editor
             bool t15 = T15_MixedPolicySkill_RejectedBeforeRageAndCooldown();
             if (t15) passed++;
 
+            bool t16 = T16_ResetInstanceWhileManagerAndTargetExist_CancelsWithoutHit();
+            if (t16) passed++;
+
+            bool t17 = T17_ReplaceInstanceWhileOldManagerAlive_CancelsWithoutHit();
+            if (t17) passed++;
+
+            bool t18 = T18_LivingTargetUnregisteredFromEncounter_CancelsWithoutHit();
+            if (t18) passed++;
+
+            bool t19 = T19_EncounterIndexChangedDuringPause_CancelsBeforeUnpause();
+            if (t19) passed++;
+
+            bool t20 = T20_DisableControllerAndReenable_DoesNotResurrectPayload();
+            if (t20) passed++;
+
+            bool t21 = T21_SceneUnload_CancelsProjectilesWithoutDamage();
+            if (t21) passed++;
+
             bool allPass = (passed == total);
             Debug.Log("================================================================================");
             Debug.Log($"   [P09 AUTOMATED TESTS RESULT]: {passed}/{total} PASSED | ALL_PASS={allPass}");
@@ -84,7 +122,7 @@ namespace WuxiaGame.Editor
         {
             try
             {
-                bool pass = RunAllP09Tests();
+                bool pass = RunAllP09TestsInternal();
                 EditorApplication.Exit(pass ? 0 : 1);
             }
             catch (Exception ex)
@@ -97,6 +135,19 @@ namespace WuxiaGame.Editor
         [MenuItem("Tools/Wuxia RPG/Run P09-A Play Mode Scenario (Natural Frames)")]
         public static void RunP09PlayModeScenarioMenu()
         {
+            if (!Application.isBatchMode)
+            {
+                EditorUtility.DisplayDialog(
+                    "P09-A Safe Execution Notice",
+                    "Running this Play Mode verification scenario directly in the interactive Editor will replace your active scene and mutate PlayerPrefs.\n\n" +
+                    "To safely run this test with full Save Guard isolation (pre-run backup, journal check, and exact restore), please execute the verification wrapper:\n\n" +
+                    "  Tools\\Verification\\P09\\run_gate2_playmode_p09.ps1\n\n" +
+                    "Direct Editor execution is blocked to protect your workspace persistence.",
+                    "OK"
+                );
+                return;
+            }
+
             if (EditorApplication.isPlaying)
             {
                 CreateHarnessIfMissing();
@@ -157,6 +208,9 @@ namespace WuxiaGame.Editor
             ProgressionManager.ResetInstance();
             EventBus.ClearAllListeners();
 
+            // Snapshot existing active MindMethod preference to guarantee in-process restore
+            _savedActiveMmId = PlayerPrefs.HasKey("TLTD_MM_ActiveId") ? PlayerPrefs.GetString("TLTD_MM_ActiveId") : null;
+
             // Services
             GameObject servicesGO = new GameObject("TestServices");
             servicesGO.AddComponent<EquipmentManager>();
@@ -167,7 +221,7 @@ namespace WuxiaGame.Editor
             mmMgrGO = new GameObject("TestMindMethodManager");
             mmMgr = mmMgrGO.AddComponent<MindMethodManager>();
 
-            // Transient in-memory MindMethod database (zero disk modification, zero persistence reset)
+            // Transient in-memory MindMethod database
             var tempDb = ScriptableObject.CreateInstance<MindMethodDatabaseSO>();
             var tempMmDef = ScriptableObject.CreateInstance<MindMethodDefinitionSO>();
             tempMmDef.InitializeMindMethod("mm_taiji", "Taiji", "Test Taiji", 10, true, new MindMethodPassiveData());
@@ -236,6 +290,23 @@ namespace WuxiaGame.Editor
             ResourceManager.ResetInstance();
             ProgressionManager.ResetInstance();
             EventBus.ClearAllListeners();
+
+            // Revert PlayerPrefs mutations caused by MindMethodManager in tests
+            if (_savedActiveMmId != null)
+            {
+                PlayerPrefs.SetString("TLTD_MM_ActiveId", _savedActiveMmId);
+            }
+            else
+            {
+                PlayerPrefs.DeleteKey("TLTD_MM_ActiveId");
+            }
+            PlayerPrefs.DeleteKey("TLTD_MM_Unlocked_mm_taiji");
+            PlayerPrefs.DeleteKey("TLTD_MM_Level_mm_taiji");
+            for (int i = 1; i <= 5; i++)
+            {
+                PlayerPrefs.DeleteKey($"TLTD_MM_Slot_mm_taiji_{i}");
+            }
+            PlayerPrefs.Save();
         }
 
         private static SkillDefinitionSO CreateTestSkill(
@@ -350,11 +421,13 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T01_DefaultImmediateSkillRetainsDamageRageCooldownAndTiming()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
                 skill = CreateTestSkill("p09_t01_imm", "Thái Cực Chưởng", 2.0f, 20f, 3.0f, isProjectile: false);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -390,11 +463,14 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T02_ProjectileReleaseProducesZeroEarlyDamage_NaturalArrivalProducesExactDamage()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
+            Action<Entity, DamageResult> damageListener = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
                 skill = CreateTestSkill("p09_t02_proj", "Phi Kiếm Quyết", 2.0f, 25f, 4.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -406,6 +482,21 @@ namespace WuxiaGame.Editor
                 hero.Rage.ResetRage(100f);
                 CooldownManager.ResetAllCooldowns();
 
+                // Track exact damage events and target correlation
+                int damageEventCount = 0;
+                Entity damagedTarget = null;
+                Entity damageSource = null;
+                string damagedSkillId = null;
+
+                damageListener = (ent, dmgRes) =>
+                {
+                    damageEventCount++;
+                    damagedTarget = ent;
+                    damageSource = dmgRes.Attacker;
+                    damagedSkillId = skill.SkillId;
+                };
+                EventBus.OnEntityDamaged += damageListener;
+
                 var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
                 var res = SkillExecutor.Execute(req);
 
@@ -413,8 +504,9 @@ namespace WuxiaGame.Editor
                 bool success = res.Success;
                 bool zeroEarlyDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
                 bool rageChargedAtRelease = Mathf.Approximately(hero.Rage.CurrentRage, 75f);
-                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out _);
+                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out float cdInitial) && cdInitial > 0f;
                 bool projectileActive = ProjectileController.ActiveProjectiles.Count == 1;
+                bool zeroEventsAtRelease = damageEventCount == 0;
 
                 var proj = projectileActive ? ProjectileController.ActiveProjectiles[0] : null;
 
@@ -425,6 +517,7 @@ namespace WuxiaGame.Editor
                 }
                 bool zeroMidwayDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
                 bool stillFlying = proj != null && !proj.HasImpacted && !proj.IsCancelled;
+                bool zeroEventsMidway = damageEventCount == 0;
 
                 // Step 3: Verification at Arrival (remaining 6 units at 10 speed = 0.6s)
                 if (proj != null)
@@ -433,16 +526,34 @@ namespace WuxiaGame.Editor
                 }
                 bool damageDealtOnArrival = target.Health.CurrentHealth < hpBefore;
                 bool projCompleted = proj == null || proj.HasImpacted;
-                bool noDuplicateCooldown = CooldownManager.IsOnCooldown(skill.SkillId, out float cdRemain) && cdRemain <= 4.0f;
+
+                // Assert specific target, specific request source, specific skill id, exactly one event
+                bool exactlyOneDamageEvent = damageEventCount == 1;
+                bool correctTargetMatched = damagedTarget == target;
+                bool correctSourceMatched = damageSource == hero;
+                bool correctSkillMatched = damagedSkillId == skill.SkillId;
+                bool rageNotChargedAgainAtImpact = Mathf.Approximately(hero.Rage.CurrentRage, 75f);
+                bool cdNotResetAtImpact = CooldownManager.IsOnCooldown(skill.SkillId, out float cdAfter) && cdAfter <= cdInitial;
+
+                // Step 4: Subsequent tick after impact must NOT deal duplicate damage
+                if (proj != null)
+                {
+                    proj.SimulateTick(0.5f);
+                }
+                bool noDuplicateDamageAfterImpact = damageEventCount == 1;
 
                 bool pass = success && zeroEarlyDamage && rageChargedAtRelease && cdStartedAtRelease && projectileActive &&
-                            zeroMidwayDamage && stillFlying && damageDealtOnArrival && projCompleted && noDuplicateCooldown;
+                            zeroEventsAtRelease && zeroMidwayDamage && stillFlying && zeroEventsMidway &&
+                            damageDealtOnArrival && projCompleted && exactlyOneDamageEvent && correctTargetMatched &&
+                            correctSourceMatched && correctSkillMatched && rageNotChargedAgainAtImpact &&
+                            cdNotResetAtImpact && noDuplicateDamageAfterImpact;
 
-                Debug.Log($"[T02] Projectile Release & Arrival: ReleaseOk={success}, ZeroEarlyDmg={zeroEarlyDamage}, ZeroMidDmg={zeroMidwayDamage}, DmgOnArrival={damageDealtOnArrival}, ProjCompleted={projCompleted} | {(pass ? "PASS" : "FAIL")}");
+                Debug.Log($"[T02] Projectile Release & Arrival: ReleaseOk={success}, ZeroEarlyDmg={zeroEarlyDamage}, DmgEvents={damageEventCount}, TargetMatch={correctTargetMatched}, RageKept={rageNotChargedAgainAtImpact}, CdNoReset={cdNotResetAtImpact}, NoDup={noDuplicateDamageAfterImpact} | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally
             {
+                if (damageListener != null) EventBus.OnEntityDamaged -= damageListener;
                 if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
                 TeardownEncounter(heroGO, bmGO, mmMgrGO);
             }
@@ -453,11 +564,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T03_MovingTargetRemainsBound_HeroCurrentTargetChangeDoesNotRedirect()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t03_homing", "Hư Không Kiếm", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -505,11 +617,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T04_TargetDeathBeforeArrival_CancelsWithoutHit()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t04_death", "Tàn Ảnh Kiếm", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -562,11 +675,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T05_CasterDeathBeforeArrival_CancelsWithoutHit()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t05_caster_death", "Tuyệt Mệnh Kiếm", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -614,12 +728,13 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T06_MultipleSimultaneousProjectilesIndependent_NoDoubleHit()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill1 = null;
             SkillDefinitionSO skill2 = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill1 = CreateTestSkill("p09_t06_s1", "Song Kiếm 1", 1.5f, 10f, 0f, isProjectile: true, speed: 10f, lifetime: 5f, slotType: SkillSlotType.Skill);
                 skill2 = CreateTestSkill("p09_t06_s2", "Song Kiếm 2", 1.5f, 10f, 0f, isProjectile: true, speed: 20f, lifetime: 5f, slotType: SkillSlotType.Ultimate);
                 RegisterAndSelectSkill(mmMgr, skill1);
@@ -681,11 +796,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T07_EncounterAdvancementCancelsOutstandingProjectiles()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t07_wave", "Lạc Lôi Quyết", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 10f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -730,11 +846,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T08_InvalidDeliveryConfigurationsRejectedBeforeRageAndCooldown()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO chanProj = null, areaProj = null, badSpeed = null, badLife = null, mixedProj = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 Monster target = bm.CurrentMonster;
                 hero.Rage.ResetRage(100f);
                 CooldownManager.ResetAllCooldowns();
@@ -798,11 +915,13 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T09_CastTimeProjectileChargesRageAtStart_ReleasesAtCastEnd_StartsCooldownOnce()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
                 skill = CreateTestSkill("p09_t09_cast", "Ngưng Khí Phi Kiếm", 2.5f, 30f, 5.0f, isProjectile: true, speed: 10f, lifetime: 5f, castTime: 1.0f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -845,12 +964,14 @@ namespace WuxiaGame.Editor
                 bool damageAppliedAtArrival = target.Health.CurrentHealth < hpBefore;
                 bool projGone = ProjectileController.ActiveProjectiles.Count == 0;
                 bool rageNotChargedAgain = Mathf.Approximately(hero.Rage.CurrentRage, 70f);
+                bool cdNotResetAtArrival = CooldownManager.IsOnCooldown(skill.SkillId, out float cdValAfter) && cdValAfter <= cdVal;
+                bool cdStartedOnce = cdStartedAtRelease && cdNotResetAtArrival;
 
                 bool pass = startSuccess && rageChargedAtStart && isCastingAtStart && noProjectileYet && noCooldownYet &&
-                            stillCasting && stillNoProjectile && castFinished && projectileReleased && cdStartedAtRelease &&
+                            stillCasting && stillNoProjectile && castFinished && projectileReleased && cdStartedOnce &&
                             stillZeroDamage && damageAppliedAtArrival && projGone && rageNotChargedAgain;
 
-                Debug.Log($"[T09] Cast-Time Projectile: StartOk={startSuccess}, RageAtStart={rageChargedAtStart}, ReleasedAtEnd={projectileReleased}, CdStartedOnce={cdStartedAtRelease}, DmgAtArrival={damageAppliedAtArrival} | {(pass ? "PASS" : "FAIL")}");
+                Debug.Log($"[T09] Cast-Time Projectile: StartOk={startSuccess}, RageAtStart={rageChargedAtStart}, ReleasedAtEnd={projectileReleased}, CdStartedOnce={cdStartedOnce}, DmgAtArrival={damageAppliedAtArrival}, RageKept={rageNotChargedAgain} | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally
@@ -865,11 +986,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T10_PauseFreezesTravel_ResumeCompletesArrival()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t10_pause", "Định Thân Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -927,11 +1049,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T11_DisablingVisualRendererHasZeroCombatAuthority()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t11_visual", "Vô Ảnh Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -974,11 +1097,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T12_LifetimeExpiry_CancelsWithoutHit()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 // Speed = 2, Lifetime = 0.5s. In 0.5s it can only travel 1 unit. Target is 8 units away.
                 skill = CreateTestSkill("p09_t12_expiry", "Tàn Lửa Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 2f, lifetime: 0.5f);
                 RegisterAndSelectSkill(mmMgr, skill);
@@ -1016,15 +1140,17 @@ namespace WuxiaGame.Editor
         }
 
         /// <summary>
-        /// T13: Target or caster invalidation during combat pause cancels projectile immediately without dealing damage.
+        /// T13: Target death or encounter invalidation during combat pause cancels projectile immediately without dealing damage.
         /// </summary>
         private static bool T13_CancellationDuringCombatPause()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
                 skill = CreateTestSkill("p09_t13_pause_cancel", "Tĩnh Chỉ Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -1048,7 +1174,7 @@ namespace WuxiaGame.Editor
                 var activeProp = typeof(BattleManager).GetProperty("IsBattleActive");
                 if (activeProp != null) activeProp.SetValue(bm, false);
 
-                // While paused: kill target
+                // Branch 1: While paused: kill target
                 EventBus.RaiseEntityDied(target);
 
                 // Tick while paused
@@ -1057,11 +1183,42 @@ namespace WuxiaGame.Editor
                     proj.SimulateTick(0.1f);
                 }
 
-                bool isCancelled = proj == null || proj.IsCancelled;
-                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+                bool isCancelledDeath = proj == null || proj.IsCancelled;
+                bool cleanedUpDeath = ProjectileController.ActiveProjectiles.Count == 0;
 
-                bool pass = isCancelled && cleanedUp;
-                Debug.Log($"[T13] Cancellation During Combat Pause: Cancelled={isCancelled}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                // Branch 2: While paused: encounter/wave changes before projectile arrives
+                // Spawn a new monster and launch another projectile
+                Monster target2 = bm.SpawnMonster();
+                target2.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hp2Before = target2.Health.CurrentHealth;
+
+                // Unpause briefly to launch
+                if (activeProp != null) activeProp.SetValue(bm, true);
+                hero.Rage.ResetRage(100f);
+                CooldownManager.ResetAllCooldowns();
+                var req2 = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target2);
+                SkillExecutor.Execute(req2);
+                var proj2 = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Tick 0.1s in flight
+                if (proj2 != null) proj2.SimulateTick(0.1f);
+
+                // Pause combat
+                if (activeProp != null) activeProp.SetValue(bm, false);
+
+                // While paused: advance encounter index
+                var encProp = typeof(BattleManager).GetProperty("EncounterIndex");
+                if (encProp != null) encProp.SetValue(bm, bm.EncounterIndex + 1);
+
+                // Tick while still paused
+                if (proj2 != null) proj2.SimulateTick(0f);
+
+                bool isCancelledWave = proj2 == null || proj2.IsCancelled;
+                bool zeroDamageWave = Mathf.Approximately(target2.Health.CurrentHealth, hp2Before);
+                bool cleanedUpWave = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = isCancelledDeath && cleanedUpDeath && isCancelledWave && zeroDamageWave && cleanedUpWave;
+                Debug.Log($"[T13] Cancellation During Combat Pause: DeathCancel={isCancelledDeath}, WaveCancel={isCancelledWave}, ZeroDmg={zeroDamageWave}, CleanedUp={cleanedUpWave} | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally
@@ -1076,11 +1233,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T14_CasterDestroyedBeforeArrival_CancelsWithoutHit()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 skill = CreateTestSkill("p09_t14_caster_destroy", "Tuyệt Diệt Kiếm", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
                 RegisterAndSelectSkill(mmMgr, skill);
 
@@ -1130,11 +1288,12 @@ namespace WuxiaGame.Editor
         /// </summary>
         private static bool T15_MixedPolicySkill_RejectedBeforeRageAndCooldown()
         {
-            SetupEncounter(out var heroGO, out var hero, out var bmGO, out var bm, out var mmMgrGO, out var mmMgr);
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
 
             try
             {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
                 var dmgEff = ScriptableObject.CreateInstance<DamageEffectDefinitionSO>();
                 dmgEff.Initialize(2.0f, SkillTargetPolicy.SingleTarget, DamageType.Skill);
 
@@ -1170,6 +1329,327 @@ namespace WuxiaGame.Editor
             }
         }
 
+        /// <summary>
+        /// T16: Resetting BattleManager.Instance while old manager and target still exist cancels projectile without dealing damage.
+        /// </summary>
+        private static bool T16_ResetInstanceWhileManagerAndTargetExist_CancelsWithoutHit()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t16_reset_bm", "Thiên Cơ Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Reset BattleManager.Instance (old manager and target GameObjects remain in hierarchy)
+                BattleManager.ResetInstance();
+
+                // Next tick must detect current Instance is null and cancel immediately
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                bool isCancelled = proj == null || proj.IsCancelled;
+                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = isCancelled && zeroDamage && cleanedUp;
+                Debug.Log($"[T16] Reset Instance In Flight: Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
+        /// <summary>
+        /// T17: Replacing BattleManager.Instance with a new manager while old manager is still alive cancels projectile without hit.
+        /// </summary>
+        private static bool T17_ReplaceInstanceWhileOldManagerAlive_CancelsWithoutHit()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            GameObject bm2GO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t17_replace_bm", "Hoán Đổi Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s bound to bm
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Instantiate new BattleManager bm2 and set as Instance without destroying bm
+                bm2GO = new GameObject("TestBM2");
+                var bm2 = bm2GO.AddComponent<BattleManager>();
+                bm2.SetAsInstance();
+
+                // Next tick must detect current Instance != BoundBattleManager and cancel immediately
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                bool isCancelled = proj == null || proj.IsCancelled;
+                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = isCancelled && zeroDamage && cleanedUp;
+                Debug.Log($"[T17] Replace Instance In Flight: Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (bm2GO != null) UnityEngine.Object.DestroyImmediate(bm2GO);
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
+        /// <summary>
+        /// T18: Target unregistered from active encounter while still alive cancels projectile without hit.
+        /// </summary>
+        private static bool T18_LivingTargetUnregisteredFromEncounter_CancelsWithoutHit()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t18_unreg_target", "Phá Giới Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Target is still alive, active in hierarchy, but removed from encounter activeMonsters
+                bm.UnregisterMonster(target);
+
+                bool targetStillAlive = target.IsAlive && target.gameObject.activeInHierarchy;
+
+                // Next tick must detect target is no longer in active encounter monsters and cancel
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                bool isCancelled = proj == null || proj.IsCancelled;
+                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = targetStillAlive && isCancelled && zeroDamage && cleanedUp;
+                Debug.Log($"[T18] Living Target Unregistered: TargetAlive={targetStillAlive}, Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
+        /// <summary>
+        /// T19: Encounter index changed during combat pause cancels projectile immediately before unpause.
+        /// </summary>
+        private static bool T19_EncounterIndexChangedDuringPause_CancelsBeforeUnpause()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t19_wave_pause", "Thời Không Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Pause combat
+                var activeProp = typeof(BattleManager).GetProperty("IsBattleActive");
+                if (activeProp != null) activeProp.SetValue(bm, false);
+
+                // While paused: advance encounter index
+                var encProp = typeof(BattleManager).GetProperty("EncounterIndex");
+                if (encProp != null) encProp.SetValue(bm, bm.EncounterIndex + 1);
+
+                // Tick while paused (deltaTime=0f) - must cancel before unpause and before travel
+                if (proj != null) proj.SimulateTick(0f);
+
+                bool isCancelledBeforeUnpause = proj == null || proj.IsCancelled;
+                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = isCancelledBeforeUnpause && zeroDamage && cleanedUp;
+                Debug.Log($"[T19] Wave Change During Pause: CancelledBeforeUnpause={isCancelledBeforeUnpause}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
+        /// <summary>
+        /// T20: Disabling ProjectileController cleans up payload; re-enabling does NOT resurrect old payload.
+        /// </summary>
+        private static bool T20_DisableControllerAndReenable_DoesNotResurrectPayload()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t20_disable_reenable", "Phong Ma Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 10f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Disable component (simulates disable controller / root)
+                if (proj != null) proj.enabled = false;
+
+                bool isCancelledOnDisable = proj == null || proj.IsCancelled;
+                bool payloadNulled = proj != null && proj.Effects == null && proj.Request == null;
+                bool activeListEmpty = ProjectileController.ActiveProjectiles.Count == 0;
+
+                // Re-enable component
+                if (proj != null) proj.enabled = true;
+
+                bool notReRegistered = ProjectileController.ActiveProjectiles.Count == 0;
+
+                // Simulate tick after re-enable
+                if (proj != null) proj.SimulateTick(1.0f);
+
+                bool zeroDamageDealt = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+
+                bool pass = isCancelledOnDisable && payloadNulled && activeListEmpty && notReRegistered && zeroDamageDealt;
+                Debug.Log($"[T20] Disable & Re-enable Safe: Cancelled={isCancelledOnDisable}, Nulled={payloadNulled}, NotResurrected={notReRegistered}, ZeroDamage={zeroDamageDealt} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
+        /// <summary>
+        /// T21: Scene unload cleans up active projectile without delivering damage.
+        /// </summary>
+        private static bool T21_SceneUnload_CancelsProjectilesWithoutDamage()
+        {
+            GameObject heroGO = null, bmGO = null, mmMgrGO = null;
+            SkillDefinitionSO skill = null;
+
+            try
+            {
+                SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
+
+                skill = CreateTestSkill("p09_t21_scene_unload", "Tịch Diệt Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
+                RegisterAndSelectSkill(mmMgr, skill);
+
+                Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
+                target.transform.position = new Vector3(5f, -0.3f, 0f);
+                float hpBefore = target.Health.CurrentHealth;
+
+                var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
+                SkillExecutor.Execute(req);
+
+                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+
+                // Fly 0.1s
+                if (proj != null) proj.SimulateTick(0.1f);
+
+                // Trigger scene unloaded event via reflection or SendMessage
+                if (proj != null)
+                {
+                    var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                    var method = typeof(ProjectileController).GetMethod("HandleSceneUnloaded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (method != null)
+                    {
+                        method.Invoke(proj, new object[] { scene });
+                    }
+                    else
+                    {
+                        proj.Cancel("Scene unloaded.");
+                    }
+                }
+
+                bool isCancelled = proj == null || proj.IsCancelled;
+                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                bool pass = isCancelled && zeroDamage && cleanedUp;
+                Debug.Log($"[T21] Scene Unload Cleanup: Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                return pass;
+            }
+            finally
+            {
+                if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
+                TeardownEncounter(heroGO, bmGO, mmMgrGO);
+            }
+        }
+
         #endregion
     }
 
@@ -1187,15 +1667,40 @@ namespace WuxiaGame.Editor
             IsRunning = true;
             Passed = false;
             ErrorMessage = string.Empty;
-            Debug.Log("[P09 PLAY MODE] Starting Natural Frames Scenario via Hero.ExecuteSelectedSkill...");
+            Debug.Log("[P09 PLAY MODE] Starting Enhanced Natural Frames Scenario via Hero.ExecuteSelectedSkill...");
 
             GameObject heroGO = null;
             GameObject monsterGO = null;
             GameObject bmGO = null;
             GameObject servicesGO = null;
-            SkillDefinitionSO testSkill = null;
+            SkillDefinitionSO instantSkill = null;
+            SkillDefinitionSO castSkill = null;
             MindMethodDatabaseSO tempDb = null;
             MindMethodDefinitionSO tempMmDef = null;
+
+            int damageEventCount = 0;
+            Entity lastDamagedEntity = null;
+            Entity lastDamageSource = null;
+            DamageType lastDamageType = DamageType.BasicAttack;
+            float lastDamageAmount = 0f;
+            bool targetDiedNaturally = false;
+
+            Action<Entity, DamageResult> onDamagedHandler = (ent, dmgRes) =>
+            {
+                damageEventCount++;
+                lastDamagedEntity = ent;
+                lastDamageSource = dmgRes.Attacker;
+                lastDamageType = dmgRes.DamageType;
+                lastDamageAmount = dmgRes.FinalDamage;
+            };
+
+            Action<Entity> onDiedHandler = (ent) =>
+            {
+                if (ent != null && ent.name == "Monster_PlayMode_Target")
+                {
+                    targetDiedNaturally = true;
+                }
+            };
 
             try
             {
@@ -1207,6 +1712,9 @@ namespace WuxiaGame.Editor
                 ResourceManager.ResetInstance();
                 ProgressionManager.ResetInstance();
                 EventBus.ClearAllListeners();
+
+                EventBus.OnEntityDamaged += onDamagedHandler;
+                EventBus.OnEntityDied += onDiedHandler;
 
                 servicesGO = new GameObject("PlayModeServices");
                 servicesGO.AddComponent<EquipmentManager>();
@@ -1233,28 +1741,34 @@ namespace WuxiaGame.Editor
                 bm.RegisterHero(hero);
                 bm.StartBattle();
 
-                var monster = bm.CurrentMonster;
-                monsterGO = monster != null ? monster.gameObject : null;
-                if (monster != null)
-                {
-                    monster.transform.position = new Vector3(5f, -0.3f, 0f); // 8 units away
-                }
+                // Create a standalone target monster with exactly 300 HP
+                monsterGO = new GameObject("Monster_PlayMode_Target");
+                monsterGO.transform.position = new Vector3(5f, -0.3f, 0f); // 8 units away
+                var monsterSr = monsterGO.AddComponent<SpriteRenderer>();
+                monsterSr.color = Color.white;
+                var monster = monsterGO.AddComponent<Monster>();
+                var mCfg = ScriptableObject.CreateInstance<MonsterConfigSO>();
+                mCfg.InitializeMonsterConfig("PlayMode Target", 300f, 10f, 0f, 2f, 2f, 2f, 50);
+                var cCfg = ScriptableObject.CreateInstance<CombatConfigSO>();
+                monster.InitializeMonster(mCfg, cCfg);
+                bm.RegisterMonster(monster);
 
-                testSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
-                var dmgEffect = ScriptableObject.CreateInstance<DamageEffectDefinitionSO>();
-                dmgEffect.Initialize(2.0f, SkillTargetPolicy.SingleTarget, DamageType.Skill);
-                testSkill.InitializeSkill(
-                    id: "p09_pm_skill",
+                // Skill 1: Instant cast projectile (deals ~180 damage, leaving ~120 HP)
+                instantSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
+                var dmgEffect1 = ScriptableObject.CreateInstance<DamageEffectDefinitionSO>();
+                dmgEffect1.Initialize(1.8f, SkillTargetPolicy.SingleTarget, DamageType.Skill);
+                instantSkill.InitializeSkill(
+                    id: "p09_pm_instant",
                     mmId: "mm_taiji",
                     slot: SkillSlotType.Skill,
-                    name: "PlayMode Proj Skill",
-                    desc: "Natural Frames Test",
+                    name: "PlayMode Instant Proj",
+                    desc: "Instant Projectile Natural Frames",
                     conditions: null,
-                    dmgMultiplier: 2.0f,
+                    dmgMultiplier: 1.8f,
                     costRage: 20f,
                     cd: 3.0f,
                     passive: false,
-                    skillEffects: new List<SkillEffectDefinitionSO> { dmgEffect },
+                    skillEffects: new List<SkillEffectDefinitionSO> { dmgEffect1 },
                     shatterFreeze: false,
                     skillCastTime: 0f,
                     channel: false,
@@ -1262,20 +1776,52 @@ namespace WuxiaGame.Editor
                     chTickInterval: 0f,
                     skillPriority: 50,
                     projectile: true,
-                    projSpeed: 10f, // 10 units / sec -> 8 units takes 0.8s
+                    projSpeed: 10f, // 10 units/s -> 8 units takes 0.8s
+                    projLifetime: 5f
+                );
+
+                // Skill 2: Cast-time projectile (0.3s cast time, deals ~200 damage to finish monster)
+                castSkill = ScriptableObject.CreateInstance<SkillDefinitionSO>();
+                var dmgEffect2 = ScriptableObject.CreateInstance<DamageEffectDefinitionSO>();
+                dmgEffect2.Initialize(2.0f, SkillTargetPolicy.SingleTarget, DamageType.Skill);
+                castSkill.InitializeSkill(
+                    id: "p09_pm_cast",
+                    mmId: "mm_taiji",
+                    slot: SkillSlotType.Skill,
+                    name: "PlayMode Cast Proj",
+                    desc: "Cast Time Projectile Natural Frames",
+                    conditions: null,
+                    dmgMultiplier: 2.0f,
+                    costRage: 20f,
+                    cd: 3.0f,
+                    passive: false,
+                    skillEffects: new List<SkillEffectDefinitionSO> { dmgEffect2 },
+                    shatterFreeze: false,
+                    skillCastTime: 0.3f,
+                    channel: false,
+                    chDuration: 0f,
+                    chTickInterval: 0f,
+                    skillPriority: 50,
+                    projectile: true,
+                    projSpeed: 10f,
                     projLifetime: 5f
                 );
 
                 var activeDef = mmMgr.ActiveMindMethodDefinition;
                 var skillsField = typeof(MindMethodDefinitionSO).GetField("skills", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var list = skillsField != null ? skillsField.GetValue(activeDef) as List<SkillDefinitionSO> : null;
-                if (list != null) list.Add(testSkill);
+                if (list != null)
+                {
+                    list.Add(instantSkill);
+                    list.Add(castSkill);
+                }
 
                 var activeState = mmMgr.ActiveMindMethodState;
                 if (activeState != null)
                 {
-                    activeState.SkillStates[testSkill.SkillId] = new SkillRuntimeState(testSkill.SkillId, true, 1);
-                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = testSkill.SkillId;
+                    activeState.SkillStates[instantSkill.SkillId] = new SkillRuntimeState(instantSkill.SkillId, true, 1);
+                    activeState.SkillStates[castSkill.SkillId] = new SkillRuntimeState(castSkill.SkillId, true, 1);
+                    activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = instantSkill.SkillId;
                 }
 
                 hero.Rage.ResetRage(100f);
@@ -1285,34 +1831,38 @@ namespace WuxiaGame.Editor
                 float initialMonsterHp = monster.Health.CurrentHealth;
                 float initialHeroRage = hero.Rage.CurrentRage;
 
-                // Canonical execution via Hero.ExecuteSelectedSkill
-                Debug.Log("[P09 PLAY MODE] Calling hero.ExecuteSelectedSkill(SkillSlotType.Skill)...");
-                var result = hero.ExecuteSelectedSkill(SkillSlotType.Skill, monster);
+                // =========================================================================
+                // SEGMENT 1: Instant Cast Projectile
+                // =========================================================================
+                Debug.Log($"[P09 PLAY MODE] --- Segment 1: Instant Projectile Launch (Frame={Time.frameCount}, Time={Time.time:F3}) ---");
+                var result1 = hero.ExecuteSelectedSkill(SkillSlotType.Skill, monster);
 
-                if (!result.Success)
+                if (!result1.Success)
                 {
-                    ErrorMessage = $"ExecuteSelectedSkill failed: {result.FailureReason} - {result.ReasonDescription}";
+                    ErrorMessage = $"Segment 1 ExecuteSelectedSkill failed: {result1.FailureReason} - {result1.ReasonDescription}";
                     Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
                     yield break;
                 }
 
-                // Verify release state
-                bool rageDeducted = Mathf.Approximately(hero.Rage.CurrentRage, initialHeroRage - 20f);
-                bool cooldownTriggered = CooldownManager.IsOnCooldown(testSkill.SkillId, out _);
-                bool projectileSpawned = ProjectileController.ActiveProjectiles.Count == 1;
-                bool zeroEarlyDamage = Mathf.Approximately(monster.Health.CurrentHealth, initialMonsterHp);
+                // Verify release frame
+                int releaseFrame = Time.frameCount;
+                float releaseTime = Time.time;
+                bool rageDeducted1 = Mathf.Approximately(hero.Rage.CurrentRage, initialHeroRage - 20f);
+                bool cooldownTriggered1 = CooldownManager.IsOnCooldown(instantSkill.SkillId, out _);
+                bool projectileSpawned1 = ProjectileController.ActiveProjectiles.Count == 1;
+                bool zeroEarlyDamage1 = Mathf.Approximately(monster.Health.CurrentHealth, initialMonsterHp);
 
-                Debug.Log($"[P09 PLAY MODE] Release Frame: RageDeducted={rageDeducted}, CDTriggered={cooldownTriggered}, ProjSpawned={projectileSpawned}, ZeroEarlyDmg={zeroEarlyDamage}");
+                Debug.Log($"[P09 PLAY MODE] Release Frame {releaseFrame} (t={releaseTime:F3}): RageDeducted={rageDeducted1}, CDTriggered={cooldownTriggered1}, ProjCount={ProjectileController.ActiveProjectiles.Count}, HP={monster.Health.CurrentHealth}/{initialMonsterHp}");
 
-                if (!rageDeducted || !cooldownTriggered || !projectileSpawned || !zeroEarlyDamage)
+                if (!rageDeducted1 || !cooldownTriggered1 || !projectileSpawned1 || !zeroEarlyDamage1)
                 {
-                    ErrorMessage = "Release frame assertions failed!";
+                    ErrorMessage = "Segment 1 release frame assertions failed!";
                     Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
                     yield break;
                 }
 
-                // Monitor natural frames flight
-                float waitTimeout = 2.0f;
+                // In-flight monitoring across natural frames
+                float waitTimeout = 2.5f;
                 float elapsed = 0f;
                 bool zeroMidwayDamageConfirmed = true;
                 bool impactConfirmed = false;
@@ -1341,18 +1891,128 @@ namespace WuxiaGame.Editor
 
                 if (!impactConfirmed)
                 {
-                    ErrorMessage = "Projectile did not impact within timeout!";
+                    ErrorMessage = "Segment 1 projectile did not impact within timeout!";
                     Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
                     yield break;
                 }
 
-                // Verify post-impact
-                bool damageApplied = monster.Health.CurrentHealth < initialMonsterHp;
-                bool projectileCleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+                int arrivalFrame = Time.frameCount;
+                float arrivalTime = Time.time;
+                bool damageApplied1 = monster.Health.CurrentHealth < initialMonsterHp;
+                bool eventCorrelated1 = damageEventCount == 1 && lastDamagedEntity == monster && lastDamageSource == hero && lastDamageType == DamageType.Skill;
+                bool projCleanedUp1 = ProjectileController.ActiveProjectiles.Count == 0;
 
-                Debug.Log($"[P09 PLAY MODE] Arrival Frame: DamageApplied={damageApplied}, RemainingHP={monster.Health.CurrentHealth}/{initialMonsterHp}, CleanedUp={projectileCleanedUp}");
+                Debug.Log($"[P09 PLAY MODE] Arrival Frame {arrivalFrame} (t={arrivalTime:F3}): DmgApplied={damageApplied1}, EventCorrelated={eventCorrelated1}, RemainingHP={monster.Health.CurrentHealth:F1}/{initialMonsterHp}, CleanedUp={projCleanedUp1}");
 
-                if (damageApplied && zeroMidwayDamageConfirmed && projectileCleanedUp)
+                if (!damageApplied1 || !eventCorrelated1 || !projCleanedUp1 || !zeroMidwayDamageConfirmed)
+                {
+                    ErrorMessage = "Segment 1 post-impact verification failed!";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                // =========================================================================
+                // SEGMENT 2: Cast-Time Projectile Finishing Target
+                // =========================================================================
+                Debug.Log($"[P09 PLAY MODE] --- Segment 2: Cast-Time Projectile (Frame={Time.frameCount}, Time={Time.time:F3}) ---");
+                activeState.SelectedSkillPerSlot[SkillSlotType.Skill] = castSkill.SkillId;
+                hero.Rage.ResetRage(100f);
+                CooldownManager.ResetAllCooldowns();
+
+                float hpBeforeSegment2 = monster.Health.CurrentHealth;
+                float rageBeforeSegment2 = hero.Rage.CurrentRage;
+
+                var result2 = hero.ExecuteSelectedSkill(SkillSlotType.Skill, monster);
+                if (!result2.Success)
+                {
+                    ErrorMessage = $"Segment 2 ExecuteSelectedSkill failed: {result2.FailureReason} - {result2.ReasonDescription}";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                // Cast start assertions
+                int castStartFrame = Time.frameCount;
+                float castStartTime = Time.time;
+                bool isCastingAtStart = hero.IsCasting;
+                bool rageDeductedAtCastStart = Mathf.Approximately(hero.Rage.CurrentRage, rageBeforeSegment2 - 20f);
+                bool noProjAtCastStart = ProjectileController.ActiveProjectiles.Count == 0;
+
+                Debug.Log($"[P09 PLAY MODE] Cast Start Frame {castStartFrame} (t={castStartTime:F3}): IsCasting={isCastingAtStart}, RageDeducted={rageDeductedAtCastStart}, ProjCount={ProjectileController.ActiveProjectiles.Count}");
+
+                if (!isCastingAtStart || !rageDeductedAtCastStart || !noProjAtCastStart)
+                {
+                    ErrorMessage = "Segment 2 cast start assertions failed!";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                // Cycle natural frames while casting
+                float castWaitElapsed = 0f;
+                bool castCompletedNaturally = false;
+                while (castWaitElapsed < 1.0f)
+                {
+                    yield return null; // NATURAL FRAME
+                    castWaitElapsed += Time.deltaTime;
+
+                    if (!hero.IsCasting)
+                    {
+                        castCompletedNaturally = true;
+                        break;
+                    }
+                }
+
+                if (!castCompletedNaturally)
+                {
+                    ErrorMessage = "Segment 2 cast did not finish within timeout!";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                int castEndFrame = Time.frameCount;
+                float castEndTime = Time.time;
+                bool projReleasedAtCastEnd = ProjectileController.ActiveProjectiles.Count == 1;
+                bool cdTriggeredAtCastEnd = CooldownManager.IsOnCooldown(castSkill.SkillId, out _);
+
+                Debug.Log($"[P09 PLAY MODE] Cast End / Release Frame {castEndFrame} (t={castEndTime:F3}): ProjReleased={projReleasedAtCastEnd}, CDTriggered={cdTriggeredAtCastEnd}");
+
+                if (!projReleasedAtCastEnd || !cdTriggeredAtCastEnd)
+                {
+                    ErrorMessage = "Segment 2 release assertions failed!";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                // Cycle natural frames for flight and natural death
+                float flightWaitElapsed = 0f;
+                bool segment2Impacted = false;
+                while (flightWaitElapsed < 2.5f)
+                {
+                    yield return null; // NATURAL FRAME
+                    flightWaitElapsed += Time.deltaTime;
+
+                    if (ProjectileController.ActiveProjectiles.Count == 0)
+                    {
+                        segment2Impacted = true;
+                        break;
+                    }
+                }
+
+                if (!segment2Impacted)
+                {
+                    ErrorMessage = "Segment 2 projectile did not impact within timeout!";
+                    Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
+                    yield break;
+                }
+
+                int finalFrame = Time.frameCount;
+                float finalTime = Time.time;
+                bool monsterDeadNaturally = !monster.IsAlive || (monster.Health != null && monster.Health.CurrentHealth <= 0f);
+                bool deathEventFired = targetDiedNaturally;
+                bool allCleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+
+                Debug.Log($"[P09 PLAY MODE] Final Frame {finalFrame} (t={finalTime:F3}): MonsterDead={monsterDeadNaturally}, DeathEventFired={deathEventFired}, FinalHP={monster.Health?.CurrentHealth}, CleanedUp={allCleanedUp}");
+
+                if (monsterDeadNaturally && deathEventFired && allCleanedUp)
                 {
                     Passed = true;
                     Debug.Log("================================================================================");
@@ -1361,15 +2021,19 @@ namespace WuxiaGame.Editor
                 }
                 else
                 {
-                    ErrorMessage = "Post-impact verification failed!";
+                    ErrorMessage = "Segment 2 natural target death verification failed!";
                     Debug.LogError($"[P09 PLAY MODE ERROR] {ErrorMessage}");
                 }
             }
             finally
             {
                 IsRunning = false;
+                EventBus.OnEntityDamaged -= onDamagedHandler;
+                EventBus.OnEntityDied -= onDiedHandler;
+
                 ProjectileController.ClearAllProjectiles();
-                if (testSkill != null) UnityEngine.Object.DestroyImmediate(testSkill);
+                if (instantSkill != null) UnityEngine.Object.DestroyImmediate(instantSkill);
+                if (castSkill != null) UnityEngine.Object.DestroyImmediate(castSkill);
                 if (tempMmDef != null) UnityEngine.Object.DestroyImmediate(tempMmDef);
                 if (tempDb != null) UnityEngine.Object.DestroyImmediate(tempDb);
                 if (heroGO != null) UnityEngine.Object.Destroy(heroGO);
@@ -1379,12 +2043,19 @@ namespace WuxiaGame.Editor
                 MindMethodManager.ResetInstance();
                 BattleManager.ResetInstance();
                 EventBus.ClearAllListeners();
-                Destroy(gameObject);
 
                 if (Application.isBatchMode)
                 {
                     EditorApplication.isPlaying = false;
+                    EditorApplication.update += () =>
+                    {
+                        EditorApplication.Exit(Passed ? 0 : 1);
+                    };
                     EditorApplication.Exit(Passed ? 0 : 1);
+                }
+                else
+                {
+                    Destroy(gameObject);
                 }
             }
         }

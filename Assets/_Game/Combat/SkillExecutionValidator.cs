@@ -218,6 +218,16 @@ namespace WuxiaGame.Combat
                     failureMessage = $"Target entity '{target.EntityName}' is on the same team as source '{source.EntityName}'.";
                     return false;
                 }
+
+                if (skill.IsProjectile && source is Hero && target is Monster mTarget)
+                {
+                    if (!CombatTargetQuery.IsValidEncounterMonster(source, mTarget))
+                    {
+                        failureReason = SkillExecutionFailureReason.TargetInvalidOrDead;
+                        failureMessage = $"Target monster '{mTarget.EntityName}' is not a valid living registered encounter monster.";
+                        return false;
+                    }
+                }
             }
             else if (request.Target != null && (!request.Target.gameObject.activeInHierarchy || !request.Target.IsAlive))
             {

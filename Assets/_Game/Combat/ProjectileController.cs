@@ -108,30 +108,62 @@ namespace WuxiaGame.Combat
             }
             EventBus.OnEntityDied -= HandleEntityDied;
             EventBus.OnEntityDied += HandleEntityDied;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded += HandleSceneUnloaded;
 
             CreatePlaceholderVisual();
         }
 
         private void OnEnable()
         {
+            if (IsCancelled || HasImpacted || Effects == null || Effects.Count == 0 || BoundTarget == null)
+            {
+                return;
+            }
             if (!_activeProjectiles.Contains(this))
             {
                 _activeProjectiles.Add(this);
             }
             EventBus.OnEntityDied -= HandleEntityDied;
             EventBus.OnEntityDied += HandleEntityDied;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded += HandleSceneUnloaded;
         }
 
         private void OnDisable()
         {
             _activeProjectiles.Remove(this);
             EventBus.OnEntityDied -= HandleEntityDied;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            if (!HasImpacted && !IsCancelled)
+            {
+                IsCancelled = true;
+                CancelReason = "Projectile controller or root GameObject disabled.";
+                Effects = null;
+                Request = null;
+                BoundTarget = null;
+                Caster = null;
+                Debug.Log($"[PROJECTILE] Cancelled: {CancelReason}");
+            }
         }
 
         private void OnDestroy()
         {
             _activeProjectiles.Remove(this);
             EventBus.OnEntityDied -= HandleEntityDied;
+            UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            if (!HasImpacted && !IsCancelled)
+            {
+                Cancel("Projectile destroyed.");
+            }
+        }
+
+        private void HandleSceneUnloaded(UnityEngine.SceneManagement.Scene scene)
+        {
+            if (scene == gameObject.scene || !gameObject.scene.IsValid() || !gameObject.scene.isLoaded)
+            {
+                Cancel("Scene unloaded.");
+            }
         }
 
         private void HandleEntityDied(Entity entity)
@@ -153,21 +185,58 @@ namespace WuxiaGame.Combat
             SimulateTick(Time.deltaTime);
         }
 
+        /// <summary>
+        /// Validates that an entity is currently registered and belongs to the specified encounter.
+        /// Read-only inspection using canonical BattleManager APIs.
+        /// </summary>
+        public static bool IsEntityInEncounter(BattleManager bm, Entity entity)
+        {
+            if (bm == null || entity == null) return false;
+            if (!entity.gameObject.activeInHierarchy || !entity.IsAlive) return false;
+            if (entity.Health != null && entity.Health.CurrentHealth <= 0f) return false;
+
+            if (entity is Monster m)
+            {
+                var active = bm.ActiveMonsters;
+                if (active == null) return false;
+                for (int i = 0; i < active.Count; i++)
+                {
+                    if (active[i] == m) return true;
+                }
+                return false;
+            }
+
+            return bm.BelongsToEncounter(entity);
+        }
+
         public void SimulateTick(float deltaTime)
         {
             if (HasImpacted || IsCancelled) return;
 
             // 1. Cancellation & Invalidation Conditions (evaluated BEFORE pause and deltaTime)
 
-            // 1.1 Encounter / BattleManager Guard: bound to specific BM and wave
-            var bm = BoundBattleManager != null ? BoundBattleManager : BattleManager.Instance;
-            if (bm == null || bm != BoundBattleManager || bm.EncounterIndex != BoundEncounterIndex)
+            // 1.1 Encounter / BattleManager Guard: directly check current BattleManager.Instance against bound manager
+            var currentBm = BattleManager.Instance;
+            if (currentBm == null || currentBm != BoundBattleManager || currentBm.EncounterIndex != BoundEncounterIndex)
             {
-                Cancel($"Encounter or BattleManager changed or invalidated before arrival (BoundWave={BoundEncounterIndex}, CurrentWave={bm?.EncounterIndex}).");
+                Cancel($"Encounter or BattleManager changed or invalidated before arrival (BoundWave={BoundEncounterIndex}, CurrentWave={currentBm?.EncounterIndex}).");
                 return;
             }
 
-            // 1.2 Target Validity Guard: cancel if target null, destroyed, inactive, or dead
+            // 1.2 Caster & Target Encounter Membership Guard (via existing read-only APIs)
+            if (!IsEntityInEncounter(currentBm, Caster))
+            {
+                Cancel("Caster is null or no longer belongs to active encounter.");
+                return;
+            }
+
+            if (!IsEntityInEncounter(currentBm, BoundTarget))
+            {
+                Cancel("Bound target is null or no longer registered in active encounter.");
+                return;
+            }
+
+            // 1.3 Target Validity Guard: cancel if target null, destroyed, inactive, or dead
             if (BoundTarget == null || !BoundTarget.gameObject.activeInHierarchy || !BoundTarget.IsAlive ||
                 (BoundTarget.Health != null && BoundTarget.Health.CurrentHealth <= 0f))
             {
@@ -175,7 +244,7 @@ namespace WuxiaGame.Combat
                 return;
             }
 
-            // 1.3 Caster Validity Guard: cancel if caster null, destroyed, inactive, or dead
+            // 1.4 Caster Validity Guard: cancel if caster null, destroyed, inactive, or dead
             if (Caster == null || !Caster.gameObject.activeInHierarchy || !Caster.IsAlive ||
                 (Caster.Health != null && Caster.Health.CurrentHealth <= 0f))
             {
@@ -183,7 +252,7 @@ namespace WuxiaGame.Combat
                 return;
             }
 
-            // 1.4 Immediate Expiry Guard: if already expired
+            // 1.5 Immediate Expiry Guard: if already expired
             if (ElapsedTime >= Lifetime)
             {
                 Cancel("Projectile lifetime expired.");
@@ -191,7 +260,7 @@ namespace WuxiaGame.Combat
             }
 
             // 2. Combat Pause Guard: freeze travel during combat pause
-            if (!bm.IsBattleActive)
+            if (!currentBm.IsBattleActive)
             {
                 return;
             }
@@ -228,13 +297,23 @@ namespace WuxiaGame.Combat
         private void Impact()
         {
             if (HasImpacted || IsCancelled) return;
+
+            // Final fail-closed check right at arrival before applying effects
+            var currentBm = BattleManager.Instance;
+            if (currentBm == null || currentBm != BoundBattleManager || currentBm.EncounterIndex != BoundEncounterIndex ||
+                !IsEntityInEncounter(currentBm, BoundTarget) || !IsEntityInEncounter(currentBm, Caster))
+            {
+                Cancel("Encounter, caster, or target invalidated at impact arrival.");
+                return;
+            }
+
             HasImpacted = true;
 
             try
             {
                 if (Effects != null && Effects.Count > 0)
                 {
-                    var targetResolver = new BoundTargetResolver(BoundTarget);
+                    var targetResolver = new BoundTargetResolver(BoundTarget, BoundBattleManager, BoundEncounterIndex);
                     EffectResolver.Instance.ProcessEffects(Request, Effects, targetResolver);
                 }
                 Debug.Log($"[PROJECTILE] Impacted bound target '{BoundTarget?.EntityName}' at position {transform.position}.");
@@ -247,6 +326,8 @@ namespace WuxiaGame.Combat
             {
                 Effects = null;
                 Request = null;
+                BoundTarget = null;
+                Caster = null;
                 DestroyCleanly();
             }
         }
@@ -258,6 +339,8 @@ namespace WuxiaGame.Combat
             CancelReason = reason;
             Effects = null;
             Request = null;
+            BoundTarget = null;
+            Caster = null;
 
             Debug.Log($"[PROJECTILE] Cancelled: {reason}");
             DestroyCleanly();
