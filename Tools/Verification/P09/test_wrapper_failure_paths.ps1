@@ -1,8 +1,11 @@
-# P09 Wrapper Failure Path Verification Script
-# Tests wrapper robustness under simulated failure modes in disposable sandbox:
-# 1. Backup failure -> Wrapper halts immediately, refuses to launch Unity
-# 2. Timeout/run failure -> Wrapper executes recovery (Restore & Compare) inside finally block
-# 3. Compare failure -> Wrapper rejects diff, never outputs false PASS
+# P09 Wrapper Failure Path Verification Suite
+# Tests all 6 required failure modes directly through shared coordination module (Invoke-P09VerificationSession):
+# 1. Backup failure -> launch refused (exit 1, Launched = False)
+# 2. Launch failure -> handled safely, recovery guaranteed in finally
+# 3. Crash / Run exception -> recovery executed in finally
+# 4. Compare diff detected -> rejected, never reports PASS
+# 5. RestoreFail + ComparePass -> rejected (must FAIL, persistence failure)
+# 6. Timeout + CompareFail -> reported as persistence failure (exit 1), not masked as timeout (exit 2)
 
 param(
     [string]$ProjectRoot = "E:\code\TLTD"
@@ -10,13 +13,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 $logFile = "$ProjectRoot\Tools\Verification\P09\wrapper_failure_path_test.log"
-$disposableDir = "$ProjectRoot\scratch\.wrapper_failure_test"
+$sandboxDir = "$ProjectRoot\scratch\.wrapper_failure_sandbox"
 $disposableRegKey = "Software\Unity\UnityEditor\DefaultCompany\TLTD_WrapperFailTest"
 $saveGuardScript = "$ProjectRoot\Tools\Verification\P09\tltd_save_guard.ps1"
+$coreScript = "$ProjectRoot\Tools\Verification\P09\P09_VerificationCore.ps1"
 
 Remove-Item -Force -ErrorAction SilentlyContinue $logFile
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $disposableDir
-New-Item -ItemType Directory -Path $disposableDir -Force | Out-Null
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $sandboxDir
+New-Item -ItemType Directory -Path $sandboxDir -Force | Out-Null
 
 function Log([string]$msg) {
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff")
@@ -27,96 +31,169 @@ function Log([string]$msg) {
 
 Log "============================================================"
 Log " STARTING P09 WRAPPER FAILURE PATH VERIFICATION"
+Log " Coordination Core: $coreScript"
+Log " Save Guard:       $saveGuardScript"
+Log " Sandbox Dir:      $sandboxDir"
+Log " Disposable Reg:   $disposableRegKey"
 Log "============================================================"
+
+. $coreScript
 
 $allPassed = $true
 
-# ------------------------------------------------------------------
-# Test 1: Backup Failure -> Unity Launch Refused
-# ------------------------------------------------------------------
-Log "[TEST 1] Verifying wrapper halts when Backup fails..."
-$badBackupDir = "Z:\NonExistentDrive_Invalid\BackupDir"
-# Call Save Guard Backup directly with invalid dir to verify exit code != 0
-$backupProc = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$saveGuardScript`"", "-Action", "Backup", "-BackupDir", "`"$badBackupDir`"" -Wait -PassThru
-$exitCode = $backupProc.ExitCode
-
-if ($exitCode -ne 0) {
-    Log "[TEST 1 PASS] Backup call failed with exit code $exitCode as expected. Wrapper guard logic correctly refuses launch when exitCode != 0."
-} else {
-    Log "[TEST 1 FAIL] Expected backup to fail with non-zero exit code!"
-    $allPassed = $false
-}
-
-# ------------------------------------------------------------------
-# Test 2: Timeout / Run Exception -> Finally block guarantees Restore & Compare
-# ------------------------------------------------------------------
-Log "[TEST 2] Verifying wrapper finally block runs Restore & Compare upon crash/timeout..."
-# Setup disposable key
-& reg.exe add "HKCU\$disposableRegKey" /v "TestKey" /t REG_SZ /d "OriginalValue" /f | Out-Null
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Backup -BackupDir $disposableDir -CustomRegKey $disposableRegKey -AllowRunningUnity
-if ($LASTEXITCODE -ne 0) { throw "Backup failed in Test 2 setup" }
-
-# Mutate key to simulate dirty run state
-& reg.exe add "HKCU\$disposableRegKey" /v "TestKey" /t REG_SZ /d "DirtyMutatedValue" /f | Out-Null
-
-# Simulate wrapper try/finally structure
-$wrapperFinallyExecuted = $false
-$restoredSuccessfully = $false
-$compareSucceeded = $false
-
 try {
-    # Simulate a timeout or crash during execution
-    Log "[TEST 2] Simulating runner execution timeout / crash..."
-    throw "Simulated Unity Timeout / Runner Abort"
-}
-catch {
-    Log "[TEST 2] Caught expected exception: $($_.Exception.Message)"
+    # ------------------------------------------------------------------
+    # Setup Sandbox Registry Key
+    # ------------------------------------------------------------------
+    & reg.exe add "HKCU\$disposableRegKey" /v "SandboxToken" /t REG_SZ /d "InitialState_123" /f | Out-Null
+
+    # ------------------------------------------------------------------
+    # Test 1: Backup failure -> launch refused (exit 1, Launched = False)
+    # ------------------------------------------------------------------
+    Log "[TEST 1] Testing Backup Failure path..."
+    $t1BackupDir = "$sandboxDir\t1_backup"
+    $res1 = Invoke-P09VerificationSession `
+        -SuiteName "Test1: Backup Failure" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t1BackupDir `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailBackup = $true }
+
+    $t1Pass = ($res1.ExitCode -eq 1) -and ($res1.Launched -eq $false) -and ($res1.Status -eq "BACKUP_FAILED")
+    if ($t1Pass) {
+        Log "[TEST 1 PASS] Backup failure correctly halted launch: Launched=$($res1.Launched), ExitCode=$($res1.ExitCode), Status=$($res1.Status)"
+    } else {
+        Log "[TEST 1 FAIL] Expected launch to be refused on backup failure: Launched=$($res1.Launched), ExitCode=$($res1.ExitCode)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 2: Launch failure -> handled safely, recovery in finally
+    # ------------------------------------------------------------------
+    Log "[TEST 2] Testing Launch Failure path..."
+    $t2BackupDir = "$sandboxDir\t2_backup"
+    $res2 = Invoke-P09VerificationSession `
+        -SuiteName "Test2: Launch Failure" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t2BackupDir `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailLaunch = $true }
+
+    $t2Pass = ($res2.LaunchFailed -eq $true) -and ($res2.SaveRestored -eq $true) -and ($res2.SaveDiffZero -eq $true) -and ($res2.ExitCode -ne 0)
+    if ($t2Pass) {
+        Log "[TEST 2 PASS] Launch failure safely handled with guaranteed recovery: LaunchFailed=$($res2.LaunchFailed), Restored=$($res2.SaveRestored), DiffZero=$($res2.SaveDiffZero), ExitCode=$($res2.ExitCode)"
+    } else {
+        Log "[TEST 2 FAIL] Launch failure did not properly recover: LaunchFailed=$($res2.LaunchFailed), Restored=$($res2.SaveRestored), DiffZero=$($res2.SaveDiffZero)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 3: Crash / Run exception -> recovery executed in finally
+    # ------------------------------------------------------------------
+    Log "[TEST 3] Testing Crash / Run Exception path..."
+    $t3BackupDir = "$sandboxDir\t3_backup"
+    $res3 = Invoke-P09VerificationSession `
+        -SuiteName "Test3: Crash Recovery" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t3BackupDir `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailCrash = $true }
+
+    $t3Pass = ($res3.SaveRestored -eq $true) -and ($res3.SaveDiffZero -eq $true) -and ($res3.ExitCode -ne 0)
+    if ($t3Pass) {
+        Log "[TEST 3 PASS] Crash during execution safely recovered: Restored=$($res3.SaveRestored), DiffZero=$($res3.SaveDiffZero), ExitCode=$($res3.ExitCode)"
+    } else {
+        Log "[TEST 3 FAIL] Crash recovery failed: Restored=$($res3.SaveRestored), DiffZero=$($res3.SaveDiffZero)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 4: Compare diff detected -> rejected, never reports PASS
+    # ------------------------------------------------------------------
+    Log "[TEST 4] Testing Compare Diff Rejection path..."
+    $t4BackupDir = "$sandboxDir\t4_backup"
+    $res4 = Invoke-P09VerificationSession `
+        -SuiteName "Test4: Compare Diff Rejection" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t4BackupDir `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailCompare = $true; ForceScenarioPass = $true }
+
+    $t4Pass = ($res4.SaveDiffZero -eq $false) -and ($res4.ExitCode -eq 1) -and ($res4.Status -eq "PERSISTENCE_FAILURE")
+    if ($t4Pass) {
+        Log "[TEST 4 PASS] Compare mismatch strictly rejected PASS: DiffZero=$($res4.SaveDiffZero), ExitCode=$($res4.ExitCode), Status=$($res4.Status)"
+    } else {
+        Log "[TEST 4 FAIL] Compare mismatch was not rejected: DiffZero=$($res4.SaveDiffZero), ExitCode=$($res4.ExitCode), Status=$($res4.Status)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 5: RestoreFail + ComparePass -> rejected (must FAIL, exit 1)
+    # ------------------------------------------------------------------
+    Log "[TEST 5] Testing RestoreFail + ComparePass rejection path..."
+    $t5BackupDir = "$sandboxDir\t5_backup"
+    $res5 = Invoke-P09VerificationSession `
+        -SuiteName "Test5: RestoreFail Rejection" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t5BackupDir `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailRestore = $true; ForceScenarioPass = $true }
+
+    $t5Pass = ($res5.SaveRestored -eq $false) -and ($res5.ExitCode -eq 1) -and ($res5.Status -eq "PERSISTENCE_FAILURE")
+    if ($t5Pass) {
+        Log "[TEST 5 PASS] RestoreFail + ComparePass strictly rejected PASS: Restored=$($res5.SaveRestored), ExitCode=$($res5.ExitCode), Status=$($res5.Status)"
+    } else {
+        Log "[TEST 5 FAIL] RestoreFail was not rejected: Restored=$($res5.SaveRestored), ExitCode=$($res5.ExitCode), Status=$($res5.Status)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 6: Timeout + CompareFail -> reported as persistence failure (exit 1), NOT masked as timeout (exit 2)
+    # ------------------------------------------------------------------
+    Log "[TEST 6] Testing Timeout + CompareFail persistence failure path..."
+    $t6BackupDir = "$sandboxDir\t6_backup"
+    $res6 = Invoke-P09VerificationSession `
+        -SuiteName "Test6: Timeout + CompareFail" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t6BackupDir `
+        -TimeoutSeconds 1 `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ FailTimeout = $true; FailCompare = $true; ForceScenarioPass = $true }
+
+    $t6Pass = ($res6.TimedOut -eq $true) -and ($res6.SaveDiffZero -eq $false) -and ($res6.ExitCode -eq 1) -and ($res6.Status -eq "PERSISTENCE_FAILURE")
+    if ($t6Pass) {
+        Log "[TEST 6 PASS] Timeout + CompareFail correctly reported as PERSISTENCE_FAILURE (Exit 1, not exit 2): TimedOut=$($res6.TimedOut), DiffZero=$($res6.SaveDiffZero), ExitCode=$($res6.ExitCode), Status=$($res6.Status)"
+    } else {
+        Log "[TEST 6 FAIL] Timeout + CompareFail incorrectly evaluated: TimedOut=$($res6.TimedOut), DiffZero=$($res6.SaveDiffZero), ExitCode=$($res6.ExitCode), Status=$($res6.Status)"
+        $allPassed = $false
+    }
 }
 finally {
-    $wrapperFinallyExecuted = $true
-    Log "[TEST 2] Executing wrapper finally block..."
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Restore -BackupDir $disposableDir -AllowRunningUnity
-    if ($LASTEXITCODE -eq 0) { $restoredSuccessfully = $true }
-
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Compare -BackupDir $disposableDir
-    if ($LASTEXITCODE -eq 0) { $compareSucceeded = $true }
+    # Teardown disposable fixtures
+    & cmd.exe /c "reg delete `"HKCU\$disposableRegKey`" /f >nul 2>&1"
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $sandboxDir
 }
-
-if ($wrapperFinallyExecuted -and $restoredSuccessfully -and $compareSucceeded) {
-    Log "[TEST 2 PASS] Finally block executed recovery upon failure: Restored=True, CompareDiffZero=True."
-} else {
-    Log "[TEST 2 FAIL] Finally recovery failed: Finally=$wrapperFinallyExecuted, Restore=$restoredSuccessfully, Compare=$compareSucceeded"
-    $allPassed = $false
-}
-
-# ------------------------------------------------------------------
-# Test 3: Compare Failure -> Rejects Diff, No False PASS
-# ------------------------------------------------------------------
-Log "[TEST 3] Verifying wrapper rejects diff and never outputs false PASS when comparison fails..."
-# Setup disposable key with backup
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Backup -BackupDir $disposableDir -CustomRegKey $disposableRegKey -AllowRunningUnity
-if ($LASTEXITCODE -ne 0) { throw "Backup failed in Test 3 setup" }
-
-# Introduce dirty mutation
-& reg.exe add "HKCU\$disposableRegKey" /v "LeakedKeyInTest" /t REG_DWORD /d 999 /f | Out-Null
-
-# Run compare
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Compare -BackupDir $disposableDir
-$compareCode = $LASTEXITCODE
-
-if ($compareCode -ne 0) {
-    Log "[TEST 3 PASS] Compare correctly returned exit code $compareCode on detected diff. Wrapper logic ($($runnerPassed) -and ($($unityOsExitCode) -eq 0) -and $($saveDiffZero)) evaluates to FALSE and wrapper exit code is non-zero (FAIL)."
-} else {
-    Log "[TEST 3 FAIL] Compare falsely succeeded on dirty state!"
-    $allPassed = $false
-}
-
-# Teardown disposable fixtures
-& cmd.exe /c "reg delete `"HKCU\$disposableRegKey`" /f >nul 2>&1"
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $disposableDir
 
 Log "============================================================"
-Log " WRAPPER FAILURE PATH VERIFICATION RESULT: $(if ($allPassed) { 'ALL PASS' } else { 'FAIL' })"
+Log " WRAPPER FAILURE PATH VERIFICATION RESULT: $(if ($allPassed) { 'ALL 6 TESTS PASSED' } else { 'FAIL' })"
 Log "============================================================"
 
 if ($allPassed) { exit 0 } else { exit 1 }

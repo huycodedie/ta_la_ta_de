@@ -466,6 +466,9 @@ namespace WuxiaGame.Editor
             GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
             Action<Entity, DamageResult> damageListener = null;
+            ITimeProvider origTimeProvider = CooldownManager.TimeProvider;
+            TestTimeProvider testTime = new TestTimeProvider(100f);
+            CooldownManager.TimeProvider = testTime;
 
             try
             {
@@ -482,18 +485,18 @@ namespace WuxiaGame.Editor
                 hero.Rage.ResetRage(100f);
                 CooldownManager.ResetAllCooldowns();
 
-                // Track exact damage events and target correlation
+                // Track exact damage events and correlation without synthetic skill id injection
                 int damageEventCount = 0;
                 Entity damagedTarget = null;
                 Entity damageSource = null;
-                string damagedSkillId = null;
+                DamageResult recordedDmgRes = default;
 
                 damageListener = (ent, dmgRes) =>
                 {
                     damageEventCount++;
                     damagedTarget = ent;
                     damageSource = dmgRes.Attacker;
-                    damagedSkillId = skill.SkillId;
+                    recordedDmgRes = dmgRes;
                 };
                 EventBus.OnEntityDamaged += damageListener;
 
@@ -504,13 +507,14 @@ namespace WuxiaGame.Editor
                 bool success = res.Success;
                 bool zeroEarlyDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
                 bool rageChargedAtRelease = Mathf.Approximately(hero.Rage.CurrentRage, 75f);
-                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out float cdInitial) && cdInitial > 0f;
+                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out float cdInitial) && Mathf.Approximately(cdInitial, 4.0f);
                 bool projectileActive = ProjectileController.ActiveProjectiles.Count == 1;
                 bool zeroEventsAtRelease = damageEventCount == 0;
 
                 var proj = projectileActive ? ProjectileController.ActiveProjectiles[0] : null;
 
-                // Step 2: Verification at Halfway Travel (0.5s at 10 speed = 5 units)
+                // Step 2: Verification at Halfway Travel (0.5s at 10 speed = 5 units) with test clock advance
+                testTime.Advance(0.5f);
                 if (proj != null)
                 {
                     proj.SimulateTick(0.5f);
@@ -518,24 +522,30 @@ namespace WuxiaGame.Editor
                 bool zeroMidwayDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
                 bool stillFlying = proj != null && !proj.HasImpacted && !proj.IsCancelled;
                 bool zeroEventsMidway = damageEventCount == 0;
+                bool cdDecreasedMidway = CooldownManager.IsOnCooldown(skill.SkillId, out float cdMid) && Mathf.Abs(cdMid - (cdInitial - 0.5f)) < 0.05f;
 
-                // Step 3: Verification at Arrival (remaining 6 units at 10 speed = 0.6s)
+                // Step 3: Verification at Arrival (remaining 5 units at 10 speed = 0.5s) with test clock advance
+                testTime.Advance(0.5f);
                 if (proj != null)
                 {
-                    proj.SimulateTick(0.6f);
+                    proj.SimulateTick(0.5f);
                 }
                 bool damageDealtOnArrival = target.Health.CurrentHealth < hpBefore;
                 bool projCompleted = proj == null || proj.HasImpacted;
 
-                // Assert specific target, specific request source, specific skill id, exactly one event
+                // Cooldown verification after arrival: clock advanced by 1.0s, remaining must be exactly cdInitial - 1.0s and NOT reset back to 4.0s
+                bool cdAfterArrivalOk = CooldownManager.IsOnCooldown(skill.SkillId, out float cdAfter) && Mathf.Abs(cdAfter - (cdInitial - 1.0f)) < 0.05f;
+                bool cdNotResetAtImpact = cdAfterArrivalOk && (cdAfter < cdInitial);
+
+                // Assert specific target, specific request source, damage type, exactly one event
                 bool exactlyOneDamageEvent = damageEventCount == 1;
-                bool correctTargetMatched = damagedTarget == target;
-                bool correctSourceMatched = damageSource == hero;
-                bool correctSkillMatched = damagedSkillId == skill.SkillId;
+                bool correctTargetMatched = damagedTarget == target && recordedDmgRes.Target == target;
+                bool correctSourceMatched = damageSource == hero && recordedDmgRes.Attacker == hero;
+                bool correctDamageType = recordedDmgRes.DamageType == DamageType.Skill;
                 bool rageNotChargedAgainAtImpact = Mathf.Approximately(hero.Rage.CurrentRage, 75f);
-                bool cdNotResetAtImpact = CooldownManager.IsOnCooldown(skill.SkillId, out float cdAfter) && cdAfter <= cdInitial;
 
                 // Step 4: Subsequent tick after impact must NOT deal duplicate damage
+                testTime.Advance(0.5f);
                 if (proj != null)
                 {
                     proj.SimulateTick(0.5f);
@@ -543,16 +553,17 @@ namespace WuxiaGame.Editor
                 bool noDuplicateDamageAfterImpact = damageEventCount == 1;
 
                 bool pass = success && zeroEarlyDamage && rageChargedAtRelease && cdStartedAtRelease && projectileActive &&
-                            zeroEventsAtRelease && zeroMidwayDamage && stillFlying && zeroEventsMidway &&
+                            zeroEventsAtRelease && zeroMidwayDamage && stillFlying && zeroEventsMidway && cdDecreasedMidway &&
                             damageDealtOnArrival && projCompleted && exactlyOneDamageEvent && correctTargetMatched &&
-                            correctSourceMatched && correctSkillMatched && rageNotChargedAgainAtImpact &&
+                            correctSourceMatched && correctDamageType && rageNotChargedAgainAtImpact &&
                             cdNotResetAtImpact && noDuplicateDamageAfterImpact;
 
-                Debug.Log($"[T02] Projectile Release & Arrival: ReleaseOk={success}, ZeroEarlyDmg={zeroEarlyDamage}, DmgEvents={damageEventCount}, TargetMatch={correctTargetMatched}, RageKept={rageNotChargedAgainAtImpact}, CdNoReset={cdNotResetAtImpact}, NoDup={noDuplicateDamageAfterImpact} | {(pass ? "PASS" : "FAIL")}");
+                Debug.Log($"[T02] Projectile Release & Arrival: ReleaseOk={success}, ZeroEarlyDmg={zeroEarlyDamage}, DmgEvents={damageEventCount}, TargetMatch={correctTargetMatched}, RageKept={rageNotChargedAgainAtImpact}, CdMidOk={cdDecreasedMidway}, CdNoReset={cdNotResetAtImpact}, NoDup={noDuplicateDamageAfterImpact} | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally
             {
+                CooldownManager.TimeProvider = origTimeProvider;
                 if (damageListener != null) EventBus.OnEntityDamaged -= damageListener;
                 if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
                 TeardownEncounter(heroGO, bmGO, mmMgrGO);
@@ -917,6 +928,9 @@ namespace WuxiaGame.Editor
         {
             GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
+            ITimeProvider origTimeProvider = CooldownManager.TimeProvider;
+            TestTimeProvider testTime = new TestTimeProvider(100f);
+            CooldownManager.TimeProvider = testTime;
 
             try
             {
@@ -926,6 +940,7 @@ namespace WuxiaGame.Editor
                 RegisterAndSelectSkill(mmMgr, skill);
 
                 Monster target = bm.CurrentMonster;
+                hero.transform.position = new Vector3(-3f, -0.3f, 0f);
                 target.transform.position = new Vector3(5f, -0.3f, 0f);
                 float hpBefore = target.Health.CurrentHealth;
 
@@ -935,7 +950,7 @@ namespace WuxiaGame.Editor
                 var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
                 var startRes = SkillExecutor.Execute(req);
 
-                // Phase 1: Cast Start Checks
+                // Phase 1: Cast Start Checks (Rage deducted at cast start, NO projectile and NO cooldown yet)
                 bool startSuccess = startRes.Success;
                 bool rageChargedAtStart = Mathf.Approximately(hero.Rage.CurrentRage, 70f);
                 bool isCastingAtStart = hero.IsCasting;
@@ -943,32 +958,40 @@ namespace WuxiaGame.Editor
                 bool noCooldownYet = !CooldownManager.IsOnCooldown(skill.SkillId, out _);
 
                 // Phase 2: Advance Cast State (0.5s elapsed, cast duration = 1.0s)
+                testTime.Advance(0.5f);
                 hero.CastState.Tick(0.5f);
                 bool stillCasting = hero.IsCasting;
                 bool stillNoProjectile = ProjectileController.ActiveProjectiles.Count == 0;
+                bool stillNoCooldown = !CooldownManager.IsOnCooldown(skill.SkillId, out _);
 
-                // Phase 3: Complete Cast State (remaining 0.5s)
+                // Phase 3: Complete Cast State (remaining 0.5s) -> Projectile releases, cooldown starts ONCE at release
+                testTime.Advance(0.5f);
                 hero.CastState.Tick(0.5f);
                 bool castFinished = !hero.IsCasting;
                 bool projectileReleased = ProjectileController.ActiveProjectiles.Count == 1;
-                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out float cdVal) && cdVal > 0f;
+                bool cdStartedAtRelease = CooldownManager.IsOnCooldown(skill.SkillId, out float cdInitial) && Mathf.Approximately(cdInitial, 5.0f);
                 bool stillZeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
 
                 var proj = projectileReleased ? ProjectileController.ActiveProjectiles[0] : null;
 
                 // Phase 4: Advance Projectile to Arrival (hero at -3, target at 5 -> 8 units at speed 10 takes 0.8s)
+                testTime.Advance(0.8f);
                 if (proj != null)
                 {
-                    proj.SimulateTick(1.0f);
+                    proj.SimulateTick(0.8f);
                 }
                 bool damageAppliedAtArrival = target.Health.CurrentHealth < hpBefore;
                 bool projGone = ProjectileController.ActiveProjectiles.Count == 0;
                 bool rageNotChargedAgain = Mathf.Approximately(hero.Rage.CurrentRage, 70f);
-                bool cdNotResetAtArrival = CooldownManager.IsOnCooldown(skill.SkillId, out float cdValAfter) && cdValAfter <= cdVal;
+
+                // Cooldown verification at arrival: clock advanced by 0.8s, cooldown remaining must be 5.0 - 0.8 = 4.2s, NOT reset to 5.0s
+                bool isOnCooldown = CooldownManager.IsOnCooldown(skill.SkillId, out float cdValAfter);
+                bool cdDecreasedByFlight = isOnCooldown && Mathf.Abs(cdValAfter - (cdInitial - 0.8f)) < 0.05f;
+                bool cdNotResetAtArrival = cdDecreasedByFlight && (cdValAfter < cdInitial);
                 bool cdStartedOnce = cdStartedAtRelease && cdNotResetAtArrival;
 
                 bool pass = startSuccess && rageChargedAtStart && isCastingAtStart && noProjectileYet && noCooldownYet &&
-                            stillCasting && stillNoProjectile && castFinished && projectileReleased && cdStartedOnce &&
+                            stillCasting && stillNoProjectile && stillNoCooldown && castFinished && projectileReleased && cdStartedOnce &&
                             stillZeroDamage && damageAppliedAtArrival && projGone && rageNotChargedAgain;
 
                 Debug.Log($"[T09] Cast-Time Projectile: StartOk={startSuccess}, RageAtStart={rageChargedAtStart}, ReleasedAtEnd={projectileReleased}, CdStartedOnce={cdStartedOnce}, DmgAtArrival={damageAppliedAtArrival}, RageKept={rageNotChargedAgain} | {(pass ? "PASS" : "FAIL")}");
@@ -976,6 +999,7 @@ namespace WuxiaGame.Editor
             }
             finally
             {
+                CooldownManager.TimeProvider = origTimeProvider;
                 if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
                 TeardownEncounter(heroGO, bmGO, mmMgrGO);
             }
@@ -1594,14 +1618,26 @@ namespace WuxiaGame.Editor
 
         /// <summary>
         /// T21: Scene unload cleans up active projectile without delivering damage.
+        /// Uses native Unity scene management to unload an active additive scene fixture.
         /// </summary>
         private static bool T21_SceneUnload_CancelsProjectilesWithoutDamage()
         {
             GameObject heroGO = null, bmGO = null, mmMgrGO = null;
             SkillDefinitionSO skill = null;
+            UnityEngine.SceneManagement.Scene initialScene = default;
+            UnityEngine.SceneManagement.Scene tempScene = default;
 
             try
             {
+                initialScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (!initialScene.IsValid() || string.IsNullOrEmpty(initialScene.path))
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/_Game/Scenes/Prototype01.unity", UnityEditor.SceneManagement.OpenSceneMode.Single);
+                    initialScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                }
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(initialScene);
+
+                // Setup encounter in base scene so monster and hero persist to verify target damage is zero
                 SetupEncounter(out heroGO, out var hero, out bmGO, out var bm, out mmMgrGO, out var mmMgr);
 
                 skill = CreateTestSkill("p09_t21_scene_unload", "Tịch Diệt Tiễn", 2.0f, 20f, 3.0f, isProjectile: true, speed: 5f, lifetime: 5f);
@@ -1612,6 +1648,12 @@ namespace WuxiaGame.Editor
                 target.transform.position = new Vector3(5f, -0.3f, 0f);
                 float hpBefore = target.Health.CurrentHealth;
 
+                // Create a temporary additive scene fixture and set as active so projectile is owned by tempScene
+                tempScene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(
+                    UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,
+                    UnityEditor.SceneManagement.NewSceneMode.Additive);
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(tempScene);
+
                 var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
                 SkillExecutor.Execute(req);
 
@@ -1620,31 +1662,28 @@ namespace WuxiaGame.Editor
                 // Fly 0.1s
                 if (proj != null) proj.SimulateTick(0.1f);
 
-                // Trigger scene unloaded event via reflection or SendMessage
-                if (proj != null)
-                {
-                    var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-                    var method = typeof(ProjectileController).GetMethod("HandleSceneUnloaded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (method != null)
-                    {
-                        method.Invoke(proj, new object[] { scene });
-                    }
-                    else
-                    {
-                        proj.Cancel("Scene unloaded.");
-                    }
-                }
+                // Close scene fixture via native Unity EditorSceneManager API
+                // Unity dispatches SceneManager.sceneUnloaded naturally without reflection or synthetic calls
+                bool sceneClosed = UnityEditor.SceneManagement.EditorSceneManager.CloseScene(tempScene, true);
 
                 bool isCancelled = proj == null || proj.IsCancelled;
-                bool zeroDamage = Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool zeroDamage = target != null && Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
                 bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
 
-                bool pass = isCancelled && zeroDamage && cleanedUp;
-                Debug.Log($"[T21] Scene Unload Cleanup: Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                bool pass = sceneClosed && isCancelled && zeroDamage && cleanedUp;
+                Debug.Log($"[T21] Real Scene Unload Cleanup: Closed={sceneClosed}, Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally
             {
+                if (tempScene.IsValid() && tempScene.isLoaded)
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.CloseScene(tempScene, true);
+                }
+                if (initialScene.IsValid() && initialScene.isLoaded)
+                {
+                    UnityEngine.SceneManagement.SceneManager.SetActiveScene(initialScene);
+                }
                 if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
                 TeardownEncounter(heroGO, bmGO, mmMgrGO);
             }
