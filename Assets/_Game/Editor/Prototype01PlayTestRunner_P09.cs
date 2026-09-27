@@ -228,6 +228,7 @@ namespace WuxiaGame.Editor
             tempDb.SetMindMethods(new List<MindMethodDefinitionSO> { tempMmDef });
             mmMgr.SetDatabase(tempDb);
             mmMgr.SetActiveMindMethod("mm_taiji");
+            typeof(MindMethodManager).GetField("instance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)?.SetValue(null, mmMgr);
 
             // Hero
             heroGO = new GameObject("TestHero");
@@ -1619,6 +1620,11 @@ namespace WuxiaGame.Editor
         /// <summary>
         /// T21: Scene unload cleans up active projectile without delivering damage.
         /// Uses native Unity scene management to unload an active additive scene fixture.
+        /// Strictly verifies preconditions:
+        /// 1. Request.Success == true (proper validation without bypassing validators)
+        /// 2. Exactly 1 active projectile in flight, owned by tempScene fixture
+        /// 3. Target alive with untouched HP before unload
+        /// 4. Unity native scene closure executes real cleanup, zero damage delivered
         /// </summary>
         private static bool T21_SceneUnload_CancelsProjectilesWithoutDamage()
         {
@@ -1629,12 +1635,8 @@ namespace WuxiaGame.Editor
 
             try
             {
-                initialScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-                if (!initialScene.IsValid() || string.IsNullOrEmpty(initialScene.path))
-                {
-                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/_Game/Scenes/Prototype01.unity", UnityEditor.SceneManagement.OpenSceneMode.Single);
-                    initialScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-                }
+                // Open clean SampleScene to guarantee no scene-resident singleton manager conflicts
+                initialScene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity", UnityEditor.SceneManagement.OpenSceneMode.Single);
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(initialScene);
 
                 // Setup encounter in base scene so monster and hero persist to verify target damage is zero
@@ -1648,30 +1650,79 @@ namespace WuxiaGame.Editor
                 target.transform.position = new Vector3(5f, -0.3f, 0f);
                 float hpBefore = target.Health.CurrentHealth;
 
-                // Create a temporary additive scene fixture and set as active so projectile is owned by tempScene
+                // Create a temporary additive scene fixture and set as active so projectile GameObject is instantiated in tempScene
                 tempScene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(
                     UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,
                     UnityEditor.SceneManagement.NewSceneMode.Additive);
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(tempScene);
 
+                Debug.Log($"[T21] Fixture Setup: InitialScene='{initialScene.name}', TempScene='{tempScene.name}', ActiveScene='{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}'");
+                Debug.Log($"[T21] MindMethod State: mmMgr.ActiveId='{mmMgr.ActiveMindMethodId}', Instance.ActiveId='{MindMethodManager.Instance?.ActiveMindMethodId}'");
+
                 var req = new SkillExecutionRequest(hero, skill, SkillSlotType.Skill, target);
-                SkillExecutor.Execute(req);
+                var execRes = SkillExecutor.Execute(req);
 
-                var proj = ProjectileController.ActiveProjectiles.Count > 0 ? ProjectileController.ActiveProjectiles[0] : null;
+                // MANDATORY PRECONDITIONS:
+                // 1. Skill execution request succeeded
+                if (execRes == null || !execRes.Success)
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Skill execution failed: Reason={execRes?.FailureReason}, Message={execRes?.ReasonDescription}");
+                    return false;
+                }
 
-                // Fly 0.1s
-                if (proj != null) proj.SimulateTick(0.1f);
+                // 2. Exactly one real active projectile released
+                if (ProjectileController.ActiveProjectiles.Count != 1)
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Active projectile count is {ProjectileController.ActiveProjectiles.Count}, expected exactly 1.");
+                    return false;
+                }
+
+                var proj = ProjectileController.ActiveProjectiles[0];
+                if (proj == null || proj.HasImpacted || proj.IsCancelled)
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Projectile state invalid: null={proj == null}, HasImpacted={proj?.HasImpacted}, IsCancelled={proj?.IsCancelled}");
+                    return false;
+                }
+
+                // 3. Projectile scene ownership belongs to tempScene fixture
+                if (proj.gameObject.scene != tempScene)
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Projectile scene ownership mismatch: proj.scene='{proj.gameObject.scene.name}', tempScene='{tempScene.name}'");
+                    return false;
+                }
+
+                // 4. Target is alive and HP unchanged before unload
+                if (target == null || target.Health == null || !target.IsAlive || !Mathf.Approximately(target.Health.CurrentHealth, hpBefore))
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Target state invalid: Alive={target?.IsAlive}, HP={target?.Health?.CurrentHealth}, Expected={hpBefore}");
+                    return false;
+                }
+
+                string projName = proj.name;
+                int countBefore = ProjectileController.ActiveProjectiles.Count;
+
+                Debug.Log($"[T21 PRECONDITION PASS] Release Success: ReqSuccess={execRes.Success}, Proj='{projName}' (Scene='{proj.gameObject.scene.name}'), CountBefore={countBefore}, TargetHP={target.Health.CurrentHealth}/{hpBefore}");
+
+                // Fly 0.1s (advances ~0.5 units along 8 unit path, remains in flight)
+                proj.SimulateTick(0.1f);
+
+                if (proj.HasImpacted || proj.IsCancelled)
+                {
+                    Debug.LogError($"[T21 PRECONDITION FAIL] Projectile prematurely impacted or cancelled before scene unload.");
+                    return false;
+                }
 
                 // Close scene fixture via native Unity EditorSceneManager API
-                // Unity dispatches SceneManager.sceneUnloaded naturally without reflection or synthetic calls
+                // Unity natively destroys scene objects and triggers unregistration / cleanup
                 bool sceneClosed = UnityEditor.SceneManagement.EditorSceneManager.CloseScene(tempScene, true);
 
-                bool isCancelled = proj == null || proj.IsCancelled;
-                bool zeroDamage = target != null && Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
-                bool cleanedUp = ProjectileController.ActiveProjectiles.Count == 0;
+                int countAfter = ProjectileController.ActiveProjectiles.Count;
+                bool isCancelledOrCleaned = (proj == null || proj.IsCancelled);
+                bool zeroDamage = target != null && target.IsAlive && Mathf.Approximately(target.Health.CurrentHealth, hpBefore);
+                bool activeListZero = (countAfter == 0);
 
-                bool pass = sceneClosed && isCancelled && zeroDamage && cleanedUp;
-                Debug.Log($"[T21] Real Scene Unload Cleanup: Closed={sceneClosed}, Cancelled={isCancelled}, ZeroDamage={zeroDamage}, CleanedUp={cleanedUp} | {(pass ? "PASS" : "FAIL")}");
+                bool pass = sceneClosed && isCancelledOrCleaned && zeroDamage && activeListZero;
+                Debug.Log($"[T21 ASSERTION] Real Scene Unload Cleanup: Closed={sceneClosed}, CountBefore={countBefore}, CountAfter={countAfter}, ProjCleanedUp={isCancelledOrCleaned}, ZeroDamage={zeroDamage} (TargetHP={target?.Health?.CurrentHealth}/{hpBefore}) | {(pass ? "PASS" : "FAIL")}");
                 return pass;
             }
             finally

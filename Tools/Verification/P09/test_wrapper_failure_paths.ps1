@@ -1,11 +1,13 @@
 # P09 Wrapper Failure Path Verification Suite
-# Tests all 6 required failure modes directly through shared coordination module (Invoke-P09VerificationSession):
+# Tests all 8 required failure modes directly through shared coordination module (Invoke-P09VerificationSession & Invoke-P09SaveGuardRecovery):
 # 1. Backup failure -> launch refused (exit 1, Launched = False)
 # 2. Launch failure -> handled safely, recovery guaranteed in finally
 # 3. Crash / Run exception -> recovery executed in finally
 # 4. Compare diff detected -> rejected, never reports PASS
 # 5. RestoreFail + ComparePass -> rejected (must FAIL, persistence failure)
 # 6. Timeout + CompareFail -> reported as persistence failure (exit 1), not masked as timeout (exit 2)
+# 7. Restore throw -> isolated in independent try/catch, Compare still executed, reported as persistence failure (exit 1)
+# 8. Manual launcher recovery failure -> returns non-zero exit code (exit 1)
 
 param(
     [string]$ProjectRoot = "E:\code\TLTD"
@@ -185,6 +187,74 @@ try {
         Log "[TEST 6 FAIL] Timeout + CompareFail incorrectly evaluated: TimedOut=$($res6.TimedOut), DiffZero=$($res6.SaveDiffZero), ExitCode=$($res6.ExitCode), Status=$($res6.Status)"
         $allPassed = $false
     }
+
+    # ------------------------------------------------------------------
+    # Test 7: Restore throw still executes Compare (isolated try/catch)
+    # ------------------------------------------------------------------
+    Log "[TEST 7] Testing Restore throw still executes Compare..."
+    $t7BackupDir = "$sandboxDir\t7_backup"
+    $t7WrapperLog = "$sandboxDir\t7_wrapper.log"
+    $res7 = Invoke-P09VerificationSession `
+        -SuiteName "Test7: Restore Throw Isolates Compare" `
+        -ProjectRoot $ProjectRoot `
+        -ExecutablePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-Command", "Start-Sleep -Milliseconds 100") `
+        -BackupDir $t7BackupDir `
+        -WrapperLog $t7WrapperLog `
+        -CustomRegKey $disposableRegKey `
+        -AllowRunningUnity $true `
+        -FailureInjection @{ ThrowRestore = $true; ForceScenarioPass = $true }
+
+    if (Test-Path $t7WrapperLog) {
+        Log "--- RAW DISPATCHER LOG (Test 7) ---"
+        Get-Content $t7WrapperLog | ForEach-Object { Log "  [DISPATCHER] $_" }
+    }
+
+    $t7Pass = ($res7.SaveRestored -eq $false) -and ($res7.SaveDiffZero -eq $true) -and ($res7.ExitCode -eq 1) -and ($res7.Status -eq "PERSISTENCE_FAILURE")
+    if ($t7Pass) {
+        Log "[TEST 7 PASS] Restore throw correctly isolated, Compare executed (DiffZero=$($res7.SaveDiffZero)), reported as PERSISTENCE_FAILURE: Restored=$($res7.SaveRestored), ExitCode=$($res7.ExitCode), Status=$($res7.Status)"
+    } else {
+        Log "[TEST 7 FAIL] Restore throw did not isolate Compare: Restored=$($res7.SaveRestored), DiffZero=$($res7.SaveDiffZero), ExitCode=$($res7.ExitCode), Status=$($res7.Status)"
+        $allPassed = $false
+    }
+
+    # ------------------------------------------------------------------
+    # Test 8: Manual session recovery failure returns non-zero (exit 1)
+    # ------------------------------------------------------------------
+    Log "[TEST 8] Testing Manual launcher recovery failure returns non-zero exit code..."
+    $t8BackupDir = "$sandboxDir\t8_backup"
+    $t8LogFile = "$sandboxDir\t8_manual_raw.log"
+    $manualScript = "$ProjectRoot\Tools\Verification\P09\launch_manual_p09a_session.ps1"
+
+    # Launch manual script in sandbox with injected restore failure and dummy executable
+    $t8Proc = Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "`"$manualScript`"",
+        "-ProjectRoot", "`"$ProjectRoot`"",
+        "-UnityPath", "cmd.exe",
+        "-UnityExtraArgs", "/c exit 0",
+        "-SessionTimeoutSeconds", "10",
+        "-BackupDir", "`"$t8BackupDir`"",
+        "-LogFile", "`"$sandboxDir\t8_dummy.log`"",
+        "-CustomRegKey", "`"$disposableRegKey`"",
+        "-AllowRunningUnity",
+        "-FailureInjection", "FailRestore"
+    ) -Wait -PassThru -RedirectStandardOutput $t8LogFile
+
+    $t8ExitCode = $t8Proc.ExitCode
+
+    if (Test-Path $t8LogFile) {
+        Log "--- RAW MANUAL LAUNCHER LOG (Test 8) ---"
+        Get-Content $t8LogFile | ForEach-Object { Log "  [MANUAL LAUNCHER] $_" }
+    }
+
+    $t8Pass = ($t8ExitCode -ne 0) -and ($t8ExitCode -eq 1)
+    if ($t8Pass) {
+        Log "[TEST 8 PASS] Manual launcher recovery failure correctly returned non-zero (ExitCode = $t8ExitCode)."
+    } else {
+        Log "[TEST 8 FAIL] Manual launcher recovery failure returned unexpected exit code: $t8ExitCode (Expected 1)."
+        $allPassed = $false
+    }
 }
 finally {
     # Teardown disposable fixtures
@@ -193,7 +263,7 @@ finally {
 }
 
 Log "============================================================"
-Log " WRAPPER FAILURE PATH VERIFICATION RESULT: $(if ($allPassed) { 'ALL 6 TESTS PASSED' } else { 'FAIL' })"
+Log " WRAPPER FAILURE PATH VERIFICATION RESULT: $(if ($allPassed) { 'ALL 8 TESTS PASSED' } else { 'FAIL' })"
 Log "============================================================"
 
 if ($allPassed) { exit 0 } else { exit 1 }

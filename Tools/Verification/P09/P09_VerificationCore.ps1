@@ -16,6 +16,82 @@ function Stop-ProcessTree([int]$parentPid) {
     } catch {}
 }
 
+function Invoke-P09SaveGuardRecovery {
+    param(
+        [Parameter(Mandatory=$true)][string]$SaveGuardScript,
+        [Parameter(Mandatory=$true)][string]$BackupDir,
+        [string[]]$SaveGuardExtraArgs = @(),
+        [scriptblock]$Logger = $null,
+        [hashtable]$FailureInjection = @{}
+    )
+
+    $restoreSuccess = $false
+    $compareSuccess = $false
+    $restoreExit = 1
+    $compareExit = 1
+
+    # 1. Independent Restore invocation with exception isolation
+    try {
+        if ($Logger) { & $Logger "[SAVE GUARD] Restoring persistence to exact pre-run state..." }
+        if ($FailureInjection.ContainsKey("FailRestore") -and $FailureInjection["FailRestore"]) {
+            if ($Logger) { & $Logger "[FAILURE INJECTION] Injected Restore failure!" }
+            $restoreExit = 98
+        } elseif ($FailureInjection.ContainsKey("ThrowRestore") -and $FailureInjection["ThrowRestore"]) {
+            if ($Logger) { & $Logger "[FAILURE INJECTION] Injected Restore exception!" }
+            throw "Simulated exception during Restore execution (FailureInjection)"
+        } else {
+            $restoreProc = Start-Process -FilePath "powershell.exe" -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $SaveGuardScript, "-Action", "Restore", "-BackupDir", $BackupDir) + $SaveGuardExtraArgs) -Wait -PassThru
+            $restoreExit = $restoreProc.ExitCode
+        }
+    } catch {
+        $restoreExit = 98
+        if ($Logger) { & $Logger "[SAVE GUARD EXCEPTION] Exception during Restore: $($_.Exception.Message)" }
+    }
+
+    if ($restoreExit -eq 0) {
+        $restoreSuccess = $true
+        if ($Logger) { & $Logger "[SAVE GUARD] Restore succeeded." }
+    } else {
+        $restoreSuccess = $false
+        if ($Logger) { & $Logger "[SAVE GUARD ERROR] Restore failed with exit code $restoreExit!" }
+    }
+
+    # 2. Independent Compare invocation with exception isolation
+    # GUARANTEED TO EXECUTE EVEN IF RESTORE FAILED OR THREW AN EXCEPTION
+    try {
+        if ($Logger) { & $Logger "[SAVE GUARD] Comparing state against baseline backup to verify zero diff..." }
+        if ($FailureInjection.ContainsKey("FailCompare") -and $FailureInjection["FailCompare"]) {
+            if ($Logger) { & $Logger "[FAILURE INJECTION] Injected Compare failure!" }
+            $compareExit = 97
+        } elseif ($FailureInjection.ContainsKey("ThrowCompare") -and $FailureInjection["ThrowCompare"]) {
+            if ($Logger) { & $Logger "[FAILURE INJECTION] Injected Compare exception!" }
+            throw "Simulated exception during Compare execution (FailureInjection)"
+        } else {
+            $compareProc = Start-Process -FilePath "powershell.exe" -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $SaveGuardScript, "-Action", "Compare", "-BackupDir", $BackupDir) + $SaveGuardExtraArgs) -Wait -PassThru
+            $compareExit = $compareProc.ExitCode
+        }
+    } catch {
+        $compareExit = 97
+        if ($Logger) { & $Logger "[SAVE GUARD EXCEPTION] Exception during Compare: $($_.Exception.Message)" }
+    }
+
+    if ($compareExit -eq 0) {
+        $compareSuccess = $true
+        if ($Logger) { & $Logger "[SAVE GUARD] Comparison: Diff = 0 Verified (Exact match)." }
+    } else {
+        $compareSuccess = $false
+        if ($Logger) { & $Logger "[SAVE GUARD ERROR] Comparison FAILED: Diff detected or comparison failed (Exit code $compareExit)!" }
+    }
+
+    return @{
+        RestoreSuccess = $restoreSuccess
+        CompareSuccess = $compareSuccess
+        RestoreExit = $restoreExit
+        CompareExit = $compareExit
+        Passed = ($restoreSuccess -and $compareSuccess)
+    }
+}
+
 function Invoke-P09VerificationSession {
     param(
         [Parameter(Mandatory=$true)][string]$SuiteName,
@@ -203,42 +279,16 @@ function Invoke-P09VerificationSession {
         LogSession "[SESSION EXCEPTION] Caught exception during execution: $($_.Exception.Message)"
     }
     finally {
-        # Phase 5: Save Guard - Restore and Compare inside finally
-        LogSession "[SAVE GUARD] Restoring persistence to exact pre-run state..."
-        $restoreExit = 1
-        if ($FailureInjection.ContainsKey("FailRestore") -and $FailureInjection["FailRestore"]) {
-            LogSession "[FAILURE INJECTION] Injected Restore failure!"
-            $restoreExit = 98
-        } else {
-            $restoreProc = Start-Process -FilePath "powershell.exe" -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $SaveGuardScript, "-Action", "Restore", "-BackupDir", $BackupDir) + $sgExtraArgs) -Wait -PassThru
-            $restoreExit = $restoreProc.ExitCode
-        }
+        # Phase 5: Save Guard - Restore and Compare inside finally using shared recovery helper
+        $recovery = Invoke-P09SaveGuardRecovery `
+            -SaveGuardScript $SaveGuardScript `
+            -BackupDir $BackupDir `
+            -SaveGuardExtraArgs $sgExtraArgs `
+            -Logger ${function:LogSession} `
+            -FailureInjection $FailureInjection
 
-        if ($restoreExit -eq 0) {
-            $saveRestored = $true
-            LogSession "[SAVE GUARD] Restore succeeded."
-        } else {
-            $saveRestored = $false
-            LogSession "[SAVE GUARD ERROR] Restore failed with exit code $restoreExit!"
-        }
-
-        LogSession "[SAVE GUARD] Comparing state to verify zero diff..."
-        $compareExit = 1
-        if ($FailureInjection.ContainsKey("FailCompare") -and $FailureInjection["FailCompare"]) {
-            LogSession "[FAILURE INJECTION] Injected Compare failure!"
-            $compareExit = 97
-        } else {
-            $compareProc = Start-Process -FilePath "powershell.exe" -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $SaveGuardScript, "-Action", "Compare", "-BackupDir", $BackupDir) + $sgExtraArgs) -Wait -PassThru
-            $compareExit = $compareProc.ExitCode
-        }
-
-        if ($compareExit -eq 0) {
-            $saveDiffZero = $true
-            LogSession "[SAVE GUARD] Comparison: Diff = 0 Verified (Exact match)."
-        } else {
-            $saveDiffZero = $false
-            LogSession "[SAVE GUARD ERROR] Comparison FAILED: Diff detected or comparison failed (Exit code $compareExit)!"
-        }
+        $saveRestored = $recovery.RestoreSuccess
+        $saveDiffZero = $recovery.CompareSuccess
     }
 
     # Phase 6: Parse log results

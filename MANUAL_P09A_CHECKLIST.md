@@ -1,83 +1,110 @@
 # MANUAL_P09A_CHECKLIST.md
-# Hướng Dẫn Kiểm Tra Trực Tiếp & Checklist Nghiệm Thu P09-A (Dành Cho Chủ Dự Án)
+# Hướng Dẫn Khởi Chạy Phiên Quan Sát Manual & Checklist Nghiệm Thu P09-A (Dành Cho Chủ Dự Án)
 
-> **TRẠNG THÁI KIỂM THỬ THỦ CÔNG**: `READY_FOR_USER_TEST`  
-> **LƯU Ý QUAN TRỌNG**: Antigravity **KHÔNG** tự ý đánh dấu `USER VERIFIED` hoặc `P09-A LOCKED`. Tài liệu này cung cấp đầy đủ thông tin, kịch bản, scene, skill, thao tác hiện có và công cụ bảo vệ Save Guard để Chủ Dự Án trực tiếp kiểm tra và nghiệm thu.
-
----
-
-## 1. THÔNG BÁO MINH BẠCH VỀ PHẠM VI DỮ LIỆU (FIXTURE RAM vs ASSET SẢN XUẤT)
-
-> [!WARNING]
-> **Vị trí hiện tại của kỹ năng Projectile**:
-> - Cơ chế bay đạn (Projectile Delivery Foundation) trong giai đoạn P09-A đã được tích hợp hoàn chỉnh vào engine runtime (`ProjectileController`, `SkillExecutor`, `EffectResolver`, `BattleManager`).
-> - **Tuy nhiên, toàn bộ 61 file ScriptableObject kỹ năng sản xuất trong `Assets/_Game/Data/Skills/` hiện tại vẫn đang để `IsProjectile = false` (kỹ năng tức thời / cận chiến)**.
-> - Các kỹ năng đạn bay trong đợt kiểm thử P09-A được cấu hình qua **Transient In-Memory Fixtures (RAM)**:
->   1. `p09_pm_instant` (Instant Projectile: Tốc độ 10, Tầm bay 5s, Cooldown 3.0s, Nộ 30).
->   2. `p09_pm_cast` (Cast-Time Projectile: Vận khí 0.3s, Tốc độ 10, Tầm bay 5s, Cooldown 3.0s, Nộ 25).
-> - Antigravity **không tự ý sửa các asset sản xuất** để phục vụ việc demo UI khi chưa có chỉ đạo từ Tech Lead. Do đó, trong gameplay thông thường ở build hiện tại, các nút bấm trên UI đang thi triển các kỹ năng tức thời sản xuất có sẵn.
-> - Để quan sát projectile tự nhiên trong Game View với đầy đủ chu kỳ khung hình (natural frames), Chủ Dự Án có thể sử dụng phiên quan sát an toàn được mô tả ở Mục 2 dưới đây.
+> **TRẠNG THÁI HIỆN TẠI**: `READY_FOR_USER_TEST` (Khung thao tác thủ công đã sẵn sàng để Chủ Dự Án trực tiếp kiểm tra).  
+> **NGHIỆM THU NGƯỜI DÙNG**: `USER_VERIFICATION = NOT_EXECUTED` (Antigravity **tuyệt đối không tự ý đánh dấu USER_VERIFIED** hoặc **P09-A LOCKED**).
 
 ---
 
-## 2. QUY TRÌNH MỞ VÀ KẾT THÚC PHIÊN KIỂM TRA CÓ SAVE GUARD
+## 1. THÔNG BÁO MINH BẠCH VỀ DỮ LIỆU THỬ NGHIỆM (FIXTURE RAM vs PRODUCTION ASSET)
 
-Để đảm bảo tuyệt đối không làm bẩn hoặc sai lệch PlayerPrefs / file lưu trữ của dự án trong quá trình mở Editor thủ công:
+> [!IMPORTANT]
+> **Vị trí & Bản chất của Kỹ năng Projectile trong Giai đoạn P09-A**:
+> - Cơ chế Projectile Delivery Foundation đã hoàn thiện ở tầng runtime (`ProjectileController`, `SkillExecutor`, `EffectResolver`, `BattleManager`).
+> - **Toàn bộ 61 file ScriptableObject kỹ năng sản xuất trong `Assets/_Game/Data/Skills/` vẫn đang giữ nguyên `IsProjectile = false` (kỹ năng cận chiến / tức thời sản xuất)** theo đúng ranh giới khóa production và phạm vi thiết kế của P08/P09.
+> - Các kỹ năng đạn bay trong đợt kiểm thử P09-A được khởi tạo động trong bộ nhớ RAM qua **Transient Fixtures**:
+>   - `p09_manual_instant` (Instant Projectile: Vận tốc $8.0\text{ m/s}$, Tầm bay tối đa $5.0\text{s}$, Cooldown $4.0\text{s}$, Tiêu hao $30$ Nộ, Sát thương $100$, Khoảng cách bắn $12\text{m} \implies$ Thời gian bay $\approx 1.5\text{s}$, đủ để quan sát chuyển động và thử nghiệm).
+>   - `p09_manual_cast` (Cast-Time Projectile: Thời gian vận khí $1.0\text{s}$, Vận tốc $8.0\text{ m/s}$, Tầm bay tối đa $5.0\text{s}$, Cooldown $4.0\text{s}$, Tiêu hao $25$ Nộ, Sát thương $120$, Khoảng cách bắn $12\text{m}$).
+>   - `p09_manual_retarget` (Homing Projectile: Dùng để kiểm chứng đạn không bị đổi hướng khi chuyển mục tiêu giữa đường bay).
+> - Phiên kiểm thử thủ công này sử dụng **Bảng Điều Khiển Riêng (`P09 Manual Observation Harness`)**, không yêu cầu Chủ Dự Án phải tìm kiếm kỹ năng RAM trong production HUD hay tự gõ mã C#.
 
-### Bước 2.1: Chuẩn bị trước khi khởi chạy
-1. Nếu bạn đang mở sẵn Unity Editor cho project `E:\code\TLTD`, vui lòng **LƯU CÔNG VIỆC** và **ĐÓNG HOÀN TOÀN** Unity Editor.
-2. Việc này giúp tránh xung đột ghi đè registry giữa hai tiến trình Unity chạy song song.
+---
 
-### Bước 2.2: Khởi chạy phiên kiểm tra an toàn (Save Guard Launcher)
-Mở PowerShell tại thư mục gốc dự án `E:\code\TLTD` và chạy lệnh duy nhất:
+## 2. LỆNH KHỞI CHẠY DUY NHẤT & QUY TRÌNH SAVE GUARD BẢO VỆ
+
+Toàn bộ phiên làm việc GUI được bảo vệ bởi **Save Guard Wrapper**, đảm bảo an toàn tuyệt đối cho PlayerPrefs và file cấu hình registry.
+
+### Bước 2.1: Chuẩn bị
+1. Nếu bạn đang mở sẵn Unity Editor cho dự án `E:\code\TLTD`, vui lòng **LƯU CÔNG VIỆC** và **ĐÓNG HOÀN TOÀN** Unity Editor.
+2. Wrapper sẽ từ chối khởi chạy nếu phát hiện còn tiến trình Unity Editor khác đang hoạt động để tránh xung đột dữ liệu.
+
+### Bước 2.2: Khởi chạy phiên quan sát an toàn
+Mở PowerShell tại thư mục gốc dự án `E:\code\TLTD` và thực thi **MỘT LỆNH DUY NHẤT**:
 ```powershell
 powershell -ExecutionPolicy Bypass -File Tools\Verification\P09\launch_manual_p09a_session.ps1
 ```
 
-**Cơ chế bảo vệ tự động của Launcher:**
-- Tự động kiểm tra tiến trình Unity đang chạy (từ chối mở nếu có Editor bên ngoài chưa đóng).
-- Tự động kiểm tra nhật ký lưu trữ (`CheckInterruptedJournal`).
-- Thực hiện sao lưu bền vững toàn bộ PlayerPrefs/Registry sang `scratch\.save_backup_manual_session`.
-- Khởi động Unity Editor tương tác đầy đủ với Game View.
+**Các bước tự động diễn ra:**
+1. **Save Guard Backup**: Tự động sao lưu toàn bộ PlayerPrefs/Registry vào `scratch\.save_backup_manual_session`.
+2. **Khởi động Unity GUI**: Unity Editor mở lên với scene cô lập an toàn, tự động vào **Play Mode** với **Game View** trực quan.
+3. **Mở Bảng Điều Khiển**: Cửa sổ `P09 Manual Observation Harness` tự động xuất hiện (hoặc mở từ menu `Window -> TLTD -> P09 Manual Observation Harness`).
+4. **Giữ phiên**: Phiên chạy giữ nguyên trạng thái Play Mode để Chủ Dự Án tự do tương tác, bấm nút và quan sát chu kỳ khung hình tự nhiên (`Time.timeScale = 1.0`).
 
-### Bước 2.3: Kết thúc phiên kiểm tra và đối chiếu Save Guard
+### Bước 2.3: Kết thúc phiên và Phục hồi Trạng thái
 1. Khi hoàn thành kiểm tra, đóng cửa sổ Unity Editor bình thường (`Alt + F4` hoặc `File -> Exit`).
-2. PowerShell Launcher trong khối `finally` sẽ tự động:
-   - Phục hồi dữ liệu (`Restore`) về trạng thái nguyên bản trước khi mở.
-   - So sánh đối chiếu (`Compare`) đảm bảo `Diff = 0` (Exact match).
-3. Kết quả xác nhận hiển thị trên màn hình:
+2. Wrapper trên PowerShell sẽ tự động:
+   - Chờ tiến trình Unity đóng hẳn.
+   - Gọi độc lập lệnh `Restore` phục hồi PlayerPrefs về trạng thái nguyên bản trước khi mở.
+   - Gọi độc lập lệnh `Compare` để xác minh đối chiếu dữ liệu (`Diff = 0`).
+3. Màn hình console PowerShell thông báo:
    `[SAVE GUARD PASS] State 100% Restored. Diff = 0 Verified (Exact match).`
+   *(Lưu ý: `SAVE_GUARD_PASS` chỉ xác nhận việc sao lưu và phục hồi registry thành công, không thay thế cho `USER_VERIFIED` của Chủ Dự Án).*
 
 ---
 
-## 3. CHECKLIST KIỂM TRA CÁC TRƯỜNG HỢP (SCENARIOS)
+## 3. GIAO DIỆN & CÁC NÚT ĐIỀU KHIỂN TRONG GAME VIEW
 
-| STT | Trường hợp kiểm tra | Scene / Đối tượng | Thao tác thực hiện | Kết quả mong đợi | Trạng thái tự động | Trạng thái thủ công |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **P09-01** | **Kỹ năng thường (Tức thời)** | `Assets/_Game/Scenes/Prototype01.unity`<br>Hero: `Hero_Wuxia`<br>Skill: Kỹ năng tức thời có sẵn | Click nút Skill Slot 1 trên Combat HUD khi đủ Nộ | Trừ Nộ ngay lập tức; Gây sát thương ngay tại frame cast; Bắt đầu cooldown ngay. Không sinh đạn bay thừa. | **PASS** (T01) | `READY_FOR_USER_TEST` |
-| **P09-02** | **Kỹ năng đạn bay tức thời (Instant Projectile)** | Fixture RAM: `p09_pm_instant`<br>Target: Quái đầu tiên trong Encounter | Thi triển qua `Hero.ExecuteSelectedSkill` hoặc chạy Gate 2 | Trừ 30 Nộ tại lúc phóng; Cooldown bắt đầu ngay lúc phóng (3.0s); Đạn bay về phía quái mục tiêu; Trước va chạm Target không nhận sát thương; Khi đạn chạm, Target nhận chính xác 1 lần sát thương; Cooldown giảm tự nhiên theo thời gian bay và KHÔNG bị reset lại lúc va chạm. | **PASS** (T02, Gate 2) | `READY_FOR_USER_TEST` (Fixture RAM) |
-| **P09-03** | **Kỹ năng đạn bay có thời gian vận khí (Cast-time Projectile)** | Fixture RAM: `p09_pm_cast`<br>CastTime: 0.3s, Nộ: 25, CD: 3.0s | Thi triển qua `Hero.ExecuteSelectedSkill` hoặc chạy Gate 2 | Nộ bị trừ ngay tại thời điểm bắt đầu vận khí (Frame cast start); Trong lúc vận khí chưa xuất hiện đạn và chưa kích hoạt cooldown; Sau khi hoàn tất 0.3s vận khí, đạn được phóng ra và cooldown bắt đầu tính 1 lần duy nhất; Đạn bay trúng đích gây sát thương dứt điểm. | **PASS** (T09, Gate 2) | `READY_FOR_USER_TEST` (Fixture RAM) |
-| **P09-04** | **Đổi mục tiêu trong lúc đạn đang bay (Target Retargeting)** | Fixture RAM: `p09_t03_homing`<br>Target A (Gốc), Target B | Phóng đạn vào Target A, trong lúc đạn đang bay, click chọn Target B | Đạn vẫn duy trì khóa mục tiêu gốc (Target A) và bay trúng Target A; Target B hoàn toàn không bị trúng đạn hay nhận sát thương rò rỉ. | **PASS** (T03) | `READY_FOR_USER_TEST` |
-| **P09-05** | **Tạm dừng và Tiếp tục (Pause / Resume)** | Nút `PauseButton` trên Combat HUD | Khi đạn đang bay, click nút Pause; sau đó click Resume | Lúc Pause: đạn dừng chuyển động hoàn toàn trên không gian, không gây sát thương; Sau Resume: đạn tiếp tục bay với vận tốc cũ và gây sát thương đúng thời điểm va chạm. | **PASS** (T10) | `READY_FOR_USER_TEST` |
-| **P09-06** | **Mục tiêu chết trước khi đạn chạm đích** | Quái mục tiêu bị hạ gục trước khi đạn tới | Đạn đang bay, quái chết do đòn đánh khác | Đạn tự động hủy (`Cancel`), không gây sát thương trúng xác chết hoặc mục tiêu kế tiếp; Dọn dẹp sạch sẽ khỏi RAM/Hierarchy. | **PASS** (T04) | `READY_FOR_USER_TEST` |
-| **P09-07** | **Caster chết trước khi đạn chạm đích** | Hero chết trong lúc đạn đang bay | Hero ngã xuống trước khi đạn chạm quái | Đạn tự động bị hủy an toàn, không phát sinh sát thương mồ côi. | **PASS** (T05) | `READY_FOR_USER_TEST` |
-| **P09-08** | **Chuyển Wave / Scene Unload** | Chuyển encounter hoặc dọn wave | Tiêu diệt quái cuối đợt hoặc chuyển màn | Toàn bộ đạn còn đang bay tự động hủy và dọn dẹp sạch sẽ (`ActiveProjectiles.Count == 0`), không gây sát thương sang wave mới. | **PASS** (T07, T21) | `READY_FOR_USER_TEST` |
+Bảng điều khiển **P09 Manual Observation Harness** cung cấp các nút tương tác trực tiếp qua runtime API thực của game:
+
+### A. Nhóm Nút Tương Tác Thao Tác (Actions)
+1. **`[Setup / Reset Fixture]`**:
+   - Khởi tạo mới hoặc reset toàn bộ thực thể về trạng thái ban đầu:
+   - Hero ở tọa độ $(0, 0, 0)$ với $500/500$ HP, $100$ Nộ (đầy Nộ).
+   - Target A (`Dummy_Target_A`) ở tọa độ $(12, 0, 0)$ với $300/300$ HP.
+   - Target B (`Dummy_Target_B`) ở tọa độ $(12, 0, 4)$ với $300/300$ HP.
+   - Camera được định vị nhìn rõ Hero, hai Dummy Targets và quỹ đạo bay đạn.
+2. **`[Cast Instant Projectile]`**:
+   - Gọi trực tiếp `Hero.ExecuteSelectedSkill(p09_manual_instant)`.
+   - Trừ $30$ Nộ ngay lập tức; Bắt đầu cooldown $4.0\text{s}$; Phóng ra đạn bay về phía mục tiêu đang chọn.
+3. **`[Cast Cast-Time Projectile]`**:
+   - Gọi trực tiếp `Hero.ExecuteSelectedSkill(p09_manual_cast)`.
+   - Trừ $25$ Nộ ngay; Hero vào trạng thái vận khí $1.0\text{s}$ (thanh trạng thái hiển thị `Casting...`); Sau $1.0\text{s}$, phóng đạn và bắt đầu tính cooldown $4.0\text{s}$.
+4. **`[Target A (Default)]` / `[Target B]`**:
+   - Gọi API chuyển mục tiêu runtime thực (`BattleManager.Instance.SelectTarget()`).
+5. **`[Pause / Resume Game]`**:
+   - Gọi cơ chế tạm dừng của game qua `BattleManager.Instance.TogglePause()` hoặc `Time.timeScale = 0`.
+   - Đạn đang bay lập tức dừng chuyển động trên không; khi Resume, đạn tiếp tục bay bình thường.
+
+### B. Bảng Giám Sát Thời Gian Thực (Live Runtime Inspection)
+- **Hero Status**: HP ($500/500$), Rage ($100 \to 70 \to 45$), Cooldown còn lại ($4.0\text{s} \to 0\text{s}$).
+- **Casting Status**: `Idle` hoặc `Casting: p09_manual_cast (x.xx / 1.00s)`.
+- **Target Status**: Mục tiêu đang khóa (`Target A` hoặc `Target B`), HP hiện tại của Target A và Target B.
+- **Active Projectiles**: Số lượng đạn thực tế đang bay trong hệ thống (`ActiveProjectiles.Count`).
 
 ---
 
-## 4. BẰNG CHỨNG TỰ ĐỘNG THAY THẾ (NƠI XEM LOGS)
+## 4. CHECKLIST NGHIỆM THU CHI TIẾT TỪNG KỊCH BẢN (SCENARIOS)
 
-Nếu Chủ Dự Án muốn xem chi tiết các thông số đo đạc khung hình tự nhiên:
-1. **Gate 1 Foundation Tests (21/21 PASS)**:
-   - File log: `gate1_p09_tests.log`
-   - Wrapper log: `gate1_p09_wrapper.log`
-   - Kết quả: Đầy đủ 21/21 test cases PASS (bao gồm T02 cooldown clock advance, T09 cast separation, T21 real scene unload).
-2. **Gate 2 Natural Frames Play Mode Scenario (PASS)**:
-   - File log: `gate2_p09_playmode.log`
-   - Wrapper log: `gate2_p09_wrapper.log`
-   - Đo lường khung hình tự nhiên:
-     - Segment 1 (Instant): Phóng tại Frame 1 ($t=0.000s$), Va chạm tại Frame 709 ($t=0.651s$), Target HP: $300 \to 120$.
-     - Segment 2 (Cast-time): Bắt đầu vận khí tại Frame 709, Hoàn tất vận khí và Phóng đạn tại Frame 1770 ($t=0.951s$), Va chạm dứt điểm tại Frame 2772 ($t=1.264s$), Quái chết tự nhiên ($HP=0$), kích hoạt sự kiện tử trận.
-3. **Wrapper Failure Path Robustness (6/6 PASS)**:
-   - File log: `Tools\Verification\P09\wrapper_failure_path_test.log`
-   - Chứng minh toàn bộ 6 nhánh lỗi giả lập (Backup fail, Launch fail, Crash, Compare diff, Restore fail, Timeout diff) đều được xử lý chuẩn mực.
+| STT | Kịch Bản Kiểm Tra | Thao Tác Bấm Nút | Kết Quả Mong Đợi (Quan Sát Game View & Panel) | Trạng Thái Tự Động | Trạng Thái Thủ Công |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **S01** | **Kỹ năng đạn bay tức thời (Instant Projectile)** | 1. Bấm `[Setup / Reset Fixture]`<br>2. Bấm `[Cast Instant Projectile]` | - Nộ giảm ngay từ 100 xuống 70.<br>- Cooldown bắt đầu đếm lùi từ 4.0s.<br>- Đạn vàng xuất hiện từ Hero và bay tự nhiên về phía Target A.<br>- Trước khi đạn chạm: HP Target A giữ nguyên 300/300.<br>- Khi đạn chạm: Target A nhận 100 sát thương (HP còn 200/300), đạn biến mất.<br>- Cooldown tiếp tục giảm bình thường, KHÔNG bị reset lại lúc chạm. | **PASS** (T02, Gate 2) | `READY_FOR_USER_TEST` |
+| **S02** | **Kỹ năng đạn bay có vận khí (Cast-Time Projectile)** | 1. Bấm `[Setup / Reset Fixture]`<br>2. Bấm `[Cast Cast-Time Projectile]` | - Nộ giảm ngay từ 100 xuống 75.<br>- Hero vào trạng thái vận khí 1.0s (Panel hiện `Casting...`).<br>- Trong lúc vận khí: Chưa có đạn sinh ra, cooldown chưa chạy.<br>- Sau đúng 1.0s: Đạn xuất hiện, bắt đầu bay về phía Target A; Cooldown bắt đầu đếm lùi từ 4.0s.<br>- Khi đạn chạm: Target A nhận 120 sát thương (HP còn 180/300). | **PASS** (T09, Gate 2) | `READY_FOR_USER_TEST` |
+| **S03** | **Đổi mục tiêu khi đạn đang bay (Retargeting)** | 1. Bấm `[Cast Instant Projectile]`<br>2. Trong lúc đạn đang bay (~1.5s), bấm ngay `[Target B]` | - Runtime Target chuyển sang Target B.<br>- Quả đạn đang bay vẫn giữ nguyên khóa mục tiêu ban đầu (Target A) và bay thẳng vào Target A.<br>- Target A nhận sát thương; Target B hoàn toàn không bị ảnh hưởng. | **PASS** (T03) | `READY_FOR_USER_TEST` |
+| **S04** | **Tạm dừng và tiếp tục (Pause / Resume)** | 1. Bấm `[Cast Instant Projectile]`<br>2. Khi đạn đang ở giữa không trung, bấm `[Pause / Resume Game]`<br>3. Quan sát đạn đứng yên, bấm lại `[Pause / Resume Game]` | - Lúc Pause: Đạn đứng yên trên không gian Game View, Active Projectiles = 1, sát thương chưa áp dụng.<br>- Sau Resume: Đạn tiếp tục hành trình bay với vận tốc ban đầu và trúng Target A gây sát thương chính xác. | **PASS** (T10) | `READY_FOR_USER_TEST` |
+| **S05** | **Reset Fixture giữa các ca thử nghiệm** | Bấm `[Setup / Reset Fixture]` bất kỳ lúc nào | - Toàn bộ đạn đang bay bị hủy an toàn.<br>- HP, Nộ, vị trí Hero, Target A, Target B được khôi phục 100%. | **PASS** | `READY_FOR_USER_TEST` |
+| **S06** | **Target chết tự nhiên trước khi đạn chạm** | *Kịch bản tự động* (Target bị tiêu diệt giữa đường bay) | Đạn tự động hủy (`Cancel`), không gây sát thương trúng xác chết; Dọn dẹp sạch khỏi runtime. | **PASS** (T04, Gate 2) | `NOT AVAILABLE IN UI`<br>*(Đã kiểm chứng tự động qua Gate 1 T04 & Gate 2)* |
+| **S07** | **Caster tử trận trước khi đạn chạm** | *Kịch bản tự động* (Hero chết trong lúc đạn đang bay) | Toàn bộ đạn của caster bị hủy an toàn, không gây sát thương mồ côi. | **PASS** (T05) | `NOT AVAILABLE IN UI`<br>*(Đã kiểm chứng tự động qua Gate 1 T05)* |
+| **S08** | **Chuyển Scene / Scene Unload dọn dẹp đạn** | *Kịch bản tự động* (Unload scene chứa đạn) | Unload scene thực qua Unity API; toàn bộ đạn đang bay bị dọn dẹp sạch (`Count = 0`), không rò rỉ sát thương. | **PASS** (T21) | `NOT AVAILABLE IN UI`<br>*(Đã kiểm chứng tự động qua Gate 1 T21 với điều kiện nghiêm ngặt)* |
+
+---
+
+## 5. NƠI LẤY NHẬT KÝ VÀ BẰNG CHỨNG THỬ NGHIỆM
+
+Sau khi kết thúc phiên thử nghiệm, toàn bộ log và bằng chứng nằm tại:
+1. **Nhật ký phiên thủ công (Manual Session Log)**:
+   - `scratch\manual_session.log`: Ghi nhận chi tiết toàn bộ chu kỳ khởi động, frame update và các lần cast đạn của session.
+   - `scratch\manual_wrapper.log`: Ghi nhận nhật ký giám sát tiến trình và kết quả Save Guard.
+2. **Nhật ký kiểm thử tự động toàn diện**:
+   - `gate1_p09_tests.log`: Bằng chứng 21/21 Unit/Integration Tests PASS (bao gồm sửa dứt điểm T21 false positive).
+   - `gate2_p09_playmode.log`: Bằng chứng kịch bản Play Mode Natural Frames (Segment 1 Instant, Segment 2 Cast-time dứt điểm quái).
+   - `Tools\Verification\P09\wrapper_failure_path_test.log`: Bằng chứng 8/8 kịch bản lỗi Save Guard được xử lý chuẩn mực.
