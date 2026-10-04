@@ -26,6 +26,10 @@ if ($FailureInjection -is [string] -and -not [string]::IsNullOrWhiteSpace($Failu
 $saveGuardScript = "$ProjectRoot\Tools\Verification\P09\tltd_save_guard.ps1"
 $coreScript = "$ProjectRoot\Tools\Verification\P09\P09_VerificationCore.ps1"
 . $coreScript
+$preflightScript = "$ProjectRoot\Tools\Verification\P09B\P09B_PreflightGuard.ps1"
+if (Test-Path $preflightScript) {
+    . $preflightScript
+}
 
 $scratchDir = Split-Path -Parent $WrapperLog
 if ([string]::IsNullOrWhiteSpace($scratchDir)) {
@@ -33,6 +37,13 @@ if ([string]::IsNullOrWhiteSpace($scratchDir)) {
 }
 if (-not (Test-Path $scratchDir)) {
     New-Item -ItemType Directory -Path $scratchDir -Force | Out-Null
+}
+if (Test-Path $WrapperLog) {
+    $existingWrapperTime = (Get-Item $WrapperLog).LastWriteTime.ToString("yyyyMMdd_HHmmss")
+    $backupWrapperLog = "$WrapperLog.$existingWrapperTime.bak"
+    if (-not (Test-Path $backupWrapperLog)) {
+        Copy-Item -LiteralPath $WrapperLog -Destination $backupWrapperLog -Force -ErrorAction SilentlyContinue
+    }
 }
 Remove-Item -Force -ErrorAction SilentlyContinue $WrapperLog
 
@@ -54,7 +65,16 @@ Log "   Session Timeout: $SessionTimeoutSeconds seconds"
 if ($CustomRegKey) { Log "   Custom Reg Key:  $CustomRegKey" }
 Log "============================================================" -color Cyan
 
-# 1. Concurrency Check
+# 1. Preflight Journal Guard: check pre-existing journal before any mutations or launches
+Log "[PREFLIGHT] Validating journal state before any launch or Save Guard actions..." -color Cyan
+$preflightLogger = { param($m, $c = [ConsoleColor]::White) Log $m -color $c }
+$preflight = Test-P09BJournalPreflight -BackupDir $BackupDir -Logger $preflightLogger
+if (-not $preflight.Allowed) {
+    Log "[FATAL] PRECHECK_BLOCKED_UNRESOLVED_JOURNAL: $($preflight.Reason)" -color Red
+    exit 1
+}
+
+# 2. Concurrency Check
 if (-not $AllowRunningUnity) {
     $unityProcs = Get-Process -Name "Unity" -ErrorAction SilentlyContinue
     if ($null -ne $unityProcs -and $unityProcs.Count -gt 0) {
@@ -75,7 +95,7 @@ $sgExtraArgs = @()
 if ($CustomRegKey) { $sgExtraArgs += @("-CustomRegKey", $CustomRegKey) }
 if ($AllowRunningUnity) { $sgExtraArgs += @("-AllowRunningUnity") }
 
-# 2. Save Guard: Journal check
+# 3. Save Guard: Journal check
 Log "[SAVE GUARD] Checking interrupted journal..." -color Cyan
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action CheckInterruptedJournal -BackupDir $BackupDir @sgExtraArgs
 if ($LASTEXITCODE -ne 0) {
@@ -83,7 +103,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 3. Save Guard: Pre-session Backup
+# 4. Save Guard: Pre-session Backup
 Log "[SAVE GUARD] Taking durable pre-session backup..." -color Cyan
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $saveGuardScript -Action Backup -BackupDir $BackupDir @sgExtraArgs
 if ($LASTEXITCODE -ne 0) {
