@@ -34,6 +34,74 @@ function Log([string]$msg, [ConsoleColor]$color = [ConsoleColor]::White) {
     Add-Content -Path $logFile -Value $line -Encoding UTF8
 }
 
+# ---------------------------------------------------------------------------
+# Get-T2WrapperMetadata
+# Reads Restore/Compare/Session/WrapperExit from a wrapper log file path.
+# RULES:
+#   - Only reads values on the SAME physical line as the label (regex [^\r\n]+
+#     ensures no cross-line bleed even when content contains CRLF).
+#   - Returns a Hashtable with keys: Source, Restore, Compare, Session,
+#     WrapperExit.  Missing/blank values are NOT_RECORDED.
+#   - Does NOT fall back to any file other than the one explicitly passed.
+#   - Does NOT infer values from pass-counts or exit codes.
+# This function is defined at top-level so unit tests can dot-source and
+# call it directly without running the orchestration block.
+# ---------------------------------------------------------------------------
+function Get-T2WrapperMetadata([string]$wrapperLogPath) {
+    $NOT_RECORDED = 'NOT_RECORDED'
+
+    # Determine evidence source and load raw text
+    if ([string]::IsNullOrWhiteSpace($wrapperLogPath) -or -not (Test-Path $wrapperLogPath)) {
+        return [ordered]@{
+            Source      = $NOT_RECORDED
+            Restore     = $NOT_RECORDED
+            Compare     = $NOT_RECORDED
+            Session     = $NOT_RECORDED
+            WrapperExit = $NOT_RECORDED
+            ParseNote   = 'Log file absent or path not provided'
+        }
+    }
+
+    $rawText = Get-Content $wrapperLogPath -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrEmpty($rawText)) {
+        return [ordered]@{
+            Source      = $wrapperLogPath
+            Restore     = $NOT_RECORDED
+            Compare     = $NOT_RECORDED
+            Session     = $NOT_RECORDED
+            WrapperExit = $NOT_RECORDED
+            ParseNote   = 'Log file empty'
+        }
+    }
+
+    # Parse a labelled field: match only on the SAME physical line as the label.
+    # Pattern: label + optional spaces + captured value up to end-of-line.
+    # [^\r\n]+ prevents bleeding onto subsequent lines.
+    function ParseField([string]$text, [string]$label) {
+        $escaped = [regex]::Escape($label)
+        $pattern = $escaped + '[ \t]*([^\r\n]+)'
+        $m = [regex]::Match($text, $pattern)
+        if (-not $m.Success) { return $null }
+        $val = $m.Groups[1].Value.Trim()
+        if ([string]::IsNullOrWhiteSpace($val)) { return $null }
+        return $val
+    }
+
+    $restore     = ParseField $rawText 'Restore Result:'
+    $compare     = ParseField $rawText 'Compare Result:'
+    $session     = ParseField $rawText 'Session Result:'
+    $wrapperExit = ParseField $rawText 'Wrapper Exit:'
+
+    return [ordered]@{
+        Source      = $wrapperLogPath
+        Restore     = if ($null -ne $restore)     { $restore }     else { $NOT_RECORDED }
+        Compare     = if ($null -ne $compare)     { $compare }     else { $NOT_RECORDED }
+        Session     = if ($null -ne $session)     { $session }     else { $NOT_RECORDED }
+        WrapperExit = if ($null -ne $wrapperExit) { $wrapperExit } else { $NOT_RECORDED }
+        ParseNote   = 'Parsed from live run log'
+    }
+}
+
 Log "============================================================" -color Cyan
 Log " STARTING P09-B MANUAL LAUNCHER R6 VERIFICATION" -color Cyan
 Log " Launcher Script:   $launcherScript" -color Cyan
@@ -49,6 +117,9 @@ $allPassed = $true
 $completedCases = 0
 $expectedCases = 3
 $orchestrationError = $null
+# Track t2 execution independently of pass-count
+$t2Ran         = $false
+$t2WrapperPath = $null   # Sandbox path of t2 wrapper log (set when t2 starts)
 
 try {
     # Initialize sandbox registry token
@@ -97,9 +168,14 @@ try {
     # ------------------------------------------------------------------
     Log ""
     Log "[TEST 2] Testing Persistence Failure precedence..." -color Cyan
-    $t2BackupDir = "$sandboxDir\t2_backup"
-    $t2Log = "$sandboxDir\t2_unity.log"
+    $t2BackupDir  = "$sandboxDir\t2_backup"
+    $t2Log        = "$sandboxDir\t2_unity.log"
     $t2WrapperLog = "$sandboxDir\t2_wrapper.log"
+    # Record sandbox path BEFORE launching so metadata can find it even if
+    # the process fails to create the log (in which case the file won't exist
+    # and Get-T2WrapperMetadata will correctly return NOT_RECORDED).
+    $t2WrapperPath = $t2WrapperLog
+    $t2Ran         = $true   # Tracks that t2 was ATTEMPTED this run
 
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$launcherScript" `
         -ProjectRoot "$ProjectRoot" `
@@ -165,17 +241,37 @@ catch {
     $allPassed = $false
 }
 finally {
-    # Helper: parse a single labelled field from wrapper log content.
-    # Returns the value string, or $null if not found.
-    function Get-WrapperField([string]$content, [string]$label) {
-        if ([string]::IsNullOrEmpty($content)) { return $null }
-        $pattern = [regex]::Escape($label) + '\s*(.+)'
-        $m = [regex]::Match($content, $pattern)
-        if ($m.Success) { return $m.Groups[1].Value.Trim() }
-        return $null
+    # 1. Read t2 metadata from sandbox BEFORE deleting sandbox.
+    #    Uses Get-T2WrapperMetadata defined at top-level (not from rawArtifactsDir
+    #    which may contain a stale log from a previous run).
+    #    $t2Ran tracks whether t2 was ATTEMPTED in THIS run, independently of
+    #    $completedCases (which only increments on PASS).
+    $failRestoreDetails = $null
+    if ($t2Ran -and $null -ne $t2WrapperPath) {
+        $t2Meta = Get-T2WrapperMetadata $t2WrapperPath
+        Log "[METADATA] t2 FailRestore parsed: Restore=$($t2Meta.Restore), Compare=$($t2Meta.Compare), Session=$($t2Meta.Session), WrapperExit=$($t2Meta.WrapperExit)" -color Cyan
+        $failRestoreDetails = $t2Meta
+    } elseif ($InjectFailure) {
+        $failRestoreDetails = [ordered]@{
+            Source      = 'NOT_RECORDED (InjectFailure aborted before t2)'
+            Restore     = 'NOT_RECORDED'
+            Compare     = 'NOT_RECORDED'
+            Session     = 'NOT_RECORDED'
+            WrapperExit = 'NOT_RECORDED'
+            ParseNote   = 'InjectFailure active; t2 never reached'
+        }
+    } else {
+        $failRestoreDetails = [ordered]@{
+            Source      = 'NOT_RECORDED'
+            Restore     = 'NOT_RECORDED'
+            Compare     = 'NOT_RECORDED'
+            Session     = 'NOT_RECORDED'
+            WrapperExit = 'NOT_RECORDED'
+            ParseNote   = 't2 not attempted in this run'
+        }
     }
 
-    # 1. Preserve raw child-wrapper logs outside sandbox before sandbox deletion
+    # 2. Preserve raw child-wrapper logs outside sandbox before sandbox deletion
     try {
         if (Test-Path $sandboxDir) {
             Get-ChildItem -Path $sandboxDir -Filter "*_wrapper.log" -File -ErrorAction SilentlyContinue | ForEach-Object {
@@ -185,56 +281,17 @@ finally {
                 Copy-Item -Path $_.FullName -Destination "$rawArtifactsDir\$($_.Name)" -Force -ErrorAction SilentlyContinue
             }
 
-            # --- Dynamic extraction from t2 wrapper log (FailRestore case) ---
-            # Read from the preserved copy in rawArtifactsDir (sandbox may be deleted below).
-            $t2WrapperPreserved = "$rawArtifactsDir\t2_wrapper.log"
-            $t2Raw = if (Test-Path $t2WrapperPreserved) {
-                Get-Content $t2WrapperPreserved -Raw -ErrorAction SilentlyContinue
-            } else { $null }
-
-            $t2Restore     = Get-WrapperField $t2Raw "Restore Result:"
-            $t2Compare     = Get-WrapperField $t2Raw "Compare Result:"
-            $t2Session     = Get-WrapperField $t2Raw "Session Result:"
-            $t2WrapperExit = Get-WrapperField $t2Raw "Wrapper Exit:"
-
-            # Normalise: if field present but empty, mark NOT_RECORDED
-            $norm = { param($v) if ([string]::IsNullOrWhiteSpace($v)) { "NOT_RECORDED" } else { $v } }
-            $t2RestoreVal     = & $norm $t2Restore
-            $t2CompareVal     = & $norm $t2Compare
-            $t2SessionVal     = & $norm $t2Session
-            $t2WrapperExitVal = & $norm $t2WrapperExit
-
-            # Build FailRestoreDetails only when t2 ran (completedCases >= 2 and not injected early)
-            $failRestoreDetails = $null
-            if ($completedCases -ge 2 -and -not $InjectFailure) {
-                $failRestoreDetails = [ordered]@{
-                    Source      = if ($null -ne $t2Raw) { $t2WrapperPreserved } else { "NOT_RECORDED" }
-                    Restore     = $t2RestoreVal
-                    Compare     = $t2CompareVal
-                    Session     = $t2SessionVal
-                    WrapperExit = $t2WrapperExitVal
-                }
-                Log "[METADATA] t2 FailRestore parsed: Restore=$t2RestoreVal, Compare=$t2CompareVal, Session=$t2SessionVal, WrapperExit=$t2WrapperExitVal" -color Cyan
-            } elseif ($InjectFailure) {
-                $failRestoreDetails = [ordered]@{
-                    Source      = "NOT_RECORDED (InjectFailure aborted before t2)"
-                    Restore     = "NOT_RECORDED"
-                    Compare     = "NOT_RECORDED"
-                    Session     = "NOT_RECORDED"
-                    WrapperExit = "NOT_RECORDED"
-                }
-            }
-
             $meta = [ordered]@{
-                RunMode           = $runMode
-                CommandLine       = "powershell -ExecutionPolicy Bypass -File Tools/Verification/P09B/test_manual_launcher_r6.ps1 $(if ($InjectFailure) { '-InjectFailure' })"
-                OuterExitCode     = if ($allPassed -and ($completedCases -eq $expectedCases) -and ($null -eq $orchestrationError)) { 0 } else { 1 }
-                CompletedCases    = $completedCases
-                ExpectedCases     = $expectedCases
+                RunMode            = $runMode
+                CommandLine        = "powershell -ExecutionPolicy Bypass -File Tools/Verification/P09B/test_manual_launcher_r6.ps1 $(if ($InjectFailure) { '-InjectFailure' })"
+                OuterExitCode      = if ($allPassed -and ($completedCases -eq $expectedCases) -and ($null -eq $orchestrationError)) { 0 } else { 1 }
+                CompletedCases     = $completedCases
+                ExpectedCases      = $expectedCases
                 OrchestrationError = if ($orchestrationError) { "$orchestrationError" } else { $null }
-                AllPassed         = $allPassed
+                AllPassed          = $allPassed
+                T2Ran              = $t2Ran
                 FailRestoreDetails = $failRestoreDetails
-                Timestamp         = (Get-Date).ToString("o")
+                Timestamp          = (Get-Date).ToString('o')
             }
             $meta | ConvertTo-Json -Depth 6 | Set-Content -Path "$rawArtifactsDir\run_metadata.json" -Encoding UTF8
         }
