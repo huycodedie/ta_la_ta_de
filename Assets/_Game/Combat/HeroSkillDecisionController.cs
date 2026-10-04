@@ -73,6 +73,12 @@ namespace WuxiaGame.Combat
                 return false;
             }
 
+            // STEP 4.5: Hero currently Dashing? (P09-B Early Guard)
+            if (BoundHero.IsDashing)
+            {
+                return false;
+            }
+
             // Target resolution for combat checks
             Entity target = (BoundHero.CurrentTarget != null && BoundHero.CurrentTarget.IsAlive)
                 ? BoundHero.CurrentTarget
@@ -107,7 +113,7 @@ namespace WuxiaGame.Combat
             }
 
             SkillDefinitionSO ultDef = mmMgr.GetSelectedSkillForSlot(SkillSlotType.Ultimate);
-            if (ultDef == null || ultDef.IsPassive)
+            if (ultDef == null || ultDef.IsPassive || ultDef.IsManualOnly)
             {
                 return false;
             }
@@ -188,7 +194,7 @@ namespace WuxiaGame.Combat
                 }
 
                 SkillDefinitionSO def = mmMgr.FindSkillDefinition(skillId);
-                if (def == null || def.IsPassive)
+                if (def == null || def.IsPassive || def.IsManualOnly)
                 {
                     continue;
                 }

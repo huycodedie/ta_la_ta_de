@@ -16,7 +16,8 @@ namespace WuxiaGame.Combat
         InsufficientRage = 8,     // Reserved for P07.2
         SourceCrowdControlled = 9, // P07.6
         SourceAlreadyCasting = 10, // P07.9 Phase 2.1
-        InvalidDeliveryConfiguration = 11 // P09-A
+        InvalidDeliveryConfiguration = 11, // P09-A
+        SourceActionBusy = 12 // P09-B
     }
 
     public class SkillExecutionRequest

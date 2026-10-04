@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,6 +13,7 @@ using WuxiaGame.Entities.Components;
 using WuxiaGame.Equipment;
 using WuxiaGame.Inventory;
 using WuxiaGame.Progression;
+using WuxiaGame.Stats;
 
 namespace WuxiaGame.Editor
 {
@@ -21,6 +23,7 @@ namespace WuxiaGame.Editor
     /// skill casting (Instant and Cast-Time projectiles), target switching, and real game pause/resume.
     /// Operates strictly with natural frames (Time.timeScale = 1).
     /// Enforces strict session authorization to prevent any side-effects in normal Editor gameplay.
+    /// Complete autonomy isolation: Hero AI, basic attacks, auto-movement, and wave transitions are disabled.
     /// </summary>
     public static class P09ManualObservationController
     {
@@ -52,23 +55,136 @@ namespace WuxiaGame.Editor
         public static string LastDamageLog = "Chưa có sát thương nào (Chờ đạn va chạm)";
         public static int ResetCount = 0;
 
+        // Telemetry counters
+        private static int _commandCounter = 0;
+        public static int TotalCommandsIssued = 0;
+        public static int TotalProjectileReleases = 0;
+        public static int TotalDamageEvents = 0;
+        public static int TotalTargetDeaths = 0;
+        public static int TotalUnexpectedViolations = 0;
+        private class ProjectileReferenceComparer : IEqualityComparer<ProjectileController>
+        {
+            public bool Equals(ProjectileController x, ProjectileController y) => object.ReferenceEquals(x, y);
+            public int GetHashCode(ProjectileController obj) => obj != null ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj) : 0;
+        }
+
+        public static readonly HashSet<ProjectileController> ObservedProjectiles = new HashSet<ProjectileController>(new ProjectileReferenceComparer());
+
         public static bool IsFixtureReady =>
             _fixtureRoot != null &&
             HeroRef != null &&
             TargetARef != null &&
             TargetBRef != null &&
             CameraRef != null &&
+            BattleManagerRef != null &&
             InstantSkill != null &&
             CastSkill != null;
+
+        public static void ResetTelemetry()
+        {
+            _commandCounter = 0;
+            TotalCommandsIssued = 0;
+            TotalProjectileReleases = 0;
+            TotalDamageEvents = 0;
+            TotalTargetDeaths = 0;
+            TotalUnexpectedViolations = 0;
+            ObservedProjectiles.Clear();
+        }
 
         private static void HandleEntityDamaged(Entity victim, DamageResult result)
         {
             if (victim == null) return;
+            TotalDamageEvents++;
             float curHp = victim.Health != null ? victim.Health.CurrentHealth : 0f;
             float maxHp = victim.Health != null ? victim.Health.MaxHealth : 0f;
             string critStr = result.IsCrit ? " (BẠO KÍCH!)" : "";
             LastDamageLog = $"Gây {result.FinalDamage:F0}{critStr} sát thương vào {victim.EntityName} (HP còn: {curHp:F0}/{maxHp:F0})";
-            Debug.Log($"[P09 MANUAL EVENT] {LastDamageLog}");
+            Debug.Log($"[P09 MANUAL EVENT] Frame={Time.frameCount} Time={Time.time:F2}s DamageType={result.DamageType} Attacker={result.Attacker?.EntityName} Victim={victim.EntityName} FinalDamage={result.FinalDamage:F1}{critStr}");
+
+            if (result.DamageType == DamageType.BasicAttack)
+            {
+                TotalUnexpectedViolations++;
+                Debug.LogError($"[P09 AUTONOMY VIOLATION] Basic attack damage detected! Attacker={result.Attacker?.EntityName} Victim={victim.EntityName}");
+            }
+        }
+
+        private static void HandleEntityDied(Entity victim)
+        {
+            if (victim == null) return;
+            TotalTargetDeaths++;
+            Debug.Log($"[P09 MANUAL TARGET DEATH] Frame={Time.frameCount} Time={Time.time:F2}s Victim={victim.EntityName}");
+        }
+
+        private static void HandleEntitySpawned(Entity entity)
+        {
+            if (entity == null) return;
+            Debug.Log($"[P09 MANUAL ENTITY SPAWNED] Frame={Time.frameCount} Time={Time.time:F2}s Entity={entity.EntityName} ({entity.name})");
+            if (_fixtureRoot != null && !entity.transform.IsChildOf(_fixtureRoot.transform))
+            {
+                TotalUnexpectedViolations++;
+                Debug.LogError($"[P09 AUTONOMY VIOLATION] Unexpected entity spawned outside fixture root! Entity={entity.EntityName}");
+            }
+        }
+
+        /// <summary>
+        /// Strictly disables all autonomous decision and attack components for Hero and Monsters.
+        /// Guaranteed to maintain isolation after BattleManager.StartBattle, ResumeCombat, or Reset.
+        /// </summary>
+        public static void EnforceAutonomousDisabling()
+        {
+            if (BattleManagerRef != null)
+            {
+                BattleManagerRef.SetAutoBattle(false);
+                if (BattleManagerRef.enabled) BattleManagerRef.enabled = false;
+            }
+
+            if (HeroRef != null)
+            {
+                if (HeroRef.SkillDecisionController != null && HeroRef.SkillDecisionController.enabled)
+                {
+                    HeroRef.SkillDecisionController.enabled = false;
+                }
+                if (HeroRef.Attack != null)
+                {
+                    HeroRef.Attack.SetAttackEnabled(false);
+                    if (HeroRef.Attack.enabled) HeroRef.Attack.enabled = false;
+                }
+                if (HeroRef.Movement != null)
+                {
+                    HeroRef.Movement.SetMovementEnabled(false);
+                    if (HeroRef.Movement.enabled) HeroRef.Movement.enabled = false;
+                }
+            }
+
+            if (TargetARef != null)
+            {
+                if (TargetARef.Attack != null)
+                {
+                    TargetARef.Attack.SetAttackEnabled(false);
+                    if (TargetARef.Attack.enabled) TargetARef.Attack.enabled = false;
+                }
+                if (TargetARef.Movement != null)
+                {
+                    TargetARef.Movement.SetMovementEnabled(false);
+                    if (TargetARef.Movement.enabled) TargetARef.Movement.enabled = false;
+                }
+                TargetARef.HasAwardedExp = true;
+            }
+
+            if (TargetBRef != null)
+            {
+                if (TargetBRef.Attack != null)
+                {
+                    TargetBRef.Attack.SetAttackEnabled(false);
+                    if (TargetBRef.Attack.enabled) TargetBRef.Attack.enabled = false;
+                }
+                if (TargetBRef.Movement != null)
+                {
+                    TargetBRef.Movement.SetMovementEnabled(false);
+                    if (TargetBRef.Movement.enabled) TargetBRef.Movement.enabled = false;
+                }
+                TargetBRef.HasAwardedExp = true;
+            }
         }
 
         public static void TeardownFixture()
@@ -82,6 +198,8 @@ namespace WuxiaGame.Editor
 
             // Unsubscribe from EventBus
             EventBus.OnEntityDamaged -= HandleEntityDamaged;
+            EventBus.OnEntityDied -= HandleEntityDied;
+            EventBus.OnEntitySpawned -= HandleEntitySpawned;
 
             // 1. Clear any active projectiles
             ProjectileController.ClearAllProjectiles();
@@ -134,6 +252,7 @@ namespace WuxiaGame.Editor
             CurrentTargetRef = null;
             BattleManagerRef = null;
             MindMethodManagerRef = null;
+            ObservedProjectiles.Clear();
         }
 
         public static void SetupOrResetFixture()
@@ -148,6 +267,8 @@ namespace WuxiaGame.Editor
             TeardownFixture();
 
             ResetCount++;
+            ResetTelemetry();
+
             Debug.Log($"[P09 MANUAL] Initializing Fixture (Cycle #{ResetCount}) under isolated root in Play Mode...");
 
             // 1. Create dedicated root for all fixture objects
@@ -159,7 +280,8 @@ namespace WuxiaGame.Editor
             servicesGO.AddComponent<EquipmentManager>();
             servicesGO.AddComponent<Inventory.Inventory>();
             servicesGO.AddComponent<ResourceManager>();
-            servicesGO.AddComponent<ProgressionManager>();
+            var progMgr = servicesGO.AddComponent<ProgressionManager>();
+            progMgr.enabled = false; // Disable ProgressionManager component to prevent EXP award / Level up during observation
 
             // 3. Setup Camera & Visual Environment
             var camGO = new GameObject("Fixture_Camera");
@@ -209,6 +331,10 @@ namespace WuxiaGame.Editor
             HeroRef.InitializeHero();
             HeroRef.Health.InitializeHealth(1000f, HeroRef);
             HeroRef.Rage.InitializeRage(100f, 100f, HeroRef);
+            // Deterministic stats: Attack = 100, CritRate = 0, CritDamage = 0
+            HeroRef.Stats.SetBaseValue(StatType.Attack, 100f);
+            HeroRef.Stats.SetBaseValue(StatType.CritRate, 0f);
+            HeroRef.Stats.SetBaseValue(StatType.CritDamage, 0f);
             AttachVisualPrimitive(heroGO, PrimitiveType.Capsule, Color.cyan, new Vector3(1.0f, 1.2f, 1.0f), "HERO (Cyan)");
 
             // 6. Setup Target A (Red Sphere, X = 4.5, Y = 1.0)
@@ -217,9 +343,13 @@ namespace WuxiaGame.Editor
             targetAGO.transform.position = new Vector3(4.5f, 1.0f, 0f);
             TargetARef = targetAGO.AddComponent<Monster>();
             _mCfgA = ScriptableObject.CreateInstance<MonsterConfigSO>();
-            _mCfgA.InitializeMonsterConfig("Target A (Top)", 500f, 10f, 0f, 2f, 2f, 2f, 50);
+            _mCfgA.InitializeMonsterConfig("Target A (Top)", 500f, 10f, 0f, 2f, 2f, 2f, 0);
             _cCfgA = ScriptableObject.CreateInstance<CombatConfigSO>();
             TargetARef.InitializeMonster(_mCfgA, _cCfgA);
+            // Deterministic stats: Defense = 0, Dodge = 0, HasAwardedExp = true
+            TargetARef.Stats.SetBaseValue(StatType.Defense, 0f);
+            TargetARef.Stats.SetBaseValue(StatType.Dodge, 0f);
+            TargetARef.HasAwardedExp = true;
             AttachVisualPrimitive(targetAGO, PrimitiveType.Sphere, Color.red, new Vector3(1.2f, 1.2f, 1.2f), "TARGET A (Red)");
 
             // 7. Setup Target B (Orange Sphere, X = 4.5, Y = -1.0)
@@ -228,25 +358,49 @@ namespace WuxiaGame.Editor
             targetBGO.transform.position = new Vector3(4.5f, -1.0f, 0f);
             TargetBRef = targetBGO.AddComponent<Monster>();
             _mCfgB = ScriptableObject.CreateInstance<MonsterConfigSO>();
-            _mCfgB.InitializeMonsterConfig("Target B (Bottom)", 500f, 10f, 0f, 2f, 2f, 2f, 50);
+            _mCfgB.InitializeMonsterConfig("Target B (Bottom)", 500f, 10f, 0f, 2f, 2f, 2f, 0);
             _cCfgB = ScriptableObject.CreateInstance<CombatConfigSO>();
             TargetBRef.InitializeMonster(_mCfgB, _cCfgB);
+            // Deterministic stats: Defense = 0, Dodge = 0, HasAwardedExp = true
+            TargetBRef.Stats.SetBaseValue(StatType.Defense, 0f);
+            TargetBRef.Stats.SetBaseValue(StatType.Dodge, 0f);
+            TargetBRef.HasAwardedExp = true;
             AttachVisualPrimitive(targetBGO, PrimitiveType.Sphere, new Color(1f, 0.5f, 0f), new Vector3(1.2f, 1.2f, 1.2f), "TARGET B (Orange)");
 
-            // 8. Register combatants into BattleManager
+            // 8. Register combatants into BattleManager & start battle
             BattleManagerRef.RegisterHero(HeroRef);
             BattleManagerRef.RegisterMonster(TargetARef);
             BattleManagerRef.RegisterMonster(TargetBRef);
+
+            // Explicitly set auto-battle to false before starting battle
+            BattleManagerRef.SetAutoBattle(false);
             BattleManagerRef.StartBattle();
+            // Explicitly set auto-battle to false again after starting battle
+            BattleManagerRef.SetAutoBattle(false);
 
-            // Disable ambient auto-attacks so observations are 100% isolated to manual button clicks
-            if (HeroRef.Attack != null) HeroRef.Attack.SetAttackEnabled(false);
-            if (TargetARef.Attack != null) TargetARef.Attack.SetAttackEnabled(false);
-            if (TargetBRef.Attack != null) TargetBRef.Attack.SetAttackEnabled(false);
+            // Disable BattleManager component: invokes OnDisable(), which unregisters EventBus.OnEntityDied -= HandleEntityDied
+            // and cancels loot lifecycles, completely isolating wave progression (no DeferEncounterAdvanceWithoutLoot, no Wild Monster)
+            // while preserving BattleManager.Instance, EncounterIndex, ActiveMonsters, and Pause/Resume APIs
+            BattleManagerRef.enabled = false;
 
-            // Subscribe to damage events
+            // Enforce disabling of auto-decision, basic attack, and movement
+            EnforceAutonomousDisabling();
+
+            // Attach guardian component to maintain suppression and track projectile releases
+            if (_fixtureRoot.GetComponent<P09ManualFixtureGuardian>() == null)
+            {
+                _fixtureRoot.AddComponent<P09ManualFixtureGuardian>();
+            }
+
+            // Subscribe to EventBus telemetry
             EventBus.OnEntityDamaged -= HandleEntityDamaged;
             EventBus.OnEntityDamaged += HandleEntityDamaged;
+
+            EventBus.OnEntityDied -= HandleEntityDied;
+            EventBus.OnEntityDied += HandleEntityDied;
+
+            EventBus.OnEntitySpawned -= HandleEntitySpawned;
+            EventBus.OnEntitySpawned += HandleEntitySpawned;
 
             // Initial target is Target A
             CurrentTargetRef = TargetARef;
@@ -337,7 +491,21 @@ namespace WuxiaGame.Editor
 
             Time.timeScale = 1f;
             LastActionLog = $"Fixture đã khởi tạo thành công (Lượt #{ResetCount}). Sẵn sàng thi triển.";
-            Debug.Log("[P09 MANUAL] Fixture setup complete under dedicated root [P09_Manual_Observation_Fixture_Root].");
+
+            // FIXED CHECKPOINT: Log FIXTURE_READY with exhaustive status dump
+            Debug.Log($"[FIXTURE_READY] Cycle=#{ResetCount} Frame={Time.frameCount} Time={Time.time:F2}s " +
+                $"AutoBattle={BattleManagerRef.IsAutoBattle} " +
+                $"BattleManagerEnabled={BattleManagerRef.enabled} " +
+                $"HeroSkillAIEnabled={(HeroRef.SkillDecisionController != null && HeroRef.SkillDecisionController.enabled)} " +
+                $"HeroAttackEnabled={(HeroRef.Attack != null && HeroRef.Attack.IsAttackEnabled)} " +
+                $"HeroMovementEnabled={(HeroRef.Movement != null && HeroRef.Movement.IsMovementEnabled)} " +
+                $"TargetAAttackEnabled={(TargetARef.Attack != null && TargetARef.Attack.IsAttackEnabled)} " +
+                $"TargetBAttackEnabled={(TargetBRef.Attack != null && TargetBRef.Attack.IsAttackEnabled)} " +
+                $"RosterCount={(BattleManagerRef.ActiveMonsters != null ? BattleManagerRef.ActiveMonsters.Count : 0)} " +
+                $"HeroHP={HeroRef.Health.CurrentHealth}/{HeroRef.Health.MaxHealth} " +
+                $"HeroRage={HeroRef.Rage.CurrentRage}/{HeroRef.Rage.MaxRage} " +
+                $"TargetAHP={TargetARef.Health.CurrentHealth}/{TargetARef.Health.MaxHealth} " +
+                $"TargetBHP={TargetBRef.Health.CurrentHealth}/{TargetBRef.Health.MaxHealth}");
         }
 
         private static void AttachVisualPrimitive(GameObject parent, PrimitiveType type, Color color, Vector3 scale, string label)
@@ -376,6 +544,11 @@ namespace WuxiaGame.Editor
                 return null;
             }
 
+            int cmdId = ++_commandCounter;
+            TotalCommandsIssued++;
+            int frame = Time.frameCount;
+            float time = Time.time;
+
             if (CurrentTargetRef == null || !CurrentTargetRef.IsAlive)
             {
                 CurrentTargetRef = TargetARef != null && TargetARef.IsAlive ? TargetARef : TargetBRef;
@@ -391,8 +564,17 @@ namespace WuxiaGame.Editor
             // Call production API: Hero.ExecuteSelectedSkill
             var res = HeroRef.ExecuteSelectedSkill(SkillSlotType.Skill, CurrentTargetRef);
             string resStr = res != null && res.Success ? "SUCCESS" : $"FAIL ({res?.ReasonDescription})";
-            LastActionLog = $"[Instant Cast] Kết quả: {resStr} | Target: {CurrentTargetRef?.EntityName} | Đạn đang bay: {ProjectileController.ActiveProjectiles.Count}";
-            Debug.Log($"[P09 MANUAL] Cast Instant via Hero.ExecuteSelectedSkill: Success={res?.Success}, Target={CurrentTargetRef?.EntityName}, ProjCount={ProjectileController.ActiveProjectiles.Count}");
+            LastActionLog = $"[Instant Cast] CMD #{cmdId} | Kết quả: {resStr} | Target: {CurrentTargetRef?.EntityName} | Đạn đang bay: {ProjectileController.ActiveProjectiles.Count}";
+
+            if (res != null && res.Success)
+            {
+                Debug.Log($"[P09 MANUAL CMD #{cmdId}] Frame={frame} Time={time:F2}s Skill=p09_manual_instant Target={CurrentTargetRef?.EntityName} Result=SUCCESS ActiveProjectiles={ProjectileController.ActiveProjectiles.Count}");
+            }
+            else
+            {
+                Debug.LogWarning($"[P09 MANUAL CMD #{cmdId} REJECTED] Frame={frame} Time={time:F2}s Skill=p09_manual_instant Target={CurrentTargetRef?.EntityName} Reason={res?.ReasonDescription}");
+            }
+
             return res;
         }
 
@@ -406,6 +588,11 @@ namespace WuxiaGame.Editor
                 Debug.LogWarning("[P09 MANUAL] Cast blocked: Session not authorized or fixture not ready.");
                 return null;
             }
+
+            int cmdId = ++_commandCounter;
+            TotalCommandsIssued++;
+            int frame = Time.frameCount;
+            float time = Time.time;
 
             if (CurrentTargetRef == null || !CurrentTargetRef.IsAlive)
             {
@@ -422,8 +609,17 @@ namespace WuxiaGame.Editor
             // Call production API: Hero.ExecuteSelectedSkill
             var res = HeroRef.ExecuteSelectedSkill(SkillSlotType.Skill, CurrentTargetRef);
             string resStr = res != null && res.Success ? "BẮT ĐẦU VẬN KHÍ 1.5s" : $"FAIL ({res?.ReasonDescription})";
-            LastActionLog = $"[Cast-Time Cast] Kết quả: {resStr} | Target: {CurrentTargetRef?.EntityName} | IsCasting={HeroRef.IsCasting}";
-            Debug.Log($"[P09 MANUAL] Cast Cast-Time via Hero.ExecuteSelectedSkill: Success={res?.Success}, Target={CurrentTargetRef?.EntityName}, IsCasting={HeroRef.IsCasting}");
+            LastActionLog = $"[Cast-Time Cast] CMD #{cmdId} | Kết quả: {resStr} | Target: {CurrentTargetRef?.EntityName} | IsCasting={HeroRef.IsCasting}";
+
+            if (res != null && res.Success)
+            {
+                Debug.Log($"[P09 MANUAL CMD #{cmdId}] Frame={frame} Time={time:F2}s Skill=p09_manual_cast Target={CurrentTargetRef?.EntityName} Result=SUCCESS IsCasting={HeroRef.IsCasting}");
+            }
+            else
+            {
+                Debug.LogWarning($"[P09 MANUAL CMD #{cmdId} REJECTED] Frame={frame} Time={time:F2}s Skill=p09_manual_cast Target={CurrentTargetRef?.EntityName} Reason={res?.ReasonDescription}");
+            }
+
             return res;
         }
 
@@ -451,6 +647,8 @@ namespace WuxiaGame.Editor
             if (BattleManagerRef.IsCombatPausedByUI)
             {
                 BattleManagerRef.ResumeCombat();
+                // Crucial: ResumeCombat re-enables entity actions; immediately re-enforce autonomous suppression!
+                EnforceAutonomousDisabling();
                 LastActionLog = "Đã tiếp tục combat (BattleManager.ResumeCombat).";
                 Debug.Log("[P09 MANUAL] Resumed Combat (BattleManager.ResumeCombat).");
             }
@@ -459,6 +657,34 @@ namespace WuxiaGame.Editor
                 BattleManagerRef.PauseCombat();
                 LastActionLog = "Đã tạm dừng combat (BattleManager.PauseCombat).";
                 Debug.Log("[P09 MANUAL] Paused Combat (BattleManager.PauseCombat).");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Guardian attached to _fixtureRoot to continuously enforce autonomous suppression every frame,
+    /// track projectile releases by stable instance identity, and detect unauthorized spawns.
+    /// Note on frame-sampling observer: Projectiles in this fixture travel over natural frames (~1.5s flight,
+    /// 90-450 frames), allowing reliable tracking of each new instance via reference identity even when an old
+    /// projectile impacts and a new projectile releases in the same observation interval.
+    /// </summary>
+    public class P09ManualFixtureGuardian : MonoBehaviour
+    {
+        private void Update()
+        {
+            // Maintain autonomous suppression every frame
+            P09ManualObservationController.EnforceAutonomousDisabling();
+
+            // Track projectile releases by stable instance identity
+            var activeProjectiles = ProjectileController.ActiveProjectiles;
+            for (int i = 0; i < activeProjectiles.Count; i++)
+            {
+                var proj = activeProjectiles[i];
+                if (proj != null && P09ManualObservationController.ObservedProjectiles.Add(proj))
+                {
+                    P09ManualObservationController.TotalProjectileReleases++;
+                    Debug.Log($"[P09 MANUAL RELEASE] Frame={Time.frameCount} Time={Time.time:F2}s Target={proj.BoundTarget?.EntityName} ActiveCount={activeProjectiles.Count} TotalReleases={P09ManualObservationController.TotalProjectileReleases}");
+                }
             }
         }
     }
@@ -477,7 +703,7 @@ namespace WuxiaGame.Editor
         public static void ShowWindow()
         {
             var win = GetWindow<P09ManualTestWindow>("P09 Manual Observation");
-            win.minSize = new Vector2(460, 680);
+            win.minSize = new Vector2(460, 720);
             win.Show();
         }
 
@@ -621,6 +847,14 @@ namespace WuxiaGame.Editor
                 EditorGUILayout.LabelField($"Target A HP: {hpA:F0} / 500  |  Target B HP: {hpB:F0} / 500");
                 EditorGUILayout.LabelField($"Sát thương thực đo (EventBus): {P09ManualObservationController.LastDamageLog}", EditorStyles.boldLabel);
 
+                // Telemetry summary
+                EditorGUILayout.LabelField(
+                    $"Telemetry: Lệnh={P09ManualObservationController.TotalCommandsIssued} | " +
+                    $"Đạn phóng={P09ManualObservationController.TotalProjectileReleases} | " +
+                    $"Dmg Events={P09ManualObservationController.TotalDamageEvents} | " +
+                    $"Target chết={P09ManualObservationController.TotalTargetDeaths} | " +
+                    $"Vi phạm={P09ManualObservationController.TotalUnexpectedViolations}");
+
                 int projCount = ProjectileController.ActiveProjectiles.Count;
                 EditorGUILayout.LabelField($"Số Projectile đang bay trong Game View: {projCount}", EditorStyles.boldLabel);
                 for (int i = 0; i < projCount; i++)
@@ -677,6 +911,14 @@ namespace WuxiaGame.Editor
         static P09ManualSessionBootstrap()
         {
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.update += () =>
+            {
+                if (EditorApplication.isPlaying && SessionState.GetBool("P09_Run_Autonomy_Verification", false))
+                {
+                    SessionState.SetBool("P09_Run_Autonomy_Verification", false);
+                    P09ManualAutonomyVerifier.StartRunner();
+                }
+            };
         }
 
         public static bool IsSessionAuthorized()
@@ -711,8 +953,17 @@ namespace WuxiaGame.Editor
                     if (!_pendingDelayCall) return;
                     _pendingDelayCall = false;
                     if (!IsSessionAuthorized()) return;
-                    P09ManualTestWindow.ShowWindow();
-                    P09ManualObservationController.SetupOrResetFixture();
+
+                    if (SessionState.GetBool("P09_Run_Autonomy_Verification", false))
+                    {
+                        SessionState.SetBool("P09_Run_Autonomy_Verification", false);
+                        P09ManualAutonomyVerifier.StartRunner();
+                    }
+                    else
+                    {
+                        P09ManualTestWindow.ShowWindow();
+                        P09ManualObservationController.SetupOrResetFixture();
+                    }
                 };
             }
             else if (state == PlayModeStateChange.ExitingPlayMode)
@@ -724,6 +975,7 @@ namespace WuxiaGame.Editor
                 }
                 // Revoke session authorization upon exiting Play Mode so subsequent ordinary Play Mode cannot auto-activate!
                 SessionState.EraseBool("P09_Manual_Session_Authorized");
+                SessionState.EraseBool("P09_Run_Autonomy_Verification");
             }
         }
 
@@ -858,6 +1110,649 @@ namespace WuxiaGame.Editor
             {
                 Debug.LogError($"[SECURITY VERIFIER FATAL] Exception: {ex}");
                 EditorApplication.Exit(1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Automated Autonomy & Isolation Verifier for P09-A (F-MANUAL-AUTONOMY).
+    /// Executes the 4 required natural-frame Play Mode checks under Save Guard:
+    /// Check 1: 10s idle post FIXTURE_READY (zero casts, zero damage, zero wild monsters, roster unchanged).
+    /// Check 2: Single Instant command + in-flight freeze/resume + cooldown wait (zero auto recast).
+    /// Check 3: Single Cast-Time command on reset fixture + cooldown wait (zero auto recast).
+    /// Check 4: Natural death of Target A & B via skill commands, wave advance isolation (>= 2.5s), 3 consecutive resets, idle post-reset.
+    /// </summary>
+    public static class P09ManualAutonomyVerifier
+    {
+        public static void RunAutonomyVerification_CLI()
+        {
+            try
+            {
+                Debug.Log("============================================================");
+                Debug.Log("   STARTING P09 MANUAL AUTONOMY & ISOLATION VERIFICATION");
+                Debug.Log("============================================================");
+
+                // Authorize session
+                SessionState.SetBool("P09_Manual_Session_Authorized", true);
+                SessionState.SetBool("P09_Run_Autonomy_Verification", true);
+
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+                if (!EditorApplication.isPlaying)
+                {
+                    EditorApplication.isPlaying = true;
+                }
+                else
+                {
+                    StartRunner();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AUTONOMY VERIFIER FATAL] Exception: {ex}");
+                EditorApplication.Exit(1);
+            }
+        }
+
+        public static void StartRunner()
+        {
+            var existing = UnityEngine.Object.FindAnyObjectByType<P09AutonomyTestRunner>();
+            if (existing != null) return;
+
+            var go = new GameObject("[P09_Autonomy_Test_Runner]");
+            var runner = go.AddComponent<P09AutonomyTestRunner>();
+            runner.StartCoroutine(runner.RunAll4ChecksCoroutine());
+        }
+    }
+
+    /// <summary>
+    /// Real Play Mode test runner executing natural-frame verifications.
+    /// </summary>
+    public class P09AutonomyTestRunner : MonoBehaviour
+    {
+        public IEnumerator RunAll4ChecksCoroutine()
+        {
+            bool allPassed = false;
+            try
+            {
+                Debug.Log("[AUTONOMY RUNNER] Initializing Fixture for automated verification...");
+                P09ManualObservationController.SetupOrResetFixture();
+                yield return null;
+
+                if (!P09ManualObservationController.IsFixtureReady)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Fixture failed to initialize to Ready state!");
+                    yield break;
+                }
+
+                // =========================================================================
+                // CHECK 1: Idle >= 10s after ready: zero casts, zero damage, zero wild monsters
+                // =========================================================================
+                Debug.Log("============================================================");
+                Debug.Log("[CHECK 1 START] Testing 10-second idle autonomy suppression...");
+                Debug.Log("============================================================");
+
+                float check1Start = Time.time;
+                bool check1Failed = false;
+                while (Time.time - check1Start < 10.2f)
+                {
+                    yield return null;
+
+                    if (P09ManualObservationController.TotalProjectileReleases > 0 ||
+                        P09ManualObservationController.TotalDamageEvents > 0 ||
+                        P09ManualObservationController.TotalTargetDeaths > 0 ||
+                        P09ManualObservationController.TotalUnexpectedViolations > 0)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Unexpected autonomous activity during 10s idle! " +
+                            $"Releases={P09ManualObservationController.TotalProjectileReleases}, " +
+                            $"DamageEvents={P09ManualObservationController.TotalDamageEvents}, " +
+                            $"Violations={P09ManualObservationController.TotalUnexpectedViolations}");
+                        check1Failed = true;
+                        break;
+                    }
+
+                    if (!Mathf.Approximately(P09ManualObservationController.HeroRef.Health.CurrentHealth, 1000f) ||
+                        !Mathf.Approximately(P09ManualObservationController.HeroRef.Rage.CurrentRage, 100f))
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Hero HP or Rage mutated autonomously during 10s idle!");
+                        check1Failed = true;
+                        break;
+                    }
+
+                    if (!Mathf.Approximately(P09ManualObservationController.TargetARef.Health.CurrentHealth, 500f) ||
+                        !Mathf.Approximately(P09ManualObservationController.TargetBRef.Health.CurrentHealth, 500f))
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Target A or B HP mutated autonomously during 10s idle!");
+                        check1Failed = true;
+                        break;
+                    }
+                }
+
+                if (check1Failed) yield break;
+
+                int monsterCountCheck1 = P09ManualObservationController.BattleManagerRef.ActiveMonsters.Count;
+                if (monsterCountCheck1 != 2)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 1 failed: Expected roster count 2, got {monsterCountCheck1}");
+                    yield break;
+                }
+
+                Debug.Log("[AUTONOMY CHECK 1 PASS] 10s Idle: Zero casts, zero releases, zero damage, HP/Nộ unchanged, zero wild monsters, roster strictly preserved.");
+
+                // =========================================================================
+                // CHECK 2: Single Instant command + in-flight freeze/resume + cooldown wait (4s)
+                // =========================================================================
+                Debug.Log("============================================================");
+                Debug.Log("[CHECK 2 START] Testing single Instant command + in-flight pause/resume + cooldown...");
+                Debug.Log("============================================================");
+
+                P09ManualObservationController.SelectTargetA();
+                yield return null;
+
+                float initTargetAHp = P09ManualObservationController.TargetARef.Health.CurrentHealth; // 500
+                float initHeroRage = P09ManualObservationController.HeroRef.Rage.CurrentRage; // 100
+                int cmdBefore = P09ManualObservationController.TotalCommandsIssued;
+                int relBefore = P09ManualObservationController.TotalProjectileReleases;
+                int dmgBefore = P09ManualObservationController.TotalDamageEvents;
+
+                var castRes = P09ManualObservationController.CastInstant();
+                if (castRes == null || !castRes.Success)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 2 failed: CastInstant returned fail ({castRes?.ReasonDescription})");
+                    yield break;
+                }
+
+                if (P09ManualObservationController.TotalCommandsIssued != cmdBefore + 1)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 2 failed: TotalCommandsIssued did not increment by 1.");
+                    yield break;
+                }
+
+                if (!Mathf.Approximately(P09ManualObservationController.HeroRef.Rage.CurrentRage, initHeroRage - 15f))
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 2 failed: Hero Rage not deducted by 15. Got {P09ManualObservationController.HeroRef.Rage.CurrentRage}");
+                    yield break;
+                }
+
+                // Wait until projectile is active
+                float releaseWait = 0f;
+                while (ProjectileController.ActiveProjectiles.Count == 0 && releaseWait < 1.0f)
+                {
+                    yield return null;
+                    releaseWait += Time.deltaTime;
+                }
+
+                if (ProjectileController.ActiveProjectiles.Count != 1)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 2 failed: Expected exactly 1 active projectile, got {ProjectileController.ActiveProjectiles.Count}");
+                    yield break;
+                }
+
+                var proj = ProjectileController.ActiveProjectiles[0];
+
+                // Mid-flight pause test: wait 0.2s of flight
+                yield return new WaitForSeconds(0.2f);
+                if (ProjectileController.ActiveProjectiles.Count == 0)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 2 failed: Projectile impacted too early!");
+                    yield break;
+                }
+
+                // Pause
+                P09ManualObservationController.TogglePause();
+                Vector3 pausedPos = proj.transform.position;
+
+                // Wait 0.5s natural time while paused to confirm projectile freeze
+                float pauseWait = 0f;
+                bool pauseFailed = false;
+                while (pauseWait < 0.5f)
+                {
+                    yield return null;
+                    pauseWait += Time.deltaTime;
+                    if (Vector3.Distance(proj.transform.position, pausedPos) > 0.001f)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 2 failed: Projectile moved while combat paused!");
+                        pauseFailed = true;
+                        break;
+                    }
+                }
+                if (pauseFailed) yield break;
+
+                // Resume
+                P09ManualObservationController.TogglePause();
+                // Verify autonomous suppression survived resume
+                if (P09ManualObservationController.HeroRef.Attack.IsAttackEnabled ||
+                    P09ManualObservationController.TargetARef.Attack.IsAttackEnabled ||
+                    (P09ManualObservationController.HeroRef.SkillDecisionController != null && P09ManualObservationController.HeroRef.SkillDecisionController.enabled))
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 2 failed: ResumeCombat re-enabled attack or AI!");
+                    yield break;
+                }
+
+                // Wait for impact
+                float flightWait = 0f;
+                while (ProjectileController.ActiveProjectiles.Count > 0 && flightWait < 3.0f)
+                {
+                    yield return null;
+                    flightWait += Time.deltaTime;
+                }
+
+                if (P09ManualObservationController.TotalDamageEvents != dmgBefore + 1)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 2 failed: Expected exactly 1 damage event, got {P09ManualObservationController.TotalDamageEvents - dmgBefore}");
+                    yield break;
+                }
+
+                if (!Mathf.Approximately(P09ManualObservationController.TargetARef.Health.CurrentHealth, 300f))
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 2 failed: Target A HP expected 300 (500 - 200), got {P09ManualObservationController.TargetARef.Health.CurrentHealth}");
+                    yield break;
+                }
+
+                // Wait past 4.0s cooldown + 1.0s buffer
+                float cdWait = 0f;
+                bool recastFailed2 = false;
+                while (cdWait < 5.0f)
+                {
+                    yield return null;
+                    cdWait += Time.deltaTime;
+                    if (P09ManualObservationController.TotalCommandsIssued != cmdBefore + 1 ||
+                        P09ManualObservationController.TotalProjectileReleases != relBefore + 1)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 2 failed: Hero auto-recast instant skill after cooldown!");
+                        recastFailed2 = true;
+                        break;
+                    }
+                }
+                if (recastFailed2) yield break;
+
+                Debug.Log("[AUTONOMY CHECK 2 PASS] Instant Command: 1 command, 1 release, 1 damage event (200 dmg), freeze/resume verified, no auto-recast after cooldown.");
+
+                // =========================================================================
+                // CHECK 3: Single Cast-Time command on reset fixture + cooldown wait (6s)
+                // =========================================================================
+                Debug.Log("============================================================");
+                Debug.Log("[CHECK 3 START] Testing single Cast-Time command on reset fixture + cooldown...");
+                Debug.Log("============================================================");
+
+                P09ManualObservationController.SetupOrResetFixture();
+                yield return null;
+
+                P09ManualObservationController.SelectTargetA();
+                yield return null;
+
+                initTargetAHp = P09ManualObservationController.TargetARef.Health.CurrentHealth; // 500
+                initHeroRage = P09ManualObservationController.HeroRef.Rage.CurrentRage; // 100
+                cmdBefore = P09ManualObservationController.TotalCommandsIssued;
+                relBefore = P09ManualObservationController.TotalProjectileReleases;
+                dmgBefore = P09ManualObservationController.TotalDamageEvents;
+
+                var castRes3 = P09ManualObservationController.CastCastTime();
+                if (castRes3 == null || !castRes3.Success)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 3 failed: CastCastTime returned fail ({castRes3?.ReasonDescription})");
+                    yield break;
+                }
+
+                if (P09ManualObservationController.TotalCommandsIssued != cmdBefore + 1)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: TotalCommandsIssued did not increment by 1.");
+                    yield break;
+                }
+
+                if (!Mathf.Approximately(P09ManualObservationController.HeroRef.Rage.CurrentRage, initHeroRage - 25f))
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 3 failed: Hero Rage not deducted by 25 at start. Got {P09ManualObservationController.HeroRef.Rage.CurrentRage}");
+                    yield break;
+                }
+
+                if (!P09ManualObservationController.HeroRef.IsCasting)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Hero is not in casting state after CastCastTime.");
+                    yield break;
+                }
+
+                // While casting (1.5s): verify NO projectile released and NO damage dealt
+                float castWait = 0f;
+                float castStartTime = Time.time;
+                bool castWindowFailed = false;
+                while (castWait < 2.5f)
+                {
+                    if (!P09ManualObservationController.HeroRef.IsCasting)
+                    {
+                        // Casting completed! Verify that approximately 1.5s elapsed in natural time
+                        float castElapsed = Time.time - castStartTime;
+                        if (castElapsed < 1.35f)
+                        {
+                            Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 3 failed: Cast finished too early ({castElapsed:F2}s < 1.5s)!");
+                            castWindowFailed = true;
+                        }
+                        break;
+                    }
+
+                    if (ProjectileController.ActiveProjectiles.Count > 0)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Projectile released while still in casting state!");
+                        castWindowFailed = true;
+                        break;
+                    }
+                    if (P09ManualObservationController.TotalDamageEvents > dmgBefore)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Damage dealt during cast-time window!");
+                        castWindowFailed = true;
+                        break;
+                    }
+
+                    yield return null;
+                    castWait += Time.deltaTime;
+                }
+                if (castWindowFailed) yield break;
+
+                // Once casting finished, projectile should be released
+                float relWait3 = 0f;
+                while (ProjectileController.ActiveProjectiles.Count == 0 && relWait3 < 1.0f)
+                {
+                    yield return null;
+                    relWait3 += Time.deltaTime;
+                }
+
+                if (P09ManualObservationController.TotalProjectileReleases != relBefore + 1)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Projectile was not released after cast completed.");
+                    yield break;
+                }
+
+                // Verify cooldown triggered at release
+                if (!CooldownManager.IsOnCooldown("p09_manual_cast", out float cdRemain) || cdRemain <= 0f)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Cast-time skill cooldown did not trigger at release.");
+                    yield break;
+                }
+
+                // Wait for projectile arrival
+                float flightWait3 = 0f;
+                while (ProjectileController.ActiveProjectiles.Count > 0 && flightWait3 < 3.0f)
+                {
+                    yield return null;
+                    flightWait3 += Time.deltaTime;
+                }
+
+                if (P09ManualObservationController.TotalDamageEvents != dmgBefore + 1)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 3 failed: Expected exactly 1 damage event, got {P09ManualObservationController.TotalDamageEvents - dmgBefore}");
+                    yield break;
+                }
+
+                if (!Mathf.Approximately(P09ManualObservationController.TargetARef.Health.CurrentHealth, 150f))
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 3 failed: Target A HP expected 150 (500 - 350), got {P09ManualObservationController.TargetARef.Health.CurrentHealth}");
+                    yield break;
+                }
+
+                // Wait past 6.0s cooldown + 1.0s buffer
+                float cdWait3 = 0f;
+                bool recastFailed3 = false;
+                while (cdWait3 < 7.0f)
+                {
+                    yield return null;
+                    cdWait3 += Time.deltaTime;
+                    if (P09ManualObservationController.TotalCommandsIssued != cmdBefore + 1 ||
+                        P09ManualObservationController.TotalProjectileReleases != relBefore + 1)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 3 failed: Hero auto-recast cast skill after cooldown!");
+                        recastFailed3 = true;
+                        break;
+                    }
+                }
+                if (recastFailed3) yield break;
+
+                Debug.Log("[AUTONOMY CHECK 3 PASS] Cast-Time Command: Rage deducted at start, release after 1.5s cast-time, cooldown at release, 350 dmg, no auto-recast after cooldown.");
+
+                // =========================================================================
+                // CHECK 4: Target death & wave isolation, 3 consecutive resets
+                // =========================================================================
+                Debug.Log("============================================================");
+                Debug.Log("[CHECK 4 START] Testing Target death, wave isolation, and 3 consecutive resets...");
+                Debug.Log("============================================================");
+
+                // Finish Target A (HP is 150) using Instant (200 dmg)
+                P09ManualObservationController.SelectTargetA();
+                var resA = P09ManualObservationController.CastInstant();
+                if (resA == null || !resA.Success)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Failed to cast Instant to finish Target A ({resA?.ReasonDescription})");
+                    yield break;
+                }
+
+                // Wait for impact on Target A
+                float killAWait = 0f;
+                while (P09ManualObservationController.TargetARef.IsAlive && killAWait < 3.0f)
+                {
+                    yield return null;
+                    killAWait += Time.deltaTime;
+                }
+
+                if (P09ManualObservationController.TargetARef.IsAlive)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: Target A did not die from legitimate skill damage!");
+                    yield break;
+                }
+
+                // Wait for Instant cooldown: 4.2s
+                float cdWaitA = 0f;
+                while (CooldownManager.IsOnCooldown("p09_manual_instant", out _) && cdWaitA < 5.0f)
+                {
+                    yield return null;
+                    cdWaitA += Time.deltaTime;
+                }
+
+                // Target B has 500 HP: weaken with Cast-Time (350 dmg)
+                P09ManualObservationController.SelectTargetB();
+                float cdWaitCast = 0f;
+                while (CooldownManager.IsOnCooldown("p09_manual_cast", out _) && cdWaitCast < 7.0f)
+                {
+                    yield return null;
+                    cdWaitCast += Time.deltaTime;
+                }
+
+                var resB1 = P09ManualObservationController.CastCastTime();
+                if (resB1 == null || !resB1.Success)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Failed to cast CastTime on Target B ({resB1?.ReasonDescription})");
+                    yield break;
+                }
+
+                // Wait for cast + impact on Target B
+                float castFlightB = 0f;
+                while (castFlightB < 4.5f && P09ManualObservationController.TargetBRef.Health.CurrentHealth > 150f)
+                {
+                    yield return null;
+                    castFlightB += Time.deltaTime;
+                }
+
+                if (!Mathf.Approximately(P09ManualObservationController.TargetBRef.Health.CurrentHealth, 150f))
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Target B HP expected 150, got {P09ManualObservationController.TargetBRef.Health.CurrentHealth}");
+                    yield break;
+                }
+
+                // Wait for Instant cooldown
+                float cdWaitB2 = 0f;
+                while (CooldownManager.IsOnCooldown("p09_manual_instant", out _) && cdWaitB2 < 5.0f)
+                {
+                    yield return null;
+                    cdWaitB2 += Time.deltaTime;
+                }
+
+                // Finish Target B with Instant (200 dmg > 150 HP)
+                P09ManualObservationController.SelectTargetB();
+                var resB2 = P09ManualObservationController.CastInstant();
+                if (resB2 == null || !resB2.Success)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Failed to cast Instant to finish Target B ({resB2?.ReasonDescription})");
+                    yield break;
+                }
+
+                float killBWait = 0f;
+                while (P09ManualObservationController.TargetBRef.IsAlive && killBWait < 3.0f)
+                {
+                    yield return null;
+                    killBWait += Time.deltaTime;
+                }
+
+                if (P09ManualObservationController.TargetBRef.IsAlive)
+                {
+                    Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: Target B did not die from legitimate skill damage!");
+                    yield break;
+                }
+
+                // Observe wave isolation for >= 2.5 seconds
+                float waveIsoWait = 0f;
+                int initialWaveId = P09ManualObservationController.BattleManagerRef.CurrentWaveId;
+                bool waveIsoFailed = false;
+                while (waveIsoWait < 2.8f)
+                {
+                    yield return null;
+                    waveIsoWait += Time.deltaTime;
+
+                    if (P09ManualObservationController.BattleManagerRef.CurrentWaveId != initialWaveId)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: BattleManager advanced wave id ({P09ManualObservationController.BattleManagerRef.CurrentWaveId})!");
+                        waveIsoFailed = true;
+                        break;
+                    }
+                    if (P09ManualObservationController.BattleManagerRef.CompletedNormalWaveCount > 0)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: CompletedNormalWaveCount incremented!");
+                        waveIsoFailed = true;
+                        break;
+                    }
+                    if (P09ManualObservationController.TotalUnexpectedViolations > 0)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: Unexpected violation occurred post-target death!");
+                        waveIsoFailed = true;
+                        break;
+                    }
+                    var allMonsters = UnityEngine.Object.FindObjectsByType<Monster>(FindObjectsSortMode.None);
+                    if (allMonsters.Length > 2)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Wild Monster detected! Monster count in scene: {allMonsters.Length}");
+                        waveIsoFailed = true;
+                        break;
+                    }
+                }
+                if (waveIsoFailed) yield break;
+
+                // Verify complete cycle telemetry (from Check 3 reset through Check 4 target deaths):
+                // Exactly 4 successful commands, 4 projectile releases, 4 damage events, and 2 target deaths
+                if (P09ManualObservationController.TotalCommandsIssued != 4)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Expected exactly 4 commands issued, got {P09ManualObservationController.TotalCommandsIssued}");
+                    yield break;
+                }
+                if (P09ManualObservationController.TotalProjectileReleases != 4)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Expected exactly 4 projectile releases, got {P09ManualObservationController.TotalProjectileReleases}");
+                    yield break;
+                }
+                if (P09ManualObservationController.TotalDamageEvents != 4)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Expected exactly 4 damage events, got {P09ManualObservationController.TotalDamageEvents}");
+                    yield break;
+                }
+                if (P09ManualObservationController.TotalTargetDeaths != 2)
+                {
+                    Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 failed: Expected exactly 2 target deaths, got {P09ManualObservationController.TotalTargetDeaths}");
+                    yield break;
+                }
+
+                // Perform 3 consecutive resets
+                bool resetFailed = false;
+                for (int cycle = 1; cycle <= 3; cycle++)
+                {
+                    P09ManualObservationController.SetupOrResetFixture();
+                    yield return null;
+
+                    var allRoots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+                    int rootCount = 0;
+                    foreach (var r in allRoots)
+                    {
+                        if (r != null && r.name == "[P09_Manual_Observation_Fixture_Root]") rootCount++;
+                    }
+                    if (rootCount != 1)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 Reset #{cycle} failed: Expected exactly 1 fixture root, found {rootCount}");
+                        resetFailed = true;
+                        break;
+                    }
+
+                    var heroes = UnityEngine.Object.FindObjectsByType<Hero>(FindObjectsSortMode.None);
+                    if (heroes.Length != 1)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 Reset #{cycle} failed: Expected exactly 1 hero, found {heroes.Length}");
+                        resetFailed = true;
+                        break;
+                    }
+
+                    var monsters = UnityEngine.Object.FindObjectsByType<Monster>(FindObjectsSortMode.None);
+                    if (monsters.Length != 2)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 Reset #{cycle} failed: Expected exactly 2 monsters, found {monsters.Length}");
+                        resetFailed = true;
+                        break;
+                    }
+
+                    var cams = UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+                    if (cams.Length != 1)
+                    {
+                        Debug.LogError($"[AUTONOMY VERIFIER ERROR] Check 4 Reset #{cycle} failed: Expected exactly 1 camera, found {cams.Length}");
+                        resetFailed = true;
+                        break;
+                    }
+                }
+                if (resetFailed) yield break;
+
+                // Observe idle post-reset for 2.0 seconds
+                float postResetWait = 0f;
+                bool postResetFailed = false;
+                while (postResetWait < 2.0f)
+                {
+                    yield return null;
+                    postResetWait += Time.deltaTime;
+
+                    if (!Mathf.Approximately(P09ManualObservationController.HeroRef.Health.CurrentHealth, 1000f) ||
+                        !Mathf.Approximately(P09ManualObservationController.HeroRef.Rage.CurrentRage, 100f))
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: Hero HP or Rage mutated during post-reset idle!");
+                        postResetFailed = true;
+                        break;
+                    }
+                    if (P09ManualObservationController.TotalProjectileReleases > 0 ||
+                        P09ManualObservationController.TotalDamageEvents > 0 ||
+                        P09ManualObservationController.TotalUnexpectedViolations > 0)
+                    {
+                        Debug.LogError("[AUTONOMY VERIFIER ERROR] Check 4 failed: Activity detected during post-reset idle!");
+                        postResetFailed = true;
+                        break;
+                    }
+                }
+                if (postResetFailed) yield break;
+
+                Debug.Log("[AUTONOMY CHECK 4 PASS] Target Death & Wave Isolation: Both targets killed naturally, zero wave transitions, zero Wild Monsters, 3 clean resets, idle post-reset quiet.");
+
+                allPassed = true;
+                Debug.Log("============================================================");
+                Debug.Log("   [AUTONOMY VERIFIER RESULT]: ALL 4 CHECKS PASSED");
+                Debug.Log("============================================================");
+            }
+            finally
+            {
+                P09ManualObservationController.TeardownFixture();
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.isPlaying = false;
+                    EditorApplication.Exit(allPassed ? 0 : 1);
+                }
             }
         }
     }

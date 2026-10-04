@@ -47,11 +47,12 @@ namespace WuxiaGame.Entities
         public bool IsAlive => Health == null || Health.IsAlive;
 
         // P07.6 Action permissions
-        public virtual bool CanMove => (StatusController == null || StatusController.CanMove) && !IsCasting;
-        public virtual bool CanBasicAttack => (StatusController == null || StatusController.CanBasicAttack) && !IsCasting;
-        public virtual bool CanUseSkill => StatusController == null || StatusController.CanUseSkill;
-        public virtual bool CanUseUltimate => StatusController == null || StatusController.CanUseUltimate;
-        public virtual bool CanDash => (StatusController == null || StatusController.CanDash) && !IsCasting;
+        public virtual bool CanMove => (StatusController == null || StatusController.CanMove) && !IsCasting && !IsDashing;
+        public virtual bool CanBasicAttack => (StatusController == null || StatusController.CanBasicAttack) && !IsCasting && !IsDashing;
+        public virtual bool CanUseSkill => (StatusController == null || StatusController.CanUseSkill) && !IsDashing;
+        public virtual bool CanUseUltimate => (StatusController == null || StatusController.CanUseUltimate) && !IsDashing;
+        public virtual bool CanDash => (StatusController == null || StatusController.CanDash) && !IsCasting && !IsDashing;
+        public virtual bool IsDashing => Movement != null && Movement.IsDashing;
         public virtual bool IsStunned => StatusController != null && StatusController.IsStunned;
         public virtual bool IsRooted => StatusController != null && StatusController.IsRooted;
         public virtual bool IsFrozen => StatusController != null && StatusController.IsFrozen;

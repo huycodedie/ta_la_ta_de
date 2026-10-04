@@ -63,6 +63,31 @@ namespace WuxiaGame.Combat
 
             Debug.Log($"[SKILL] Validation PASS: Skill={request.Skill.SkillId}, Target={(request.Target != null ? request.Target.EntityName : "None")}");
 
+            // Pre-compute pure data DashExecutionPlan for Dash skill BEFORE callbacks and resource mutation
+            WuxiaGame.Entities.Components.DashExecutionPlan preparedDashPlan = null;
+            if (request.Skill.IsDash)
+            {
+                float diffX = request.Target.transform.position.x - source.transform.position.x;
+                Vector3 direction = new Vector3(Mathf.Sign(diffX), 0f, 0f);
+                float distToTargetX = Mathf.Abs(diffX);
+                float stoppingDistance = source.AttackRange;
+                float usefulDistance = Mathf.Min(request.Skill.DashDistance, distToTargetX - stoppingDistance);
+                int encounterIndex = BattleManager.Instance != null ? BattleManager.Instance.EncounterIndex : 0;
+                Vector3 startPos = source.transform.position;
+                float endpointX = startPos.x + direction.x * usefulDistance;
+                preparedDashPlan = new WuxiaGame.Entities.Components.DashExecutionPlan(
+                    source,
+                    request.Target,
+                    direction,
+                    usefulDistance,
+                    request.Skill.DashSpeed,
+                    stoppingDistance,
+                    encounterIndex,
+                    BattleManager.Instance,
+                    startPos,
+                    endpointX);
+            }
+
             // 2. Resolve ordered per-effect snapshots for this execution (if channel) and verify required offensive targets
             PreservedTargetResolver preparedChannelResolver = null;
             if (request.Skill.IsChannel)
@@ -100,87 +125,236 @@ namespace WuxiaGame.Combat
                 }
             }
 
-            EventBus.RaiseSkillExecutionRequested(request);
-
-            // 3. Safe Rage Consumption (consumed at Cast Start after validation and snapshot preparation)
-            float rageBefore = curRage;
-            float rageCost = EnableRageCost ? request.Skill.RageCost : 0f;
-            bool rageConsumed = false;
-
-            if (rageCost > 0f && rageComp != null)
+            if (request.Skill.IsDash)
             {
-                rageConsumed = rageComp.ConsumeRage(rageCost);
-                if (!rageConsumed)
+                if (source == null || source.Movement == null)
                 {
-                    var failResult = SkillExecutionResult.CreateFailure(
-                        request,
-                        SkillExecutionFailureReason.InsufficientRage,
-                        $"Failed to consume {rageCost} Rage.",
-                        rageBefore,
-                        curCdRemain);
+                    var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceInvalidOrDead, "Source or MovementComponent missing for Dash.", curRage, curCdRemain);
+                    EventBus.RaiseSkillExecutionFailed(request, failResult);
+                    return failResult;
+                }
+
+                if (!source.Movement.TryReserveDashStartup(preparedDashPlan))
+                {
+                    var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceActionBusy, "Source entity has an ongoing dash reservation or is already busy.", curRage, curCdRemain);
                     EventBus.RaiseSkillExecutionFailed(request, failResult);
                     return failResult;
                 }
             }
-            float rageAfter = rageComp != null ? rageComp.CurrentRage : rageBefore;
 
-            // 4. Cast/Channel branch (P07.9 Phase 2 & Phase 3)
-            if (request.Skill.IsChannel)
+            try
             {
-                if (source != null && source.CastState != null)
-                {
-                    source.CastState.StartChannel(
-                        request,
-                        request.Skill.ChannelDuration,
-                        request.Skill.ChannelTickInterval,
-                        request.Skill.CastTime,
-                        CooldownManager.CurrentTime);
+                EventBus.RaiseSkillExecutionRequested(request);
 
-                    source.CastState.OnChannelTickCallback = (state, tickIndex) =>
+                // POST-REQUEST CALLBACK RE-VALIDATION (R1 requirement: synchronous listeners could mutate state)
+                if (request.Skill.IsDash)
+                {
+                    if (source == null || !source.gameObject.activeInHierarchy || !source.IsAlive || (source.Health != null && source.Health.CurrentHealth <= 0f))
                     {
-                        ExecuteChannelTick(state, tickIndex, preparedChannelResolver);
-                    };
-                    source.CastState.OnCastCompletedCallback = (state) => ExecuteCastComplete(state);
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceInvalidOrDead, "Source died or deactivated during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+                    if (source.Movement == null || !source.Movement.enabled || !source.Movement.isActiveAndEnabled || !source.Movement.IsMovementEnabled)
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceInvalidOrDead, "MovementComponent disabled during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+                    if (source.Movement.IsDashing)
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceActionBusy, "Source entity became busy dashing during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+                    if (!source.CanDash)
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceCrowdControlled, "Source crowd controlled during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+                    var boundTarget = preparedDashPlan.BoundTarget;
+                    if (boundTarget == null || (boundTarget is UnityEngine.Object ubt && ubt == null) ||
+                        !boundTarget.gameObject.activeInHierarchy || !boundTarget.IsAlive || (boundTarget.Health != null && boundTarget.Health.CurrentHealth <= 0f))
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.TargetInvalidOrDead, "Target died or deactivated during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+
+                    var boundBM = preparedDashPlan.BoundBattleManager;
+                    if (boundBM == null || (boundBM is UnityEngine.Object ubbm && ubbm == null))
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.InvalidDeliveryConfiguration, "BattleManager destroyed during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+
+                    var currBM = BattleManager.Instance;
+                    if (currBM == null || (currBM is UnityEngine.Object ucbm && ucbm == null) ||
+                        currBM != boundBM ||
+                        currBM.EncounterIndex != preparedDashPlan.BoundEncounterIndex ||
+                        !currBM.IsBattleActive ||
+                        currBM.IsCombatPausedByUI ||
+                        currBM.CurrentBattleState != BattleState.InProgress)
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.InvalidDeliveryConfiguration, "BattleManager state or encounter changed during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+
+                    // Check encounter membership
+                    if (!IsEntityInEncounterStatic(currBM, boundTarget))
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.TargetInvalidOrDead, "Target removed from encounter during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+
+                    if (!IsEntityInEncounterStatic(currBM, source))
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(request, SkillExecutionFailureReason.SourceInvalidOrDead, "Source removed from encounter during execution request callbacks.", curRage, curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
                 }
 
-                var channelStartedResult = SkillExecutionResult.CreateSuccess(
-                    request,
-                    null,
-                    "Skill channel started.",
-                    rageBefore,
-                    rageCost,
-                    rageAfter,
-                    0f,
-                    0f);
-                return channelStartedResult;
-            }
-            else if (request.Skill.CastTime > 0f)
-            {
-                if (source != null && source.CastState != null)
+                // 3. Safe Rage Consumption (consumed at Cast Start after validation and snapshot preparation)
+                float rageBefore = rageComp != null ? rageComp.CurrentRage : curRage;
+                float rageCost = EnableRageCost ? request.Skill.RageCost : 0f;
+                bool rageConsumed = false;
+
+                if (rageCost > 0f && rageComp != null)
                 {
-                    source.CastState.StartCast(request, request.Skill.CastTime, CooldownManager.CurrentTime);
-                    source.CastState.OnCastCompletedCallback = (state) => ExecuteCastComplete(state);
+                    bool notificationException = false;
+                    try
+                    {
+                        rageConsumed = rageComp.ConsumeRage(rageCost);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[SKILL] Rage consumption notification threw exception: {ex}");
+                        notificationException = true;
+                        // In RageComponent, currentRage -= amount executes before NotifyRageChanged().
+                        // Any exception from ConsumeRage guarantees debit already occurred.
+                        rageConsumed = true;
+                    }
+
+                    if (notificationException)
+                    {
+                        // Rollback strictly THIS transaction's debit by adding back rageCost
+                        try
+                        {
+                            rageComp.AddRage(rageCost);
+                        }
+                        catch (System.Exception refundEx)
+                        {
+                            Debug.LogError($"[SKILL] Exception during rage refund: {refundEx}");
+                        }
+                        rageConsumed = false;
+
+                        float currentRageAfterRefund = rageComp.CurrentRage;
+                        var failResult = SkillExecutionResult.CreateFailure(
+                            request,
+                            SkillExecutionFailureReason.InvalidDeliveryConfiguration,
+                            "Notification listener threw exception during rage debit; debited rage refunded.",
+                            currentRageAfterRefund,
+                            curCdRemain);
+                        try
+                        {
+                            EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        }
+                        catch (System.Exception busEx)
+                        {
+                            Debug.LogError($"[SKILL] Exception raising SkillExecutionFailed: {busEx}");
+                        }
+                        return failResult;
+                    }
+
+                    if (!rageConsumed)
+                    {
+                        var failResult = SkillExecutionResult.CreateFailure(
+                            request,
+                            SkillExecutionFailureReason.InsufficientRage,
+                            $"Failed to consume {rageCost} Rage.",
+                            rageComp.CurrentRage,
+                            curCdRemain);
+                        EventBus.RaiseSkillExecutionFailed(request, failResult);
+                        return failResult;
+                    }
+                }
+                float rageAfter = rageComp != null ? rageComp.CurrentRage : rageBefore;
+
+                // 4. Cast/Channel branch (P07.9 Phase 2 & Phase 3)
+                if (request.Skill.IsChannel)
+                {
+                    if (source != null && source.CastState != null)
+                    {
+                        source.CastState.StartChannel(
+                            request,
+                            request.Skill.ChannelDuration,
+                            request.Skill.ChannelTickInterval,
+                            request.Skill.CastTime,
+                            CooldownManager.CurrentTime);
+
+                        source.CastState.OnChannelTickCallback = (state, tickIndex) =>
+                        {
+                            ExecuteChannelTick(state, tickIndex, preparedChannelResolver);
+                        };
+                        source.CastState.OnCastCompletedCallback = (state) => ExecuteCastComplete(state);
+                    }
+
+                    var channelStartedResult = SkillExecutionResult.CreateSuccess(
+                        request,
+                        null,
+                        "Skill channel started.",
+                        rageBefore,
+                        rageCost,
+                        rageAfter,
+                        0f,
+                        0f);
+                    return channelStartedResult;
+                }
+                else if (request.Skill.CastTime > 0f)
+                {
+                    if (source != null && source.CastState != null)
+                    {
+                        source.CastState.StartCast(request, request.Skill.CastTime, CooldownManager.CurrentTime);
+                        source.CastState.OnCastCompletedCallback = (state) => ExecuteCastComplete(state);
+                    }
+
+                    var castStartedResult = SkillExecutionResult.CreateSuccess(
+                        request,
+                        null,
+                        "Skill cast started.",
+                        rageBefore,
+                        rageCost,
+                        rageAfter,
+                        0f,
+                        0f);
+                    return castStartedResult;
                 }
 
-                var castStartedResult = SkillExecutionResult.CreateSuccess(
-                    request,
-                    null,
-                    "Skill cast started.",
-                    rageBefore,
-                    rageCost,
-                    rageAfter,
-                    0f,
-                    0f);
-                return castStartedResult;
-            }
+                // 3. Execution Actions (Effect Pipeline via EffectResolver) - for Instant Skills
+                if (request.Skill.IsProjectile)
+                {
+                    return ReleaseProjectileAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
+                }
 
-            // 3. Execution Actions (Effect Pipeline via EffectResolver) - for Instant Skills
-            if (request.Skill.IsProjectile)
+                if (request.Skill.IsDash)
+                {
+                    return ExecuteDashAndFinalize(request, preparedDashPlan, rageBefore, rageCost, rageAfter, rageConsumed, rageComp, curCdRemain);
+                }
+
+                return ExecuteEffectsAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
+            }
+            finally
             {
-                return ReleaseProjectileAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
+                if (request.Skill.IsDash && source != null && source.Movement != null && preparedDashPlan != null)
+                {
+                    source.Movement.ReleaseDashReservation(preparedDashPlan.TransactionId);
+                }
             }
-
-            return ExecuteEffectsAndFinalize(request, rageBefore, rageCost, rageAfter, rageConsumed);
         }
 
         public SkillExecutionResult ExecuteCastComplete(SkillCastState castState)
@@ -268,6 +442,144 @@ namespace WuxiaGame.Combat
             Debug.Log($"[SKILL:PROJECTILE] Result: SUCCESS (Released), Skill={request.Skill.SkillId}, Target={request.Target?.EntityName}, Speed={request.Skill.ProjectileSpeed}, Cooldown={cdDuration:F1}s");
             EventBus.RaiseSkillExecutionSucceeded(request, successResult);
             return successResult;
+        }
+
+        private SkillExecutionResult ExecuteDashAndFinalize(
+            SkillExecutionRequest request,
+            WuxiaGame.Entities.Components.DashExecutionPlan plan,
+            float rageBefore,
+            float rageCost,
+            float rageAfter,
+            bool rageConsumed,
+            WuxiaGame.Entities.Components.RageComponent rageComp,
+            float curCdRemain)
+        {
+            var source = request.Source;
+            bool isCommitted = false;
+            float cdDuration = EnableCooldown ? request.Skill.Cooldown : 0f;
+
+            System.Action commitAction = () =>
+            {
+                // ATOMIC COMMIT POINT:
+                // Trigger cooldown and reset attack timers at commit BEFORE observer events fire
+                if (cdDuration > 0f)
+                {
+                    CooldownManager.TriggerCooldown(request.Skill.SkillId, cdDuration);
+                }
+                if (source != null && source.Attack != null)
+                {
+                    source.Attack.ResetAttackTimer();
+                }
+                isCommitted = true;
+            };
+
+            try
+            {
+                if (source == null || source.Movement == null)
+                {
+                    throw new System.Exception("MovementComponent is missing on source entity.");
+                }
+
+                bool started = source.Movement.TryStartDash(plan, null, null, commitAction);
+                if (!started)
+                {
+                    throw new System.Exception("MovementComponent rejected dash startup.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                // Rollback on startup failure: strictly isolated to pre-commit failure
+                if (!isCommitted)
+                {
+                    try
+                    {
+                        if (rageConsumed && rageComp != null)
+                        {
+                            rageComp.AddRage(rageCost);
+                            rageConsumed = false;
+                        }
+                    }
+                    catch (System.Exception refundEx)
+                    {
+                        Debug.LogError($"[SKILL:DASH] Exception during rage refund: {refundEx}");
+                    }
+                    finally
+                    {
+                        if (source != null && source.Movement != null)
+                        {
+                            source.Movement.ReleaseDashReservation(plan.TransactionId);
+                            source.Movement.AbortDash(plan.TransactionId);
+                        }
+                    }
+
+                    Debug.LogError($"[SKILL:DASH] Startup Error: {ex}");
+                    SkillExecutionFailureReason reason = (source != null && source.Movement != null && source.Movement.IsDashing)
+                        ? SkillExecutionFailureReason.SourceActionBusy
+                        : SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    var failResult = SkillExecutionResult.CreateFailure(request, reason, ex.Message, rageBefore, curCdRemain);
+                    EventBus.RaiseSkillExecutionFailed(request, failResult);
+                    return failResult;
+                }
+                else
+                {
+                    Debug.LogError($"[SKILL:DASH] Post-commit exception (abort does not refund): {ex}");
+                }
+            }
+
+            // At this point, startup committed successfully. Cooldown was triggered in commitAction.
+            float cdRemainAfter = CooldownManager.GetRemainingCooldown(request.Skill.SkillId);
+
+            // Create Success Result & Raise Event ONCE
+            var successResult = SkillExecutionResult.CreateSuccess(
+                request,
+                null,
+                "Dash started successfully.",
+                rageBefore,
+                rageCost,
+                rageAfter,
+                cdDuration,
+                cdRemainAfter,
+                null);
+
+            Debug.Log($"[SKILL:DASH] Result: SUCCESS (Committed), Skill={request.Skill.SkillId}, Target={request.Target?.EntityName}, Distance={plan.TotalPlannedDistance:F2}m, Speed={plan.Speed}m/s, Cooldown={cdDuration:F1}s");
+            try
+            {
+                EventBus.RaiseSkillExecutionSucceeded(request, successResult);
+            }
+            catch (System.Exception obsEx)
+            {
+                Debug.LogError($"[SKILL:DASH] Observer exception on succeeded event: {obsEx}");
+                // An observer throwing post-commit MUST NOT rollback cooldown or refund rage!
+            }
+            return successResult;
+        }
+
+        private static bool IsEntityInEncounterStatic(BattleManager bm, Entity entity)
+        {
+            if (bm == null || entity == null) return false;
+            if (entity is UnityEngine.Object uEnt && uEnt == null) return false;
+
+            if (entity is Hero hero)
+            {
+                if (bm.CurrentHero == hero) return true;
+                return bm.BelongsToEncounter(hero);
+            }
+
+            if (entity is Monster monster)
+            {
+                if (bm.ActiveMonsters != null)
+                {
+                    var activeList = bm.ActiveMonsters;
+                    for (int i = 0; i < activeList.Count; i++)
+                    {
+                        if (activeList[i] == monster) return true;
+                    }
+                }
+                if (bm.CurrentMonster == monster) return true;
+                return bm.BelongsToEncounter(monster);
+            }
+
+            return bm.BelongsToEncounter(entity);
         }
 
         private void ExecuteChannelTick(SkillCastState castState, int tickIndex, ISkillTargetResolver targetResolver)

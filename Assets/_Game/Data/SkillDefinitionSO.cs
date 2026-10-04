@@ -93,6 +93,12 @@ namespace WuxiaGame.Data
         [SerializeField] private float projectileSpeed = 15f;
         [SerializeField] private float projectileLifetime = 5f;
 
+        [Header("Dash Foundation (P09-B)")]
+        [SerializeField] private bool isDash = false;
+        [SerializeField] private float dashDistance = 0f;
+        [SerializeField] private float dashSpeed = 0f;
+        [SerializeField] private bool isManualOnly = false;
+
         public string SkillId => skillId;
         public string MindMethodId => mindMethodId;
         public SkillSlotType SlotType => slotType;
@@ -117,6 +123,11 @@ namespace WuxiaGame.Data
         public float ProjectileSpeed => projectileSpeed;
         public float ProjectileLifetime => projectileLifetime;
 
+        public bool IsDash => isDash;
+        public float DashDistance => dashDistance;
+        public float DashSpeed => dashSpeed;
+        public bool IsManualOnly => isManualOnly;
+
         public IReadOnlyList<WuxiaGame.Combat.SkillEffectDefinitionSO> Effects => effects;
         public bool HasExplicitEffects => hasExplicitEffects;
         public bool CanShatterFreeze => canShatterFreeze;
@@ -126,6 +137,19 @@ namespace WuxiaGame.Data
             isProjectile = projectile;
             projectileSpeed = speed;
             projectileLifetime = lifetime;
+        }
+
+        public void ConfigureDash(bool dash, float dist, float spd, bool manualOnly = false)
+        {
+            isDash = dash;
+            dashDistance = dist;
+            dashSpeed = spd;
+            isManualOnly = manualOnly;
+        }
+
+        public void SetManualOnly(bool manualOnly)
+        {
+            isManualOnly = manualOnly;
         }
 
         public void SetCastTime(float time)

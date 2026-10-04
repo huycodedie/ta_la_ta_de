@@ -1,4 +1,5 @@
 using UnityEngine;
+using WuxiaGame.Core;
 using WuxiaGame.Data;
 using WuxiaGame.Entities;
 using WuxiaGame.Progression;
@@ -29,6 +30,14 @@ namespace WuxiaGame.Combat
             {
                 failureReason = SkillExecutionFailureReason.SourceInvalidOrDead;
                 failureMessage = $"Source entity '{(source != null ? source.EntityName : "null")}' is invalid, null, or dead.";
+                return false;
+            }
+
+            // 1.45 Validate Active Dash Action Busy Guard (P09-B) - Must be evaluated before CC permissions (F6)
+            if (source.IsDashing)
+            {
+                failureReason = SkillExecutionFailureReason.SourceActionBusy;
+                failureMessage = $"Source entity '{source.EntityName}' is busy dashing.";
                 return false;
             }
 
@@ -146,8 +155,235 @@ namespace WuxiaGame.Combat
                 }
             }
 
+            // 5.6 Validate Dash Delivery Configuration (P09-B)
+            if (skill.IsDash)
+            {
+                if (!(source is Hero))
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Dash skill '{skill.SkillId}' is only supported for Hero in P09-B slice.";
+                    return false;
+                }
+
+                if (request.Slot != SkillSlotType.Skill &&
+                    request.Slot != SkillSlotType.ExternalSkill1 &&
+                    request.Slot != SkillSlotType.ExternalSkill2)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Dash skill '{skill.SkillId}' cannot be assigned to slot {request.Slot}.";
+                    return false;
+                }
+
+                if (request.Slot != skill.SlotType)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Request slot '{request.Slot}' does not match skill slot '{skill.SlotType}'.";
+                    return false;
+                }
+
+                if (skill.IsProjectile)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Skill '{skill.SkillId}' cannot combine Dash delivery with Projectile delivery.";
+                    return false;
+                }
+
+                if (skill.IsChannel)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Skill '{skill.SkillId}' cannot combine Dash delivery with Channel execution.";
+                    return false;
+                }
+
+                if (skill.IsPassive)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Dash skill '{skill.SkillId}' cannot be passive.";
+                    return false;
+                }
+
+                if (float.IsNaN(skill.CastTime) || float.IsInfinity(skill.CastTime) || skill.CastTime != 0f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Skill '{skill.SkillId}' cannot combine Dash delivery with CastTime (instant dash requires CastTime == 0).";
+                    return false;
+                }
+
+                if (float.IsNaN(skill.DamageMultiplier) || float.IsInfinity(skill.DamageMultiplier) || skill.DamageMultiplier != 0f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Move-only Dash skill '{skill.SkillId}' cannot have DamageMultiplier != 0 (found: {skill.DamageMultiplier}).";
+                    return false;
+                }
+
+                if (skill.Effects != null && skill.Effects.Count > 0)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Move-only Dash skill '{skill.SkillId}' cannot have explicit effects in P09-B slice.";
+                    return false;
+                }
+
+                if (float.IsNaN(skill.DashDistance) || float.IsInfinity(skill.DashDistance) || skill.DashDistance <= 0f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Dash skill '{skill.SkillId}' requires a positive finite DashDistance (current: {skill.DashDistance}).";
+                    return false;
+                }
+
+                if (float.IsNaN(skill.DashSpeed) || float.IsInfinity(skill.DashSpeed) || skill.DashSpeed <= 0f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Dash skill '{skill.SkillId}' requires a positive finite DashSpeed (current: {skill.DashSpeed}).";
+                    return false;
+                }
+
+                if (!source.gameObject.activeInHierarchy || !source.IsAlive || (source.Health != null && source.Health.CurrentHealth <= 0f))
+                {
+                    failureReason = SkillExecutionFailureReason.SourceInvalidOrDead;
+                    failureMessage = $"Source entity '{source.EntityName}' is inactive or dead.";
+                    return false;
+                }
+
+                if (!source.CanDash)
+                {
+                    failureReason = SkillExecutionFailureReason.SourceCrowdControlled;
+                    failureMessage = $"Source entity '{source.EntityName}' cannot dash (crowd controlled or casting).";
+                    return false;
+                }
+
+                if (source.Movement == null || !source.Movement.enabled || !source.Movement.isActiveAndEnabled || !source.Movement.IsMovementEnabled)
+                {
+                    failureReason = SkillExecutionFailureReason.SourceInvalidOrDead;
+                    failureMessage = $"Source entity '{source.EntityName}' has missing, disabled or inactive MovementComponent.";
+                    return false;
+                }
+
+                if (source.Movement.IsDashing)
+                {
+                    failureReason = SkillExecutionFailureReason.SourceActionBusy;
+                    failureMessage = $"Source entity '{source.EntityName}' is already executing a dash.";
+                    return false;
+                }
+
+                if (BattleManager.Instance != null)
+                {
+                    if (BattleManager.Instance.IsCombatPausedByUI || !BattleManager.Instance.IsBattleActive)
+                    {
+                        failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                        failureMessage = "Cannot initiate dash while combat is paused or inactive.";
+                        return false;
+                    }
+
+                    var bState = BattleManager.Instance.CurrentBattleState;
+                    if (bState == BattleState.AwaitingPlayerStart ||
+                        bState == BattleState.MonsterDead ||
+                        bState == BattleState.HeroDead ||
+                        bState == BattleState.Victory ||
+                        bState == BattleState.Defeat ||
+                        bState == BattleState.EncounterTransition ||
+                        bState == BattleState.LootPending)
+                    {
+                        failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                        failureMessage = $"Cannot initiate dash during battle state {bState}.";
+                        return false;
+                    }
+
+                    bool isSourceInEncounter = false;
+                    if (source is Hero hero && BattleManager.Instance.CurrentHero == hero)
+                    {
+                        isSourceInEncounter = true;
+                    }
+                    else if (BattleManager.Instance.BelongsToEncounter(source))
+                    {
+                        isSourceInEncounter = true;
+                    }
+
+                    if (!isSourceInEncounter)
+                    {
+                        failureReason = SkillExecutionFailureReason.SourceInvalidOrDead;
+                        failureMessage = $"Source '{source.EntityName}' does not belong to active encounter.";
+                        return false;
+                    }
+                }
+
+                Entity target = request.Target;
+                if (target == null || !target.gameObject.activeInHierarchy || !target.IsAlive || (target.Health != null && target.Health.CurrentHealth <= 0f))
+                {
+                    failureReason = SkillExecutionFailureReason.TargetInvalidOrDead;
+                    failureMessage = $"Dash toward target requires a living active target (target: '{(target != null ? target.EntityName : "null")}').";
+                    return false;
+                }
+
+                if (BattleManager.Instance != null)
+                {
+                    bool isEncounterTarget = false;
+                    if (target is Monster monster && BattleManager.Instance.ActiveMonsters != null)
+                    {
+                        var activeList = BattleManager.Instance.ActiveMonsters;
+                        for (int i = 0; i < activeList.Count; i++)
+                        {
+                            if (activeList[i] == monster)
+                            {
+                                isEncounterTarget = true;
+                                break;
+                            }
+                        }
+                    }
+                    else if (BattleManager.Instance.BelongsToEncounter(target))
+                    {
+                        isEncounterTarget = true;
+                    }
+
+                    if (!isEncounterTarget)
+                    {
+                        failureReason = SkillExecutionFailureReason.TargetInvalidOrDead;
+                        failureMessage = $"Target '{target.EntityName}' does not belong to active encounter.";
+                        return false;
+                    }
+                }
+
+                Vector3 sourcePos = source.transform.position;
+                Vector3 targetPos = target.transform.position;
+                if (float.IsNaN(sourcePos.x) || float.IsInfinity(sourcePos.x) ||
+                    float.IsNaN(sourcePos.y) || float.IsInfinity(sourcePos.y) ||
+                    float.IsNaN(sourcePos.z) || float.IsInfinity(sourcePos.z) ||
+                    float.IsNaN(targetPos.x) || float.IsInfinity(targetPos.x) ||
+                    float.IsNaN(targetPos.y) || float.IsInfinity(targetPos.y) ||
+                    float.IsNaN(targetPos.z) || float.IsInfinity(targetPos.z))
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = "Source or target transform position contains NaN or Infinity.";
+                    return false;
+                }
+
+                float diffX = targetPos.x - sourcePos.x;
+                float distToTargetX = Mathf.Abs(diffX);
+                if (float.IsNaN(distToTargetX) || float.IsInfinity(distToTargetX) || distToTargetX < 0.001f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = "Target is at the same X coordinate or invalid distance.";
+                    return false;
+                }
+
+                float stoppingDistance = source.AttackRange;
+                if (float.IsNaN(stoppingDistance) || float.IsInfinity(stoppingDistance) || stoppingDistance < 0f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Source entity '{source.EntityName}' has invalid AttackRange ({stoppingDistance}).";
+                    return false;
+                }
+
+                float usefulDistance = Mathf.Min(skill.DashDistance, distToTargetX - stoppingDistance);
+                if (usefulDistance <= 0.01f)
+                {
+                    failureReason = SkillExecutionFailureReason.InvalidDeliveryConfiguration;
+                    failureMessage = $"Target is already within attack range ({distToTargetX:F2} <= {stoppingDistance:F2}) or useful dash distance is zero ({usefulDistance:F2}).";
+                    return false;
+                }
+            }
+
             // 6. Validate Target (for combat/offensive skills)
-            bool requiresSingleEnemyTarget = skill.IsProjectile;
+            bool requiresSingleEnemyTarget = skill.IsProjectile || skill.IsDash;
             if (resolvedEffects != null && resolvedEffects.Count > 0)
             {
                 foreach (var eff in resolvedEffects)
@@ -219,7 +455,7 @@ namespace WuxiaGame.Combat
                     return false;
                 }
 
-                if (skill.IsProjectile && source is Hero && target is Monster mTarget)
+                if ((skill.IsProjectile || skill.IsDash) && source is Hero && target is Monster mTarget)
                 {
                     if (!CombatTargetQuery.IsValidEncounterMonster(source, mTarget))
                     {
