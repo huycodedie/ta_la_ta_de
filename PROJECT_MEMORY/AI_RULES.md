@@ -1,7 +1,7 @@
 # AI_RULES — TLTD PROJECT MEMORY AUTHORITY
 
 > Local-copy contract for Google Antigravity / Unity development.
-> GitHub is the long-term memory backup. Antigravity must read the LOCAL copy under `E:\code\TLTD\PROJECT_MEMORY\`, not assume it can read GitHub directly.
+> GitHub `main` is the persistent canonical project-memory source. Antigravity must synchronize and then read the LOCAL copy under `E:\code\TLTD\PROJECT_MEMORY\` before implementation.
 
 ## 1. Purpose
 This folder is the local, AI-readable Design Contract for project `E:\code\TLTD`.
@@ -9,13 +9,15 @@ This folder is the local, AI-readable Design Contract for project `E:\code\TLTD`
 Before implementing or modifying gameplay code, AI must read:
 
 1. `AI_RULES.md`
-2. `CURRENT_DESIGN_AUTHORITY.md`
-3. `D1_D23_LOCKED.md`
-4. `D1_D23_AMENDMENTS_LOCKED.md`
-5. Relevant D-section documents
-6. Relevant P07.x locked/acceptance documents
-7. Current project code and tests
-8. `DESIGN_CHANGELOG.md` when a conflict, superseding decision, or design change is involved
+2. `CONTINUITY_AND_SYNC_AUTHORITY.md`
+3. `ACTIVE_WORK_HANDOFF.md`
+4. `CURRENT_DESIGN_AUTHORITY.md`
+5. `D1_D23_LOCKED.md`
+6. `D1_D23_AMENDMENTS_LOCKED.md`
+7. Relevant D-section documents
+8. Relevant P07.x/UI locked and acceptance documents
+9. Current project code and tests
+10. `DESIGN_CHANGELOG.md` when a conflict, superseding decision, or design change is involved
 
 ## 2. Authority hierarchy
 
@@ -148,18 +150,29 @@ Do not silently alter either side.
 
 ## 8. Required workflow for every new milestone
 
-1. Read `AI_RULES.md`.
-2. Read `CURRENT_DESIGN_AUTHORITY.md`.
-3. Read relevant D/P locked documents.
-4. Audit current code before editing.
-5. Identify dependencies and authority ownership.
-6. Identify conflicts and unresolved TBD values.
-7. Propose implementation scope.
-8. Only then modify code.
-9. Add/extend tests.
-10. Run actual Unity/Play Mode validation where required.
-11. Update milestone evidence and memory only after acceptance.
-12. Record any superseding design decision in `DESIGN_CHANGELOG.md`.
+1. Synchronize memory from GitHub `main` with fast-forward-only behavior.
+2. Read `AI_RULES.md`, `CONTINUITY_AND_SYNC_AUTHORITY.md` and `ACTIVE_WORK_HANDOFF.md`.
+3. Read `CURRENT_DESIGN_AUTHORITY.md` and relevant D/P/UI locked documents.
+4. Confirm the exact next authorized action and current milestone status.
+5. Audit current code before editing.
+6. Identify dependencies and authority ownership.
+7. Identify conflicts and unresolved TBD values.
+8. Propose implementation scope.
+9. Only then modify code.
+10. Add/extend tests.
+11. Run actual Unity/Play Mode validation where required.
+12. Update milestone evidence and memory only after acceptance.
+13. Record superseding decisions in `DESIGN_CHANGELOG.md`.
+14. Update `ACTIVE_WORK_HANDOFF.md`, commit, push and verify the remote state.
+
+## 8.1 Mandatory continuity and Git sync
+
+- Explicitly approved, locked, superseding or materially clarifying Project Owner decisions must be persisted to the memory repository.
+- ChatGPT/Codex is the primary coordinator, design-governance authority and memory publisher.
+- Antigravity is the secondary Unity implementation/test executor and must not independently redefine authority.
+- A decision is not durably synchronized until its commit and remote file contents are verified on GitHub `main`.
+- If push fails, mark synchronization pending and resolve it before implementation that depends on the unsynchronized decision.
+- Full policy: `PROJECT_MEMORY/CONTINUITY_AND_SYNC_AUTHORITY.md`.
 
 ## 9. Important current architecture principle
 
@@ -187,4 +200,3 @@ P07.8 is LOCKED and must not be regressed while implementing later milestones.
 - `P07_8_LOCKED.md`
 
 These files are quick-reference locked records. If a later explicit amendment exists, follow the amendment/current authority and preserve the older record as history.
-

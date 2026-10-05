@@ -1,34 +1,50 @@
-# P07.9.1 — Hero Autonomous Skill Decision & Auto Combat
+# P07.9.1 — LOCKED
 
-**Status:** LOCKED  
-**Milestone:** P07.9.1  
-**Lock Date:** 2026-09-15  
-**Authority:** P07.9.1 Architecture Contract + verified implementation/regression evidence  
+## Status
+LOCKED based on the user's final audit/execution report.
 
----
+## Scope
+Hero Autonomous Skill Decision & Auto Combat.
 
-## Final Acceptance
+## Locked behavior
+- Auto ON: Hero autonomously evaluates and executes normal skills when eligible.
+- Normal-skill priority is data-driven: Priority DESC, SkillId ordinal ASC as deterministic tie-break.
+- Ultimate can preempt/interupt Basic Attack windup when its conditions are met.
+- Auto OFF: autonomous normal-skill/ultimate decision is disabled; Basic Attack behavior remains active.
+- Manual skill activation still passes through the existing validation/execution pipeline.
+- HeroSkillDecisionController only reads Rage; it does not own Rage mutation.
+- Ultimate RageCost is read from SkillDefinitionSO.RageCost; no hard-coded gameplay cost.
+- Casting/channeling keeps IsCasting active and blocks Basic Attack while active.
+- Existing P07.8/P07.9 authorities remain authoritative: SkillExecutor, SkillExecutionValidator, SkillCastState, CooldownManager, EntityStatusController, RageComponent, DamageCalculator, HealthComponent, BasicAttackProcessor, AttackComponent.
+- No second authority for skill execution, Rage, cooldown, cast/channel state, CC, damage, or health was introduced.
 
-P07.9.1 was explicitly LOCKED following successful implementation and verification of the autonomous combat decision layer:
-- **Decision vs Execution Separation:** `HeroSkillDecisionController` acts strictly as an evaluation/request layer; `SkillExecutor` and execution pipeline remain pure execution engines.
-- **Data-Driven Priority:** Skills prioritize execution based on `SkillDefinitionSO.Priority` (Ultimate = 100, Tuyệt Kỹ = 60, Ngoại Công 1 = 40, Ngoại Công 2 = 30, Basic = 0) with deterministic ordinal tie-breaker.
-- **Gameplay-Authoritative Auto Battle:** `BattleManager.Instance.IsAutoBattle` is the single gameplay authority. `SkillBarUI` delegates purely to `BattleManager.Instance.SetAutoBattle` via `EventBus.RaiseAutoBattleChanged`.
-- **Preemptive Ultimate:** Ultimate resets active basic attack windup timer to immediately take priority when ready.
-- **Automated Tests:** 16/16 PASSED (`Prototype01PlayTestRunner_P07_9_1`).
-- **Play Mode Acceptance:** 5/5 Scenarios verified in `Prototype01.unity` (Auto Normal, Auto Ultimate, Auto Toggle OFF, Auto Toggle ON, Manual Trigger).
-- **Full Regressions:** 100% PASS across P07.8 (55/55), P07.9 Phase 5.3 (36/36), and P07.9 Risk 04 (18/18).
+## Validation evidence supplied by user
+- P07.9.1 dedicated suite: 16/16 PASS.
+- P07.8 regression: 55/55 PASS.
+- P07.9 Phase5.3: 36/36 PASS.
+- P07.9 Risk04: 18/18 PASS.
+- Historical Master P01-P07.8: 100% PASS.
+- Compile check: 0 CS errors, 0 CS warnings, exit code 0.
+- Runtime Play Mode scenarios A-E: PASS.
 
----
+## Modified implementation files reported by user
+- SkillDefinitionSO.cs
+- EventBus.cs
+- BattleManager.cs
+- SkillBarUI.cs
+- Entity.cs
+- Hero.cs
+- HeroSkillDecisionController.cs (new)
+- Prototype01SceneBuilder.cs
+- Prototype01PlayTestRunner_P07_9_1.cs (new)
 
-## Locked Authorities Preserved
+## Locked boundaries
+- Do not modify P07.9.1 behavior without an explicit design change/supersede decision.
+- Do not reintroduce hard-coded skill-slot counts, Rage costs, cooldowns, or skill priorities into runtime logic.
+- Do not create a second gameplay authority in UI or autonomous-decision code.
 
-- **Skill Execution:** `SkillExecutor.cs` (LOCKED)
-- **Validation Gate:** `SkillExecutionValidator.cs` (LOCKED)
-- **Cast/Channel State:** `SkillCastState.cs` (LOCKED)
-- **Cooldown Authority:** `CooldownManager.cs` (LOCKED)
-- **Rage Authority:** `RageComponent.cs` (LOCKED)
-- **Status & CC Authority:** `EntityStatusController.cs` (LOCKED)
-- **Damage Authority:** `DamageCalculator.cs` (LOCKED)
-- **Health Authority:** `HealthComponent.cs` (LOCKED)
-- **Decision Layer:** `HeroSkillDecisionController.cs` (LOCKED)
-- **Auto Battle Authority:** `BattleManager.cs` (`IsAutoBattle`) (LOCKED)
+## Important distinction
+This LOCK records the user's supplied audit and execution evidence; it is not an independently executed Unity verification by the assistant.
+
+## Skill data authority note
+Skill gameplay parameters belong to the data-driven SkillDefinitionSO/skill data layer, while runtime systems consume those definitions. Exact project asset paths and every serialized field should be verified against the current Unity project before changing them; do not invent a new data authority.

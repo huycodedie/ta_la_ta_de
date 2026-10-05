@@ -5,9 +5,15 @@ New-chat operating guide: [TLTD_NEW_CHAT_CONTINUATION_MASTER.md](TLTD_NEW_CHAT_C
 Last synchronization update: 2026-10-05 (UTC+07:00).
 Latest gameplay acceptance: 2026-10-04.
 Canonical memory: huycodedie/Ai_MEMORY_TLTD, branch main.
-Publication bases observed: memory `8ff7f79fcdcbb966a88e9a74fd41bd97c5c4a9c2`; game `5eafa685b830282665aca72323ef143ff063f9f5`.
+Historical P09B publication bases observed: memory `8ff7f79fcdcbb966a88e9a74fd41bd97c5c4a9c2`; game `5eafa685b830282665aca72323ef143ff063f9f5`.
 Resolve the publishing commit/main for the final synchronization SHA; a file cannot embed its own commit hash.
-Publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md).
+Historical P09B publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md).
+
+## Takeover continuity — 2026-10-05
+
+Observed task baselines: canonical memory `c5c61357b8d4604fc087faf116272d1eaec09460`; game remote `06e5e473bd468a2842d15d9b5299cbee0f881283`. Task scope and reviewed findings: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md); executable read-only prompt: [PROMPT_ANTIGRAVITY_GAMEPLAY_GAP_AUDIT_20261005.md](PROMPT_ANTIGRAVITY_GAMEPLAY_GAP_AUDIT_20261005.md).
+
+Documentation-only mirror repair restores five canonical authority files and five missing UI authority/historical review files. B1 review/task files dated September 17 remain HISTORICAL; their restoration does not reactivate UI implementation or alter later P08/B1 acceptance. Gameplay decisions and original acceptance documents are unchanged.
 
 ## Current decisions
 
@@ -21,7 +27,7 @@ Publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261
 - **P09-A PROJECTILE FOUNDATION = ACCEPTED / LOCKED** within reviewed runtime scope ([DECISION_P09A_ACCEPTED_LOCKED_20260927.md](DECISION_P09A_ACCEPTED_LOCKED_20260927.md)).
 - **S01–S05 = USER_VERIFIED** preserved according to Project Owner direct confirmation.
 - **E1 = CLOSED / PASS**, **E2 = CLOSED / EVIDENCE VERIFIED** (SCENARIO_PASS_EXIT_TIMEOUT, wrapper exit 2) preserved.
-- **Production R1 and P08 = ACCEPTED / LOCKED** preserved; 61 production skill assets in `Assets/_Game/Data/Skills/` remain `IsProjectile = false`.
+- **Production R1 and P08 = ACCEPTED / LOCKED** preserved. Historical acceptance reports recorded 61 production skill assets with `IsProjectile = false`; current inventory is under the new read-only audit (30 Data/Skills + 30 Resources/Data/Skills asset paths observed at takeover). This does not authorize asset rollout or rewrite the historical count.
 - Tooling maintenance N1 (identity-based release counter) and N2 (provenance and data standardization) verified.
 - Evidence packages:
   - Recovery package: `review_package_p09b_recovery_result.zip` (SHA256: `2DCF00E47A80B955345E42A7B4F8D2F6D4CCEC70824C57C5FE254D5C0EC9E07C`, 6/6 manifest match).
@@ -31,14 +37,20 @@ Publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261
 
 **P09-B — TowardTarget Dash Foundation: completed.**
 
-Next concrete action: read the current roadmap and locked design authorities to propose the next bounded gameplay scope. Do not start a new milestone or roll out production skill assets until that scope is approved. Gameplay functionality stays ahead of finished UI/polish.
+**Active task — AUDIT_GAMEPLAY_GAP_20261005: READ-ONLY AUDIT AUTHORIZED / PROMPT PREPARED / EXECUTOR AUDIT NOT YET EXECUTED.** The Owner requested takeover and a bounded design/source/content/player-flow audit when a complete implementation roadmap is absent. The roadmap stages remain PROPOSALS; no new feature/milestone is approved.
+
+Next concrete action: Antigravity follows [PROMPT_ANTIGRAVITY_GAMEPLAY_GAP_AUDIT_20261005.md](PROMPT_ANTIGRAVITY_GAMEPLAY_GAP_AUDIT_20261005.md), returns the eight-group matrix and one bounded gameplay proposal; Codex reviews and prepares the implementation scope. No Unity launch/tests/runtime/assets/save edits in this audit. No additional Owner playtest or P08/P09 acceptance ZIP is requested. Findings, local/remote baselines and mirror repair scope: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md).
+
+Local E:\code\TLTD was read without project mutations: HEAD 5eafa685b830282665aca72323ef143ff063f9f5, main, three tracked modifications and 533 untracked at the takeover snapshot. The seven P09-B runtime hashes matched the locked decision. Remote-versus-local-HEAD comparison was two documentation-only commits; this does not certify the full working tree. Local memory remains unsynchronized; use a separate canonical authority snapshot for the audit and preserve all local changes.
+
+Gameplay functionality stays ahead of finished UI/polish. Production skill rollout and implementation of any proposed stage remain unauthorized until a bounded scope is approved.
 
 - Current status: **ACCEPTED / LOCKED — HANDOFF RECORDED**.
 - Gameplay contract: TowardTarget dash, move-only, zero damage, single Rage/CD commit at start, natural frames movement, distance clamp before target attack range, UI pause/resume, CC cancels dash.
 - Automation: Gate 1 P09-B 16/16 PASSED, Gate 1 P09-A 21/21 PASSED, Gate 1 P08 50/50 PASSED.
 - Manual observation GUI: M1–M7 and GUI controls confirmed USER_VERIFIED by Project Owner.
 - Persistence & Recovery: F-SAVE-P09B-01 closed on reviewed snapshot/metadata evidence: 24 baseline values at 15:14:04 +07:00, 2026-10-04 (Run ID `REC-P09B-20261004-151227`). Raw execution logs do not cover completion of Restore/Compare; preserve that boundary.
-- Pre-existing decisions preserved: P09-A (ACCEPTED/LOCKED), P08/R1 (ACCEPTED/LOCKED). Production balance TBD; 61 skill assets unmodified. No rollout to production skill assets authorized by this decision.
+- Pre-existing decisions preserved: P09-A (ACCEPTED/LOCKED), P08/R1 (ACCEPTED/LOCKED). Production balance TBD; historical acceptance recorded 61 skill assets unmodified. Current inventory is under audit; no rollout to production skill assets is authorized by this decision.
 
 ## Evidence boundary
 
@@ -51,7 +63,7 @@ Next concrete action: read the current roadmap and locked design authorities to 
 ## Handoff evidence addendum
 
 - Read [TECH_LEAD_HANDOFF_REVIEW_20261004.md](TECH_LEAD_HANDOFF_REVIEW_20261004.md) with the unchanged Codex decision. It documents partial raw logs and corrected provenance.
-- Current inventory supplied by Antigravity is timestamped 2026-10-04T19:04:13.432+07:00, HEAD `5eafa685b830282665aca72323ef143ff063f9f5`. Its eight tooling file hashes match supplied prior source. It does not remeasure the seven runtime files in the locked decision or certify the entire working tree.
+- Historical inventory supplied by Antigravity is timestamped 2026-10-04T19:04:13.432+07:00, HEAD `5eafa685b830282665aca72323ef143ff063f9f5`. Its eight tooling file hashes match supplied prior source. It does not remeasure the seven runtime files in the locked decision or certify the entire working tree.
 - Gameplay M1–M7 and GUI acceptance remain USER_VERIFIED. Do not request another test session for documentation work.
 
 ## Read next

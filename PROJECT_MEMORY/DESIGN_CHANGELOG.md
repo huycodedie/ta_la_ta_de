@@ -117,5 +117,44 @@ Purpose: preserve why locked decisions changed without destroying historical sou
 - This corrects the “0 warnings” summary accidentally written in commit 2ca6169 metadata/current milestone summary.
 - Warning correction does not affect the UI-02 LOCK decision.
 
+### Responsive portrait layout and deferred visual animation
+- The Project Owner clarified that `1080x1920` is a reference coordinate system, not the only supported screen size.
+- TLTD UI must support common portrait phones, tall screens, portrait tablets and Safe Area obstructions through anchors, flexible regions, bounded modal geometry and scrolling where required.
+- The immediate objective is responsive screen composition and information-layout design, followed by structural implementation and runtime/regression stabilization.
+- Final visual polish, decorative art, transitions, tweening and Unity `Animator` work are deferred until the game is stable and the responsive layout is accepted.
+- The supplied `Giang Hồ Trong Tay` Google Drive screenshot collection is approved as a visual/layout reference only; it does not create gameplay authority.
+- Phase B implementation must not begin by allowing an implementation agent to invent screen composition. A responsive layout specification/wireframe must be reviewed first.
+- Full authority: `PROJECT_MEMORY/UI_RESPONSIVE_LAYOUT_AUTHORITY.md`.
+- Status: `LOCKED — RESPONSIVE LAYOUT DIRECTION` as of 2026-09-17.
+
+## 2026-09-17 — UI-POLISH-01 Phase B1 out-of-sequence implementation review
+- The Project Owner supplied an Antigravity report claiming a local Phase B1 modal-coordination implementation, compile PASS, 17/17 new tests, 137/137 regressions and runtime scenarios A-F PASS.
+- The implementation occurred before the required responsive-layout/wireframe review and is therefore not accepted as canonical milestone evidence.
+- The source project is not a Git repository and the executor's local documentation commit `27ba4ce` was not pushed; its claims remain executor-reported rather than independently verified.
+- Further Phase B edits are frozen. Preserve the local work for read-only inspection and reconciliation after responsive layout approval; do not roll it back merely to restore the earlier status wording.
+- Canonical status: `Phase B1 = LOCAL IMPLEMENTATION REPORTED / NOT ACCEPTED / VERIFICATION PENDING`; UI-POLISH-01 remains not locked.
+- Detailed decision and technical blockers: `PROJECT_MEMORY/UI-POLISH-01_PHASE_B1_TECH_LEAD_REVIEW.md`.
+
+## 2026-09-17 — UI-POLISH-01 responsive layout approved and locked
+- The Project Owner approved the responsive portrait layout direction and specification.
+- `1080x1920` remains the reference coordinate system rather than a single-device target.
+- Locked coverage includes compact, standard and tall phones, narrow screens, portrait tablets and runtime Safe Area insets.
+- Locked structure includes a persistent five-position Global Bottom Navigation, flexible primary/context regions, a full-physical-screen modal backdrop, Safe Area-constrained modal content, bounded tablet width and scroll-based overflow handling.
+- `Công Pháp` remains a dedicated system screen/module.
+- Final visual polish, decorative assets, transitions and Unity `Animator` remain deferred until runtime stability.
+- This approval does not accept the out-of-sequence local B1 implementation. B1 requires actual-source inspection, controlled reconciliation and rerun verification.
+- Authority: `PROJECT_MEMORY/UI-POLISH-01_RESPONSIVE_LAYOUT_SPEC.md`.
+- Status: `LOCKED — PROJECT OWNER APPROVED RESPONSIVE LAYOUT AUTHORITY` as of 2026-09-17.
+
+### Persistent continuity and Git synchronization
+- The Project Owner requires every approved project decision to be committed, pushed and verified in the memory repository so work can continue across new chats and changed workspaces without losing context.
+- ChatGPT/Codex is the primary coordinator, Tech Lead/design authority and memory publisher.
+- Antigravity is the secondary Unity implementation/test executor and may not independently redefine locked authority.
+- GitHub `huycodedie/Ai_MEMORY_TLTD` branch `main` is the persistent canonical memory source.
+- `ACTIVE_WORK_HANDOFF.md` records the exact current state and next authorized action; it must be updated whenever accepted work changes the continuation point.
+- A local-only commit or unpushed conversation decision is not considered durably synchronized.
+- Full policy: `PROJECT_MEMORY/CONTINUITY_AND_SYNC_AUTHORITY.md`.
+- Status: `LOCKED — CONTINUITY AND GIT SYNC POLICY` as of 2026-09-17.
+
 ## Future revision rule
 Every new gameplay or UI change must record: old rule -> evidence/reason -> new rule -> status -> affected milestone/code -> tests required. Never delete historical decisions to hide a conflict.

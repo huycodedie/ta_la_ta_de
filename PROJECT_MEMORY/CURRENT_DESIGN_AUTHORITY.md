@@ -31,6 +31,8 @@ Read ACTIVE_WORK_HANDOFF.md for the exact current action.
 ## Purpose
 This file is the quick-reference authority for the **current** design state. It does not erase historical D documents. Historical rules remain traceable through `D1_D23_LOCKED.md`, amendment files, and `DESIGN_CHANGELOG.md`.
 
+Continuity and publication are governed by `PROJECT_MEMORY/CONTINUITY_AND_SYNC_AUTHORITY.md`. The exact active task and next step are recorded in `PROJECT_MEMORY/ACTIVE_WORK_HANDOFF.md`.
+
 ## Authority order
 1. Original user-approved D1-D23 decisions.
 2. Later explicit user-approved amendments/revisions that supersede an older rule.
@@ -99,7 +101,8 @@ If a conflict cannot be proven as superseded: STOP and report it. Never guess.
 - Major systems replace the Main Content Area above the navigation; they do not create a second navigation framework.
 - **Công Pháp is a dedicated system screen/module**, not another tab inside a generic all-purpose function panel.
 - Công Pháp may contain its own overview, category list, and detail sub-screens while retaining the global 5-position navigation shell.
-- Exact navigation labels/icons, portrait resolution, pixel layout, visual art and detailed interaction remain TBD unless separately approved.
+- `1080x1920` is the approved reference coordinate system, not a fixed single-device target. Responsive portrait layout, Safe Area handling, phone/tablet aspect coverage and the required layout-first implementation order are locked in `PROJECT_MEMORY/UI_RESPONSIVE_LAYOUT_AUTHORITY.md`.
+- Exact navigation labels/icons, final per-screen geometry, final visual art and detailed interaction remain TBD until the responsive layout specification is reviewed.
 - Full structural rules are recorded in `PROJECT_MEMORY/UI_DESIGN_AUTHORITY.md`.
 
 ## P07.8 status
@@ -130,18 +133,13 @@ The runtime deadlock caused by Y-axis discrepancy ($Y = -1.2\text{m}$ vs $Y = -0
 
 *Status: Milestone UI-02 is LOCKED.*
 
-## UI-POLISH-01 status
-UI-POLISH-01 Phase A (Architecture Audit) is **AUDIT COMPLETE**.
-Implementation has **NOT STARTED**.
-- Scope audited: Modal coordination, full-screen input blocker / backdrop, mobile readability (1080x1920 reference portrait), floating combat text lifecycle, and listener lifecycle safety.
-- Root causes: 100% verified from code and visual evidence.
-- Proposed architecture: Non-intrusive `ModalCoordinator` with priority queuing, single exclusive blocking modal invariant, and full-screen `ModalBackdrop`. Zero modification to combat formulas, item stats, or `Time.timeScale`.
-- Implementation plan: Phased plan defined (Phase B1: Modal Exclusivity & Queue; Phase B2: Pending Payload Safety; Phase B3: Typography & Touch Targets; Phase B4: Damage Popup Lifecycle & Pooling).
-- Test matrix: 15 dedicated verification scenarios established.
-- Audit report: Complete documentation recorded in `PROJECT_MEMORY/UI-POLISH-01_ARCHITECTURE_AUDIT.md`.
-- Status rule: UI-POLISH-01 is NOT locked and NOT declared PASS. Implementation will begin in Phase B.
+## UI-POLISH-01 status — updated 2026-09-26
 
-*Milestone status: UI-02 remains LOCKED. UI-POLISH-01 = AUDIT COMPLETE / IMPLEMENTATION NOT STARTED. P08 remains NOT STARTED.*
+- UI-02 and the responsive layout authority stay LOCKED.
+- B1 is the preserved locked UI baseline used during accepted P08. The 2026-09-17 B1 review documents are historical; do not restart their old active task.
+- Full UI-POLISH-01 is not declared complete. Further typography, visual layout polish, decorative assets, popup styling, transitions and Animator work are deferred by the Project Owner until game functionality is complete.
+- Minimal functional/debug controls needed to exercise a newly scoped gameplay feature remain permissible within that feature's boundary.
+- The accepted P08 gameplay/loot contract is preserved.
 
 ## Implementation rule
 P01+ tested-and-accepted behavior may supersede an older historical design rule. Record the change; do not silently overwrite history.
@@ -150,4 +148,4 @@ P01+ tested-and-accepted behavior may supersede an older historical design rule.
 All execution/visual/regression numbers stated above come from user-provided project reports unless independently executed in the current chat. Never convert a report claim into independent verification.
 
 ## Continuation handoff
-For the full current-chat package, read `PROJECT_MEMORY/CHAT_HANDOFF_2026-09-16.md`.
+For current continuation, read `PROJECT_MEMORY/ACTIVE_WORK_HANDOFF.md` first. Use `PROJECT_MEMORY/CHAT_HANDOFF_2026-09-16.md` only as historical detailed context where still applicable.

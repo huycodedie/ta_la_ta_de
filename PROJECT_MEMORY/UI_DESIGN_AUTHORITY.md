@@ -3,7 +3,7 @@
 ## Purpose
 This document protects the current UI structural baseline so future UI work does not accidentally redesign or break the global navigation shell.
 
-This is a **structural UI authority**, not a final pixel-perfect visual specification. Visual styling, exact spacing, typography, icon artwork and decorative details may evolve without changing the locked structure below.
+This is a **structural UI authority**, not a final pixel-perfect visual specification. Responsive layout direction is additionally governed by `PROJECT_MEMORY/UI_RESPONSIVE_LAYOUT_AUTHORITY.md`. Visual styling, exact spacing, typography, icon artwork and decorative details may evolve without changing the locked structure below.
 
 ## Status
 `LOCKED — UI STRUCTURE BASELINE`
@@ -13,6 +13,8 @@ This is a **structural UI authority**, not a final pixel-perfect visual specific
 - All major UI screens must be designed for portrait usage first.
 - Do not design a landscape-first layout and merely scale/crop it into portrait.
 - Future UI systems must respect the portrait content area and mobile safe-area constraints.
+- `1080x1920` is the reference coordinate system, not the only supported device resolution.
+- Common portrait phones, tall phones, tablets and obstructed Safe Areas must be handled through responsive anchors and layout behavior.
 
 ## 2. Global Navigation Bar
 The bottom navigation shown in the current reference is part of the **global game shell**, not part of the Cultivation/Công Pháp screen itself.
@@ -113,14 +115,21 @@ These names are architectural examples, not a mandate to create every class imme
 ## 8. What is NOT locked yet
 The following remain open unless separately approved:
 - Exact five navigation labels/icons.
-- Exact portrait resolution/reference device.
-- Exact dimensions, spacing and anchors.
+- Final per-screen dimensions and spacing within the locked responsive framework.
+- Exact breakpoint values if implementation evidence requires refinement.
 - Final fonts, colors, borders and decorative art.
 - Exact Công Pháp category names beyond sourced/approved terminology.
 - Exact number of Công Pháp entries.
 - Exact interaction/animation details.
 - Exact placement and size of the character artwork.
 - Whether some system screens temporarily hide the global navigation in a future explicitly approved full-screen mode.
+
+The following are now separately locked in `UI_RESPONSIVE_LAYOUT_AUTHORITY.md`:
+- `1080x1920` as the reference coordinate system only.
+- Responsive portrait support across common phone/tablet aspect ratios.
+- Safe Area handling.
+- Layout/wireframe approval before broad UI implementation.
+- Structural/runtime stability before final visual polish and Animator work.
 
 ## 9. Change protection rule
 If a future implementation request would:
