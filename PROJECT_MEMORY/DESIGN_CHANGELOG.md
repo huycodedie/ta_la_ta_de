@@ -1,5 +1,16 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-05 — Publish accepted P09-B closure and restore current handoff
+
+- LOCKED DECISION: P09-B Dash Foundation was accepted on 2026-10-04 within reviewed runtime/fixture scope. F-SAVE-P09B-01 CLOSED / RECOVERY ACCEPTED; N-META CLOSED; preflight FIX VERIFIED.
+- PRIOR ACCEPTANCE PRESERVED: P09-A Projectile Foundation, P08/R1, S01–S05 and M1–M7 / GUI user verification remain in force. This publication fills the remote documentation gap; it is not a new implementation or a new Unity run.
+- VERIFIED PACKAGE EVIDENCE: corrected handoff ZIP 17/17 payload hashes; original Codex decision preserved byte-for-byte. Full scope and source hashes: DECISION_P09B_ACCEPTED_LOCKED_20261004.md; new raw-log limits and provenance corrections: TECH_LEAD_HANDOFF_REVIEW_20261004.md.
+- EVIDENCE LIMITS: raw Restore/execution PARTIAL; baseline Compare/preflight METADATA_ONLY. Recovery snapshot 24/24 names/kinds/truncated digests matched baseline; this is not an independent live Registry full-byte inspection. Historical PID 25360 and P09-A E2 outcomes are not rewritten.
+- USER-PROVIDED EVIDENCE: Antigravity reported corrected local handoff synchronization complete on 2026-10-04 23:40 +07:00. Local E:\code\TLTD was not directly inspected by Codex during publication.
+- EXPLICIT AUTHORIZATION: on 2026-10-05 the Owner requested “nếu đã chốt thì hãy gửi nó lên git”. Publish scoped acceptance/continuity documentation to canonical memory and the game memory mirror. This supersedes the previous task's no-push restriction only for this documentation publication; no runtime/assets/tests/save changes.
+- SUPERSEDED CONTINUATION: older instructions treating P09-A as pending implementation or Dash as the immediate unstarted next slice are historical. Next action is roadmap/scope review, not another P09-B acceptance cycle or production skill rollout.
+- Publication scope/provenance: P09B_GIT_PUBLICATION_20261005.md. Preserve all unrelated historical decisions below.
+
 ## 2026-09-26 — P08 acceptance and gameplay-first continuation
 
 - LOCKED DECISION: the Project Owner personally tested the final conditions in Unity and confirmed they work. Tech Lead closes P08 as ACCEPTED / LOCKED.

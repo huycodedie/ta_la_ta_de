@@ -1,6 +1,20 @@
 # TLTD — AI HANDOFF
 
-## Current decision update — 2026-09-26
+## Current decision update — 2026-10-05
+
+**P09-B DASH FOUNDATION = ACCEPTED / LOCKED** (accepted 2026-10-04). **F-SAVE-P09B-01 = CLOSED / RECOVERY ACCEPTED**; N-META CLOSED; journal preflight FIX VERIFIED. Scope and runtime hashes: [DECISION_P09B_ACCEPTED_LOCKED_20261004.md](DECISION_P09B_ACCEPTED_LOCKED_20261004.md); evidence limits: [TECH_LEAD_HANDOFF_REVIEW_20261004.md](TECH_LEAD_HANDOFF_REVIEW_20261004.md).
+
+**P09-A Projectile Foundation remains ACCEPTED / LOCKED**, with F-MANUAL-AUTONOMY closed and N1/N2 maintenance verified; [DECISION_P09A_ACCEPTED_LOCKED_20260927.md](DECISION_P09A_ACCEPTED_LOCKED_20260927.md). P08/R1 and prior locked gameplay remain preserved. Owner manual results S01–S05 and M1–M7 / GUI controls remain USER_VERIFIED.
+
+Recovery acceptance is based on the reviewed snapshot/metadata; raw Restore/execution logs remain PARTIAL and baseline Compare/preflight METADATA_ONLY. Preserve old PID 25360 as USER_REPORTED_PASS / RESTORE_UNRESOLVED and P09-A E2 as SCENARIO_PASS_EXIT_TIMEOUT / exit 2. Do not rewrite historical outcomes.
+
+The Owner explicitly authorized Git publication on 2026-10-05; exact documentation-only boundary: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md). This supersedes the earlier handoff task's local no-push restriction for this publication only.
+
+Next action: consult the current roadmap and propose the next bounded gameplay scope. Do not restart accepted P09-A/P09-B tests or enable production skill assets without a separately approved scope. Gameplay functionality remains the priority; finished UI/polish remains deferred. Read [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md).
+
+The dated sections below are historical where their milestone status or next-action wording conflicts with this update; preserve their evidence, including P08 Gate 2's accepted legacy exceptions.
+
+## Historical decision update — 2026-09-26
 
 **P08 = ACCEPTED / LOCKED**, closed by Project Owner direct Unity acceptance and Tech Lead decision. Full contract/evidence: [P08_LOCKED.md](P08_LOCKED.md).
 
