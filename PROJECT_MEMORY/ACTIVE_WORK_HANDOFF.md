@@ -1,5 +1,7 @@
 # ACTIVE WORK HANDOFF — TLTD
 
+New-chat operating guide: [TLTD_NEW_CHAT_CONTINUATION_MASTER.md](TLTD_NEW_CHAT_CONTINUATION_MASTER.md). It consolidates working history, workflow, evidence rules, storage locations and a proposed completion roadmap. Proposed stages are not new implementation authorization; this active handoff and later explicit decisions remain the current task authority.
+
 Last synchronization update: 2026-10-05 (UTC+07:00).
 Latest gameplay acceptance: 2026-10-04.
 Canonical memory: huycodedie/Ai_MEMORY_TLTD, branch main.
