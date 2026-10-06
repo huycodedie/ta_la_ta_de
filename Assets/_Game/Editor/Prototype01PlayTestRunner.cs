@@ -8418,10 +8418,10 @@ namespace WuxiaGame.Editor
             res.DismantleEquipment(item);
 
             bool goldGranted = res.Gold > gold0;
-            bool matGranted = res.Material > mat0;
-            bool ok = goldGranted && matGranted && (res.Gold == gold0 + 200) && (res.Material == mat0 + 1);
+            bool matUnchanged = res.Material == mat0;
+            bool ok = goldGranted && matUnchanged && (res.Gold == gold0 + 200) && (res.Material == mat0);
 
-            Debug.Log($"[P05.7-14] Correct resources are granted -> Gold: {gold0} -> {res.Gold}, Material: {mat0} -> {res.Material} | {(ok ? "PASS" : "FAIL")}");
+            Debug.Log($"[P05.7-14] Correct resources are granted (Gold only per A10) -> Gold: {gold0} -> {res.Gold}, Material: {mat0} -> {res.Material} (Unchanged) | {(ok ? "PASS" : "FAIL")}");
 
             TeardownTestEncounter(heroGO, bmGO, progGO);
             return ok;
@@ -10164,8 +10164,8 @@ namespace WuxiaGame.Editor
             int goldAfter = ResourceManager.Instance.Gold;
             int matAfter = ResourceManager.Instance.Material;
 
-            bool ok = (goldAfter > goldBefore && matAfter > matBefore);
-            Debug.Log($"[P05.7.2-28] TÁCH grants the correct resources -> Gold: {goldBefore} -> {goldAfter}, Mat: {matBefore} -> {matAfter} | {(ok ? "PASS" : "FAIL")}");
+            bool ok = (goldAfter > goldBefore && matAfter == matBefore);
+            Debug.Log($"[P05.7.2-28] TÁCH grants the correct resources (Gold only per A10) -> Gold: {goldBefore} -> {goldAfter}, Mat: {matBefore} -> {matAfter} (Unchanged) | {(ok ? "PASS" : "FAIL")}");
 
             Object.DestroyImmediate(dropSysGO);
             TeardownTestEncounter(heroGO, bmGO, progGO);
@@ -10747,8 +10747,8 @@ namespace WuxiaGame.Editor
             bm.CurrentMonster.Health.TakeDamage(2000f);
             bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
 
-            bool ok = (ResourceManager.Instance.Gold > goldBefore && ResourceManager.Instance.Material > matBefore);
-            Debug.Log($"[P05.7.3-13] TÁCH still works correctly -> Gold: {ResourceManager.Instance.Gold}, Mat: {ResourceManager.Instance.Material} | {(ok ? "PASS" : "FAIL")}");
+            bool ok = (ResourceManager.Instance.Gold > goldBefore && ResourceManager.Instance.Material == matBefore);
+            Debug.Log($"[P05.7.3-13] TÁCH still works correctly (Gold only per A10) -> Gold: {ResourceManager.Instance.Gold}, Mat: {ResourceManager.Instance.Material} (Unchanged) | {(ok ? "PASS" : "FAIL")}");
 
             Object.DestroyImmediate(dropSysGO);
             TeardownTestEncounter(heroGO, bmGO, progGO);
@@ -11128,8 +11128,8 @@ namespace WuxiaGame.Editor
 
             bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
 
-            bool ok = (ResourceManager.Instance.Gold > goldBefore && ResourceManager.Instance.Material > matBefore);
-            Debug.Log($"[P05.7.4-16] Dismantle materials are awarded correctly -> Gold gained: {ResourceManager.Instance.Gold - goldBefore}, Mat gained: {ResourceManager.Instance.Material - matBefore} | {(ok ? "PASS" : "FAIL")}");
+            bool ok = (ResourceManager.Instance.Gold > goldBefore && ResourceManager.Instance.Material == matBefore);
+            Debug.Log($"[P05.7.4-16] Dismantle awards Gold only per A10 -> Gold gained: {ResourceManager.Instance.Gold - goldBefore}, Mat gained: {ResourceManager.Instance.Material - matBefore} (Expected 0) | {(ok ? "PASS" : "FAIL")}");
 
             TeardownTestEncounter(heroGO, bmGO, progGO);
             return ok;

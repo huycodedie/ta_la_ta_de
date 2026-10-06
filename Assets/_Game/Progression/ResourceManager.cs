@@ -140,14 +140,14 @@ namespace WuxiaGame.Progression
                 inv.RemoveItem(item);
             }
 
-            // 2. Compute resource gain based on rarity and level
-            int matGain = item.Rarity != null ? Mathf.Max(1, item.Rarity.OrderIndex) : 1;
+            // 2. Compute resource gain: Gold only per D1_D23_AMENDMENTS_LOCKED A10 & CURRENT_DESIGN_AUTHORITY
+            // Preserved baseline implementation formula (TBD balance): Mathf.Max(50, item.EquipmentLevel * 100)
             int goldGain = Mathf.Max(50, item.EquipmentLevel * 100);
+            int matGain = 0; // Contract locked: Recycle awards GOLD ONLY, no Material, no EXP
 
             AddGold(goldGain);
-            AddMaterial(matGain);
 
-            Debug.Log($"[DISMANTLE] Dismantled {item.ItemName} -> +{goldGain} Gold, +{matGain} Material");
+            Debug.Log($"[DISMANTLE] Dismantled {item.ItemName} -> +{goldGain} Gold (Gold only)");
             return (goldGain, matGain);
         }
     }
