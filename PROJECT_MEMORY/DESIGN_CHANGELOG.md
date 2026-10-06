@@ -1,5 +1,15 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-06 — Review Gold-only correction; isolate new test-harness risk
+
+- EXISTING LOCKED DECISION: A10 recycle Gold-only is unchanged. Source restores that contract; current Gold formula remains preserved implementation/TBD balance, no new product decision.
+- VERIFIED SOURCE/EVIDENCE: four-file source commit01c5b23 already on game main; ResourceManager minimal Gold-only change and four old assertion groups reviewed. Final targeted batch EditMode fixture5/5, OS exit0; all3 raw wrappers historical RestoreSUCCESS/Diff0. Codex read evidence, did not run Unity/live Registry compare.
+- BOUNDED ACCEPTANCE: runtime reward fix ACCEPTED within source/fixture scope; total F-RECYCLE-GOLD-ONLY-01 closeout PENDING HARNESS SAFETY FIX. Unsafe interactive runner menu/persistence mutation and owned-fixture cleanup are new tooling findings, not reopened P08/P09 acceptance.
+- ACTIVE SCOPED TASK: F-RECYCLE-HARNESS-SAFE-ENTRY-01; remove interactive bypass, make teardown safe, one guarded batch run after this new tooling delta. Exact prompt and limits in ACTIVE_WORK_HANDOFF/review; Antigravity executes, Codex reviews.
+- EVIDENCE LIMITS: R3 API/dummy-modal/queue, R5 immediatePrefs/own listener; no new natural-frame/UI/reload claims. Metadata corrections preserve raw logs and prior failed runs. P08 Gate2, P09-A E2 and P09-B recovery evidence limits remain unchanged.
+- PROPOSALS/TBD: Stage progress/Boss Gate foundation and Material acquisition gap remain deferred; no feature/skill assets rollout, reward source or balance authorization.
+- DOCUMENTATION PUBLICATION: scoped review/prompt/current handoff, canonical memory plus game memory mirror. No source/asset/save changes by Codex; dirty E: preserved.
+
 ## 2026-10-05 — Publish accepted P09-B closure and restore current handoff
 
 - LOCKED DECISION: P09-B Dash Foundation was accepted on 2026-10-04 within reviewed runtime/fixture scope. F-SAVE-P09B-01 CLOSED / RECOVERY ACCEPTED; N-META CLOSED; preflight FIX VERIFIED.

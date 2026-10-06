@@ -1,6 +1,6 @@
 # CURRENT DESIGN AUTHORITY — TLTD
 
-## Current decision update — 2026-10-05
+## Current decision update — 2026-10-06
 
 **P09-B DASH FOUNDATION = ACCEPTED / LOCKED** (accepted 2026-10-04). **F-SAVE-P09B-01 = CLOSED / RECOVERY ACCEPTED**; N-META CLOSED; journal preflight FIX VERIFIED. Scope and runtime hashes: [DECISION_P09B_ACCEPTED_LOCKED_20261004.md](DECISION_P09B_ACCEPTED_LOCKED_20261004.md); evidence limits: [TECH_LEAD_HANDOFF_REVIEW_20261004.md](TECH_LEAD_HANDOFF_REVIEW_20261004.md).
 
@@ -10,7 +10,9 @@ Recovery acceptance is based on the reviewed snapshot/metadata; raw Restore/exec
 
 The Owner explicitly authorized Git publication on 2026-10-05; exact documentation-only boundary: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md). This supersedes the earlier handoff task's local no-push restriction for this publication only.
 
-Next action: consult the current roadmap and propose the next bounded gameplay scope. Do not restart accepted P09-A/P09-B tests or enable production skill assets without a separately approved scope. Gameplay functionality remains the priority; finished UI/polish remains deferred. Read [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md).
+Gold-only recycle correction restores existing A10, reviewed 2026-10-06: runtime reward fix ACCEPTED within source/batch EditMode fixture evidence, total F-RECYCLE-GOLD-ONLY-01 closeout PENDING HARNESS SAFETY FIX. This does not lock the current Gold formula or new balance. Evidence limits/metadata corrections: [TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md](TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md).
+
+Next action: only the scoped new-runner safety/teardown task F-RECYCLE-HARNESS-SAFE-ENTRY-01 in [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md). P08/P09-A/P09-B acceptance remains preserved; no new Owner playtest, broad suite or closure ZIP. Stage/Boss roadmap remains PROPOSAL, no skill rollout/Material source/UI polish implementation authorization.
 
 The dated sections below are historical where their milestone status or next-action wording conflicts with this update; preserve their evidence, including P08 Gate 2's accepted legacy exceptions.
 
