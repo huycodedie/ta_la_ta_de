@@ -2,28 +2,29 @@
 
 New-chat operating guide: [TLTD_NEW_CHAT_CONTINUATION_MASTER.md](TLTD_NEW_CHAT_CONTINUATION_MASTER.md). It consolidates working history, workflow, evidence rules, storage locations and a proposed completion roadmap. Proposed stages are not new implementation authorization; this active handoff and later explicit decisions remain the current task authority.
 
-Last synchronization update: 2026-10-06 (UTC+07:00).
+Last synchronization update: 2026-10-07 (UTC+07:00).
 Latest gameplay milestone acceptance: 2026-10-04.
+Latest corrective closeout: 2026-10-07; no new gameplay milestone LOCK.
 Canonical memory: huycodedie/Ai_MEMORY_TLTD, branch main.
 Historical P09B publication bases observed: memory `8ff7f79fcdcbb966a88e9a74fd41bd97c5c4a9c2`; game `5eafa685b830282665aca72323ef143ff063f9f5`.
 Resolve the publishing commit/main for the final synchronization SHA; a file cannot embed its own commit hash.
 Historical P09B publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md).
 
-## Recycle review and active tooling fix — 2026-10-06
+## Recycle corrective closeout and next read-only spec — 2026-10-07
 
-**AUDIT_GAMEPLAY_GAP_20261005 = REVIEW COMPLETE / CLOSED WITH REVIEW ADDENDUM.** Four artifacts read; matrix has 22 rows/9 columns covering all eight groups; 19/19 listed source/scene hashes and bytes matched. Review corrects artifact metadata, proposal authority and static-evidence claims: [TLTD_GAMEPLAY_GAP_AUDIT_REVIEW_20261005.md](TLTD_GAMEPLAY_GAP_AUDIT_REVIEW_20261005.md). No new Unity/test or gameplay acceptance.
+**F-RECYCLE-HARNESS-SAFE-ENTRY-01 = CLOSED / FIX VERIFIED** within inspected safe entry and successful guarded batch EditMode fixture scope. **F-RECYCLE-GOLD-ONLY-01 = CLOSED / FIX VERIFIED WITH EVIDENCE LIMITS.** Review/decision: [TLTD_RECYCLE_CLOSEOUT_REVIEW_20261007.md](TLTD_RECYCLE_CLOSEOUT_REVIEW_20261007.md). A10 Gold-only stays LOCKED; current Gold formula stays preserved implementation/TBD balance, no new Material source/cost/reward decision.
 
-**F-RECYCLE-GOLD-ONLY-01 runtime reward fix = ACCEPTED within source + batch EditMode fixture evidence; total closeout = PENDING HARNESS SAFETY FIX.** Gold-only restores already LOCKED A10; formula remains preserved implementation/TBD balance. Review: [TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md](TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md). Final fixture5/5, OS exit0; all three historical wrappers RestoreSUCCESS/Diff0. R3 is API/dummy-modal/queue evidence, R5 immediatePrefs/own listener evidence; no new UI/natural-frame/reload acceptance.
+New runner removes interactive MenuItem/public suite bypass, rejects interactive/PlayMode before fixture mutation, uses a transient batch scene and owned cleanup. Run20261006_233820: PID10364,145.41s/300s,OS exit0,5/5,RestoreSUCCESS/Diff0; old/new preflight recorded and final journalVERIFIED. Negative/exception/absent-key branches SOURCE REVIEWED; no new GUI/natural-frame/reload or universal all-object/exception proof. Preserve original reports/logs; metadata/UTF-16 patch corrections are in the review, without reruns. Prior review: [TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md](TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md).
 
-**Next active task: F-RECYCLE-HARNESS-SAFE-ENTRY-01 — PROMPT PREPARED / NOT YET EXECUTED.** Follow [PROMPT_ANTIGRAVITY_RECYCLE_HARNESS_SAFE_ENTRY_20261006.md](PROMPT_ANTIGRAVITY_RECYCLE_HARNESS_SAFE_ENTRY_20261006.md): remove unsafe interactive MenuItem/public bypass before persistence mutation; make owned fixture/exception cleanup safe; one bounded Save-Guarded batch run for the changed harness only. No Owner playtest or P08/P09 rerun is requested.
+**Next active task: SPEC-STAGE-GATE-READONLY-01 — PROMPT PREPARED / NOT EXECUTED.** Follow [PROMPT_ANTIGRAVITY_STAGE_GATE_SCOPE_SPEC_READONLY_20261007.md](PROMPT_ANTIGRAVITY_STAGE_GATE_SCOPE_SPEC_READONLY_20261007.md) to produce scope/spec, planned acceptance matrix, decision packet and provenance only. Focus kill50 midwave/full-wave drain, every spawn/start/retry/advance bypass, partial checkpoint/loot identity and restore-before-bootstrap. Do not repeat the eight-group audit.
 
-Verified review baseline: canonical main8509e7fc1d37027786d765b2940b886fc89d588d; game remote and E:\code\TLTD HEAD01c5b23fa47dde9a61306f8d894a497b6d882673, parent6d9e1923b07deb28ca66d2ba3e1bb13e2c22c7be. That four-file source commit already existed; Codex did not create/push it or infer who did. Current E: status3tracked modifications+530untracked entries; source and original dirty docs were read/hashed, not changed. Preserve dirty local memory; use canonical snapshot tách biệt. Codex did not run Unity/tests/Save Guard or manipulate Registry/save.
+**Stage/Boss implementation remains NOT APPROVED.** State/schema/integration/gate-only exposure options remain proposals. A gate-only main-scene endpoint would stop farm without a Boss path; surface that product choice before implementation, never expose a fake Challenge button. No code/assets/scene/save changes or Unity/import/compile/tests in this read-only task. Boss combat/results/rewards/advance, Material source, skill rollout, Bun/offline/Companion and UI polish remain excluded.
 
-Original execution report/raw failures remain preserved. Review addendum corrects Unity command, meta/provenance hashes, timestamps, evidence mode and incomplete/encoding-damaged patch claims. A complete commit patch was exported locally for review, not copied into the memory repository. These metadata corrections need no runtime rerun.
+Verified review baselines: canonical main d1da751bd5b0eeeab37954feff9698ec9d4288a3; game main/local E:\code\TLTD HEAD393a0487083fd1e311db28cdf07393427769a4de, parent5d38dbbb4e6e49bf94105ba1ed38adff8b938cdd. That one-runner source commit already existed before Codex review; do not infer actor or attribute source push to Codex. Local status3tracked modifications+530untracked entries; production/generalrunner/meta/original dirty docs measured unchanged. Preserve dirty E: memory; read separate canonical snapshot. Codex did not run Unity/test/Save Guard or access live Registry/save.
 
-Stage/Boss and skill rollout proposals remain NOT APPROVED FOR IMPLEMENTATION. Required monster count is config-driven50, not5waves; retained100% until Boss WIN; active Title data does not support the alleged Stage blocker. Stage progress/Boss Gate foundation is a corrected next-feature proposal only. Material acquisition outside dismantle/debug remains an economy/content gap; do not invent rewards or change title/chest costs to compensate.
+**AUDIT_GAMEPLAY_GAP_20261005 = REVIEW COMPLETE / CLOSED WITH REVIEW ADDENDUM.** Eight-group map remains usable; [TLTD_GAMEPLAY_GAP_AUDIT_REVIEW_20261005.md](TLTD_GAMEPLAY_GAP_AUDIT_REVIEW_20261005.md) corrects original proposal authority and source claims. Current monster count50 config-driven, not5waves; gate100% retained to BossWIN; active Title data has no proven Stage blocker. Material acquisition remains an economy/content gap, not permission to invent rewards/cost changes.
 
-P08/P09-A/P09-B and recovery decisions/evidence limits remain unchanged. No owner playtest, broad retest or closure ZIP requested. Preserve original audit artifacts; corrections are in the review addendum.
+P08/P09-A/P09-B and recovery evidence/decisions unchanged. No Owner playtest, broad retest, recovery rerun or closure ZIP is requested.
 
 ## Historical takeover continuity — 2026-10-05
 
@@ -55,7 +56,7 @@ Documentation-only mirror repair restores five canonical authority files and fiv
 
 **Completed task — AUDIT_GAMEPLAY_GAP_20261005: READ-ONLY AUDIT REVIEWED / CLOSED WITH ADDENDUM.** The Owner requested takeover and a bounded design/source/content/player-flow audit when a complete implementation roadmap is absent. The roadmap stages remain PROPOSALS; no new feature/milestone is approved.
 
-Next concrete action: execute only F-RECYCLE-HARNESS-SAFE-ENTRY-01, then Codex reviews its source/raw delta and decides total recycle closeout. ResourceManager Gold-only fix is already reviewed; do not repeat that implementation or the gameplay gap audit. Stage progress/Boss Gate foundation remains a proposal for a later separately scoped action. Original takeover baselines and mirror repair scope: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md).
+Completed corrective tasks: F-RECYCLE-GOLD-ONLY-01 and F-RECYCLE-HARNESS-SAFE-ENTRY-01 CLOSED/FIX VERIFIED within documented evidence limits. Next concrete action: only SPEC-STAGE-GATE-READONLY-01; Antigravity returns a source-grounded scope/spec and Owner decision packet for Codex review, without implementation. Stage/Boss candidate remains PROPOSAL. Original takeover baselines/mirror repair scope: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md).
 
 Local E:\code\TLTD was read without project mutations: HEAD 5eafa685b830282665aca72323ef143ff063f9f5, main, three tracked modifications and 533 untracked at the takeover snapshot. The seven P09-B runtime hashes matched the locked decision. Remote-versus-local-HEAD comparison was two documentation-only commits; this does not certify the full working tree. Local memory remains unsynchronized; use a separate canonical authority snapshot for the audit and preserve all local changes.
 
@@ -90,7 +91,7 @@ Gameplay functionality stays ahead of finished UI/polish. Production skill rollo
 4. P09_PROJECTILE_FOUNDATION_TASK.md as historical scope; it does not reopen accepted P09-A/P09-B.
 5. D12_D14_LOCKED.md (D13 projectile/data authority), D1_D23_LOCKED.md and amendments.
 6. P07_9_LOCKED.md, P07_9_1_LOCKED.md and actual local source/tests.
-7. TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md and PROMPT_ANTIGRAVITY_RECYCLE_HARNESS_SAFE_ENTRY_20261006.md for the only active task.
+7. TLTD_RECYCLE_CLOSEOUT_REVIEW_20261007.md and PROMPT_ANTIGRAVITY_STAGE_GATE_SCOPE_SPEC_READONLY_20261007.md for the only active task.
 
 In the memory repository, some D documents are at repository root; in the game copy they are under PROJECT_MEMORY.
 

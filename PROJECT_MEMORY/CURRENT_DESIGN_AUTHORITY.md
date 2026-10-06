@@ -1,6 +1,6 @@
 # CURRENT DESIGN AUTHORITY — TLTD
 
-## Current decision update — 2026-10-06
+## Current decision update — 2026-10-07
 
 **P09-B DASH FOUNDATION = ACCEPTED / LOCKED** (accepted 2026-10-04). **F-SAVE-P09B-01 = CLOSED / RECOVERY ACCEPTED**; N-META CLOSED; journal preflight FIX VERIFIED. Scope and runtime hashes: [DECISION_P09B_ACCEPTED_LOCKED_20261004.md](DECISION_P09B_ACCEPTED_LOCKED_20261004.md); evidence limits: [TECH_LEAD_HANDOFF_REVIEW_20261004.md](TECH_LEAD_HANDOFF_REVIEW_20261004.md).
 
@@ -10,9 +10,9 @@ Recovery acceptance is based on the reviewed snapshot/metadata; raw Restore/exec
 
 The Owner explicitly authorized Git publication on 2026-10-05; exact documentation-only boundary: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md). This supersedes the earlier handoff task's local no-push restriction for this publication only.
 
-Gold-only recycle correction restores existing A10, reviewed 2026-10-06: runtime reward fix ACCEPTED within source/batch EditMode fixture evidence, total F-RECYCLE-GOLD-ONLY-01 closeout PENDING HARNESS SAFETY FIX. This does not lock the current Gold formula or new balance. Evidence limits/metadata corrections: [TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md](TLTD_RECYCLE_GOLD_ONLY_REVIEW_20261006.md).
+Recycle correction F-RECYCLE-GOLD-ONLY-01 = CLOSED / FIX VERIFIED WITH EVIDENCE LIMITS; follow-up F-RECYCLE-HARNESS-SAFE-ENTRY-01 = CLOSED / FIX VERIFIED, reviewed 2026-10-07. Scope: Gold-only source plus safe batch entry and successful guarded EditMode fixture evidence. No universal exception/object-count, GUI/natural-frame/reload proof. Existing A10 stays LOCKED; current Gold formula remains preserved implementation/TBD balance. Decision/corrections: [TLTD_RECYCLE_CLOSEOUT_REVIEW_20261007.md](TLTD_RECYCLE_CLOSEOUT_REVIEW_20261007.md).
 
-Next action: only the scoped new-runner safety/teardown task F-RECYCLE-HARNESS-SAFE-ENTRY-01 in [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md). P08/P09-A/P09-B acceptance remains preserved; no new Owner playtest, broad suite or closure ZIP. Stage/Boss roadmap remains PROPOSAL, no skill rollout/Material source/UI polish implementation authorization.
+Next action: SPEC-STAGE-GATE-READONLY-01 in [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md), a focused scope/spec and decision packet without Unity/source/save mutation or tests. Stage/Boss feature implementation/exposure remains NOT APPROVED; proposals are not LOCKED design. P08/P09-A/P09-B and recovery acceptance stay preserved. No Owner playtest, broad suite/ZIP, skill rollout, Material source or UI polish authorization.
 
 The dated sections below are historical where their milestone status or next-action wording conflicts with this update; preserve their evidence, including P08 Gate 2's accepted legacy exceptions.
 

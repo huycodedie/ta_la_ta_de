@@ -1,5 +1,14 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-07 — Close recycle correction; prepare read-only Stage/Gate spec
+
+- EXISTING LOCKED CONTRACT: A10 recycle Gold-only preserved; no new Gold formula/balance/Material source decision.
+- VERIFIED REVIEW: new runner hashF773DD.../28232bytes; current source commit393a048 already existed and changes one runner only. Safe entry/ownership/exception cleanup inspected; guarded batch EditMode runPID10364,145.41s,exit0,5/5,RestoreSUCCESS/Diff0,old/new preflight and final journalVERIFIED.16/16reported hash/byte rows matched; six original Gold-only raw logs unchanged. Codex did not rerun Unity/live Registry.
+- CORRECTIVE CLOSEOUT: F-RECYCLE-HARNESS-SAFE-ENTRY-01 CLOSED/FIX VERIFIED in source+successful normal guarded fixture scope; combined F-RECYCLE-GOLD-ONLY-01 CLOSED/FIX VERIFIED WITH EVIDENCE LIMITS. Negative/fault/absence branches source-reviewed; assigned-null predicates are not a complete object census. Preserve raw evidence, failures and original reports; wording/UTF-16 patch corrected through addendum, no retest.
+- NEXT AUTHORIZED ANALYSIS: SPEC-STAGE-GATE-READONLY-01 prepares scope/spec, planned checks and Owner decision packet, no code/assets/scene/save/Unity/tests. Gate pending/drain, all bypass routes, partial checkpoint/reopen and truthful gate-only exposure require precise scope. This does not approve Stage/Boss implementation or repeat the eight-group audit.
+- PRESERVED: P08/P09-A/P09-B ACCEPTED/LOCKED, USER_VERIFIED checks and all recovery/raw-log limits. Material acquisition gap and full Boss/Bun/offline/Companion/skill rollout remain deferred. No new Owner playtest/recovery rerun/ZIP requested.
+- PUBLICATION: only closeout/spec continuity documents in canonical memory and game memory mirror; E: dirty source/memory preserved.
+
 ## 2026-10-06 — Review Gold-only correction; isolate new test-harness risk
 
 - EXISTING LOCKED DECISION: A10 recycle Gold-only is unchanged. Source restores that contract; current Gold formula remains preserved implementation/TBD balance, no new product decision.
