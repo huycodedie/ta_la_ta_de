@@ -1,5 +1,14 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-07 — Review Stage Gate proposal; require bounded read-only revision
+
+- VERIFIED DOCUMENT REVIEW: four packet bytes/SHA match;9/10 manifest rows match current files, CURRENT_DESIGN_AUTHORITY baseline stale. Planned SG01–SG12 unexecuted; no Unity/test/SaveGuard/liveRegistry/save by Codex.
+- REVISION REQUIRED: separate EXP/Gold persistence and RAM Inventory/equipment/queue disprove wave-checkpoint zero-duplicate/no-loss assurances; per-death table contradicts wave-only policy. DropSystem adds Inventory before queue; EXP listener order/cold-start LoadState cannot be assumed. Static findings are not runtime crash/reopen proof.
+- EXISTING LOCKED INPUT CLARIFIED, NO NEW DESIGN: gate100% stays untilBossWIN; BossLOSE returns NormalScreen without normal progress/reward rollback. Preserve accepted P08 full-wave growth/channel/loot semantics; survivor resume is CURRENT SOURCE BEHAVIOR, preserve it or review an exact proposed delta; proposed gate states, persistence and exposure remain proposals. Submitted Replay reset/free-farm-through-ready/falseChallenge options are not approved.
+- NEXT AUTHORIZED ANALYSIS: SPEC-STAGE-GATE-READONLY-01-R1 corrects authority/retry/guard/schema/config/evidence and analyzes minimal persistence feasibility/dependencies. No code/assets/meta/scene/save/Unity/test; no new Owner questions until technical packet coherent. Review and executable prompt are separate files.
+- PRESERVED: P08/P09-A/P09-B ACCEPTED/LOCKED, both recycle corrective closeouts, P08Gate2 failures, P09-AE2timeout, oldPID25360restore-unresolved and recovery raw/metadata limits. No retest/recovery rerun/ZIP/skills/economy/Boss/Bun/offline/Companion/UIpolish activation.
+- CONTINUITY PUBLICATION: exact five PROJECT_MEMORY documents, canonical memory plus game memory mirror in clean isolated checkouts; local dirty E: preserved. Pre-publication refs0b538088/1410af4; publication refs verified separately.
+
 ## 2026-10-07 — Close recycle correction; prepare read-only Stage/Gate spec
 
 - EXISTING LOCKED CONTRACT: A10 recycle Gold-only preserved; no new Gold formula/balance/Material source decision.
