@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using WuxiaGame.Combat;
 using WuxiaGame.Core;
@@ -17,7 +18,7 @@ using WuxiaGame.UI.Modal;
 
 namespace WuxiaGame.Editor
 {
-    public class DummyModalView_Recycle : IModalView
+    internal class DummyModalView_Recycle : IModalView
     {
         public string ModalId { get; set; }
         public ModalPriority DefaultPriority => ModalPriority.Informational;
@@ -29,8 +30,65 @@ namespace WuxiaGame.Editor
 
     public static class Prototype01PlayTestRunner_RecycleGoldOnly
     {
-        [MenuItem("Tools/Wuxia RPG/Recycle/Run Recycle Gold Only Tests (R1 - R5)")]
-        public static bool RunAllRecycleGoldOnlyTests()
+        /// <summary>
+        /// Public entry point for CLI / BatchMode verification only.
+        /// Strictly rejects interactive Editor invocation before ANY fixture creation,
+        /// singleton reset, modal action, or PlayerPrefs access.
+        /// </summary>
+        public static void RunRecycleGoldOnlyCLI()
+        {
+            // 1. Interactive rejection: must NOT execute interactively in Editor
+            if (!Application.isBatchMode)
+            {
+                Debug.LogError("[F-RECYCLE-HARNESS-SAFE-ENTRY-01] Interactive Editor execution is strictly rejected. This suite mutates persistence/fixtures and must only be executed via the Save Guard batch wrapper.");
+                return;
+            }
+
+            // 2. Reject PlayMode or pending PlayMode transition
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[F-RECYCLE-HARNESS-SAFE-ENTRY-01] PlayMode or pending PlayMode transition detected in batch run. Rejecting execution.");
+                EditorApplication.Exit(1);
+                return;
+            }
+
+            // 3. Transient empty scene setup to isolate fixtures from any scene assets (do not save scene asset)
+            try
+            {
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+            catch (Exception sceneEx)
+            {
+                Debug.LogError($"[F-RECYCLE-HARNESS-SAFE-ENTRY-01] Failed to create transient empty scene: {sceneEx.Message}");
+                EditorApplication.Exit(1);
+                return;
+            }
+
+            // 4. Verify fresh batch context: reject if unowned singletons exist
+            if (ResourceManager.Instance != null || Inventory.Inventory.Instance != null || ProgressionManager.Instance != null || ModalCoordinator.Instance != null)
+            {
+                Debug.LogError("[F-RECYCLE-HARNESS-SAFE-ENTRY-01] Pre-existing scene singletons detected even in fresh scene. Aborting batch run.");
+                EditorApplication.Exit(1);
+                return;
+            }
+
+            // 5. Execute suite
+            try
+            {
+                bool passed = RunAllRecycleGoldOnlyTests();
+                EditorApplication.Exit(passed ? 0 : 1);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>
+        /// Private test suite orchestrator. Only callable by RunRecycleGoldOnlyCLI in batch mode.
+        /// </summary>
+        private static bool RunAllRecycleGoldOnlyTests()
         {
             Debug.Log("================================================================================");
             Debug.Log("   STARTING F-RECYCLE-GOLD-ONLY-01 TARGETED VERIFICATION SUITE (R1 -> R5)      ");
@@ -54,33 +112,18 @@ namespace WuxiaGame.Editor
             return allPass;
         }
 
-        public static void RunRecycleGoldOnlyCLI()
-        {
-            try
-            {
-                bool passed = RunAllRecycleGoldOnlyTests();
-                if (Application.isBatchMode)
-                {
-                    EditorApplication.Exit(passed ? 0 : 1);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-                if (Application.isBatchMode)
-                {
-                    EditorApplication.Exit(1);
-                }
-            }
-        }
-
         // =========================================================================
         // R1: Resource Result: Valid item -> Gold delta matches formula once,
         // tuple matGain = 0, Material and EXP unchanged, inventory handles identity
         // =========================================================================
         private static bool R1_ResourceResult_ValidItem_AwardsGoldOnly_MaterialAndExpUnchanged()
         {
-            SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog);
+            if (!SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog))
+            {
+                Debug.LogError("[R1 RESOURCE RESULT] SetupTestEnvironment failed.");
+                return false;
+            }
+
             bool pass = false;
 
             try
@@ -124,8 +167,15 @@ namespace WuxiaGame.Editor
         // =========================================================================
         private static bool R2_RejectedAndNullItem_NoRewardNoMutation_DuplicateCallRejected()
         {
-            SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog);
+            if (!SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog))
+            {
+                Debug.LogError("[R2 REJECTED/NULL] SetupTestEnvironment failed.");
+                return false;
+            }
+
             bool pass = false;
+            GameObject bmGO = null;
+            BattleManager bm = null;
 
             try
             {
@@ -138,8 +188,8 @@ namespace WuxiaGame.Editor
                 bool nullHandled = (nullGold == 0) && (nullMat == 0) && (res.Gold == gold0) && (res.Material == mat0);
 
                 // 2. BattleManager guard: CompleteLootDecisionAndResume when no loot is pending
-                GameObject bmGO = new GameObject("Test_BattleManager_R2");
-                BattleManager bm = bmGO.AddComponent<BattleManager>();
+                bmGO = new GameObject("Test_BattleManager_R2");
+                bm = bmGO.AddComponent<BattleManager>();
 
                 // Premature / no-item call must return false
                 bool prematureRejected = !bm.CompleteLootDecisionAndResume(equip: false, dismantle: true);
@@ -163,12 +213,27 @@ namespace WuxiaGame.Editor
                        firstDecisionAwardedCorrectly && duplicateRejected && noExtraRewardOnDuplicate;
 
                 Debug.Log($"[R2 REJECTED/NULL] NullHandled={nullHandled}, PrematureRejected={prematureRejected}, ResourcesUntouched={resourcesUntouchedAfterPremature}, FirstDecided={firstDecisionAwardedCorrectly}, DupRejected={duplicateRejected}, NoExtraReward={noExtraRewardOnDuplicate} | {(pass ? "PASS" : "FAIL")}");
-
-                UnityEngine.Object.DestroyImmediate(bmGO);
             }
             finally
             {
+                if (bm != null)
+                {
+                    CleanupBattleManagerMonsters(bm);
+                }
+                if (bmGO != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(bmGO);
+                    bmGO = null;
+                }
                 TeardownTestEnvironment(rootGO);
+            }
+
+            // Verify owned fixture cleanup count is 0
+            bool fixtureClean = (bmGO == null);
+            if (!fixtureClean)
+            {
+                Debug.LogError("[R2 REJECTED/NULL] Fixture cleanup failed: bmGO reference not cleanly destroyed.");
+                pass = false;
             }
 
             return pass;
@@ -180,11 +245,27 @@ namespace WuxiaGame.Editor
         // =========================================================================
         private static bool R3_SequentialLootModal_DismantleFirstItem_DuplicateRejected_NextItemIntact()
         {
-            SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog);
+            if (!SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog))
+            {
+                Debug.LogError("[R3 SEQUENTIAL LOOT] SetupTestEnvironment failed.");
+                return false;
+            }
+
+            // Fresh modal coordinator check: reject if unowned coordinator exists
+            if (ModalCoordinator.Instance != null)
+            {
+                Debug.LogError("[R3 SEQUENTIAL LOOT] Pre-existing ModalCoordinator detected. Aborting to protect unowned modal state.");
+                TeardownTestEnvironment(rootGO);
+                return false;
+            }
+
             bool pass = false;
+            GameObject bmGO = null;
+            BattleManager bm = null;
             GameObject coordGO = null;
-            DummyModalView_Recycle dummyView = null;
             ModalCoordinator coord = null;
+            DummyModalView_Recycle dummyView = null;
+            bool modalRegistered = false;
 
             try
             {
@@ -192,18 +273,15 @@ namespace WuxiaGame.Editor
                 int mat0 = 10;
                 res.SetResources(gold0, mat0);
 
-                GameObject bmGO = new GameObject("Test_BattleManager_R3");
-                BattleManager bm = bmGO.AddComponent<BattleManager>();
+                bmGO = new GameObject("Test_BattleManager_R3");
+                bm = bmGO.AddComponent<BattleManager>();
 
-                // Set up ModalCoordinator to simulate active modal blocking next loot presentation
-                coord = ModalCoordinator.Instance;
-                if (coord == null)
-                {
-                    coordGO = new GameObject("ModalCoordinator_R3");
-                    coord = coordGO.AddComponent<ModalCoordinator>();
-                }
+                coordGO = new GameObject("ModalCoordinator_R3");
+                coord = coordGO.AddComponent<ModalCoordinator>();
+
                 dummyView = new DummyModalView_Recycle { ModalId = "TestModal_R3" };
                 coord.RegisterModalView(dummyView);
+                modalRegistered = true;
 
                 // Open blocking modal before completing A so that B is held in queue awaiting presentation
                 var req = new ModalRequest("TestModal_R3", ModalPriority.SystemProgression, true, null);
@@ -250,21 +328,46 @@ namespace WuxiaGame.Editor
                        itemBIntactInQueue && bNowPending && bAwardedGoldOnly;
 
                 Debug.Log($"[R3 SEQUENTIAL LOOT] AAwardedGoldOnly={aAwardedGoldOnly}, DupRejected={duplicateRejected}, GoldSafeOnDup={goldUnchangedOnDup}, BIntactInQueue={itemBIntactInQueue}, BPresented={bNowPending}, BAwardedGoldOnly={bAwardedGoldOnly} | {(pass ? "PASS" : "FAIL")}");
-
-                UnityEngine.Object.DestroyImmediate(bmGO);
             }
             finally
             {
-                if (coord != null && dummyView != null)
+                // Clean up only owned dummy view; do NOT call ModalCoordinator.ResetInstance()
+                if (coord != null)
                 {
-                    coord.UnregisterModalView(dummyView);
+                    if (coord.ActiveRequest != null && coord.ActiveRequest.ModalId == "TestModal_R3")
+                    {
+                        coord.DismissActiveModal(DismissalReason.SystemDismissed);
+                    }
+                    if (dummyView != null && modalRegistered)
+                    {
+                        coord.UnregisterModalView(dummyView);
+                    }
+                }
+
+                if (bm != null)
+                {
+                    CleanupBattleManagerMonsters(bm);
+                }
+                if (bmGO != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(bmGO);
+                    bmGO = null;
                 }
                 if (coordGO != null)
                 {
                     UnityEngine.Object.DestroyImmediate(coordGO);
+                    coordGO = null;
                 }
-                ModalCoordinator.ResetInstance();
+
                 TeardownTestEnvironment(rootGO);
+            }
+
+            // Verify owned fixture cleanup: bmGO and coordGO destroyed
+            bool fixtureClean = (bmGO == null) && (coordGO == null) && (ModalCoordinator.Instance == null);
+            if (!fixtureClean)
+            {
+                Debug.LogError("[R3 SEQUENTIAL LOOT] Fixture cleanup failed: owned references not destroyed.");
+                pass = false;
             }
 
             return pass;
@@ -276,7 +379,12 @@ namespace WuxiaGame.Editor
         // =========================================================================
         private static bool R4_UnaffectedResources_AddMaterialAndConsumeStillFunctional()
         {
-            SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog);
+            if (!SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog))
+            {
+                Debug.LogError("[R4 UNAFFECTED RESOURCES] SetupTestEnvironment failed.");
+                return false;
+            }
+
             bool pass = false;
 
             try
@@ -308,16 +416,29 @@ namespace WuxiaGame.Editor
 
         // =========================================================================
         // R5: Persistence & Cleanup: Gold-only record goes through SaveState authority,
-        // PlayerPrefs reflects Gold change while Material remains exact
+        // PlayerPrefs reflects Gold change while Material remains exact.
+        // Preserves key-absence semantics and cleans listeners in finally.
         // =========================================================================
         private static bool R5_PersistenceAndCleanup_GoldPersistedViaSaveState_ListenersClean()
         {
-            SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog);
+            if (!SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog))
+            {
+                Debug.LogError("[R5 PERSISTENCE & CLEANUP] SetupTestEnvironment failed.");
+                return false;
+            }
+
             bool pass = false;
 
-            // Preserve existing PlayerPrefs values before test
-            int origPrefGold = PlayerPrefs.GetInt("TLTD_Gold", 0);
-            int origPrefMat = PlayerPrefs.GetInt("TLTD_Material", 0);
+            // Capture exact presence and value of local test keys before mutation to preserve key-absence semantics.
+            // NOTE: This local key restoration provides in-test state isolation only and is NOT a full baseline recovery.
+            // Authoritative baseline recovery and diff=0 verification are strictly performed by the outer Save Guard wrapper.
+            bool hadPrefGold = PlayerPrefs.HasKey("TLTD_Gold");
+            int origPrefGold = hadPrefGold ? PlayerPrefs.GetInt("TLTD_Gold") : 0;
+            bool hadPrefMat = PlayerPrefs.HasKey("TLTD_Material");
+            int origPrefMat = hadPrefMat ? PlayerPrefs.GetInt("TLTD_Material") : 0;
+
+            Action<int, int> testListener = null;
+            bool listenerSubscribed = false;
 
             try
             {
@@ -341,11 +462,16 @@ namespace WuxiaGame.Editor
 
                 // Listener cleanup check
                 int eventFireCount = 0;
-                Action<int, int> testListener = (g, m) => { eventFireCount++; };
+                testListener = (g, m) => { eventFireCount++; };
                 res.OnResourcesChanged += testListener;
+                listenerSubscribed = true;
+
                 res.AddGold(100);
                 bool listenerFired = (eventFireCount == 1);
+
                 res.OnResourcesChanged -= testListener;
+                listenerSubscribed = false;
+
                 res.AddGold(100);
                 bool listenerCleaned = (eventFireCount == 1);
 
@@ -354,11 +480,41 @@ namespace WuxiaGame.Editor
             }
             finally
             {
-                // Restore original PlayerPrefs values
-                PlayerPrefs.SetInt("TLTD_Gold", origPrefGold);
-                PlayerPrefs.SetInt("TLTD_Material", origPrefMat);
+                // Exception-safe listener unsubscription
+                if (listenerSubscribed && res != null && testListener != null)
+                {
+                    res.OnResourcesChanged -= testListener;
+                    listenerSubscribed = false;
+                }
+
+                // Preserve local key existence / absence semantics
+                if (hadPrefGold)
+                {
+                    PlayerPrefs.SetInt("TLTD_Gold", origPrefGold);
+                }
+                else
+                {
+                    PlayerPrefs.DeleteKey("TLTD_Gold");
+                }
+
+                if (hadPrefMat)
+                {
+                    PlayerPrefs.SetInt("TLTD_Material", origPrefMat);
+                }
+                else
+                {
+                    PlayerPrefs.DeleteKey("TLTD_Material");
+                }
                 PlayerPrefs.Save();
+
                 TeardownTestEnvironment(rootGO);
+            }
+
+            // Verify listener teardown
+            if (listenerSubscribed)
+            {
+                Debug.LogError("[R5 PERSISTENCE & CLEANUP] Listener cleanup failed: listener remained subscribed.");
+                pass = false;
             }
 
             return pass;
@@ -367,17 +523,44 @@ namespace WuxiaGame.Editor
         // =========================================================================
         // Test Environment Helpers
         // =========================================================================
-        private static void SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog)
+        private static bool SetupTestEnvironment(out GameObject rootGO, out ResourceManager res, out Inventory.Inventory inv, out ProgressionManager prog)
         {
-            rootGO = new GameObject("TestRoot_RecycleGoldOnly");
-            res = rootGO.AddComponent<ResourceManager>();
-            inv = rootGO.AddComponent<Inventory.Inventory>();
-            prog = rootGO.AddComponent<ProgressionManager>();
+            rootGO = null;
+            res = null;
+            inv = null;
+            prog = null;
 
-            // Reset singletons to point to our test instances
-            ResourceManager.ResetInstance();
-            Inventory.Inventory.ResetInstance();
-            ProgressionManager.ResetInstance();
+            // Reject if unowned singletons already exist in the environment
+            if (ResourceManager.Instance != null || Inventory.Inventory.Instance != null || ProgressionManager.Instance != null)
+            {
+                Debug.LogError("[SETUP] Pre-existing unowned singleton detected in environment prior to test setup. Refusing to reuse or reset external state.");
+                return false;
+            }
+
+            GameObject createdRoot = null;
+            try
+            {
+                createdRoot = new GameObject("TestRoot_RecycleGoldOnly");
+                res = createdRoot.AddComponent<ResourceManager>();
+                inv = createdRoot.AddComponent<Inventory.Inventory>();
+                prog = createdRoot.AddComponent<ProgressionManager>();
+
+                rootGO = createdRoot;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SETUP] Exception during SetupTestEnvironment: {ex.Message}");
+                if (createdRoot != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(createdRoot);
+                }
+                rootGO = null;
+                res = null;
+                inv = null;
+                prog = null;
+                return false;
+            }
         }
 
         private static void TeardownTestEnvironment(GameObject rootGO)
@@ -386,9 +569,33 @@ namespace WuxiaGame.Editor
             {
                 UnityEngine.Object.DestroyImmediate(rootGO);
             }
-            ResourceManager.ResetInstance();
-            Inventory.Inventory.ResetInstance();
-            ProgressionManager.ResetInstance();
+        }
+
+        private static void CleanupBattleManagerMonsters(BattleManager bm)
+        {
+            if (bm == null) return;
+            try
+            {
+                if (bm.ActiveMonsters != null)
+                {
+                    var monsters = new List<Monster>(bm.ActiveMonsters);
+                    foreach (var m in monsters)
+                    {
+                        if (m != null && m.gameObject != null)
+                        {
+                            UnityEngine.Object.DestroyImmediate(m.gameObject);
+                        }
+                    }
+                }
+                if (bm.CurrentMonster != null && bm.CurrentMonster.gameObject != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(bm.CurrentMonster.gameObject);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[CLEANUP] Exception cleaning up BattleManager monsters: {ex.Message}");
+            }
         }
     }
 }
