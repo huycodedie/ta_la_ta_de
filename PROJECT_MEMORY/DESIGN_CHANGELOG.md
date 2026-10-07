@@ -1,5 +1,14 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-07 — Close R1 analysis with addendum; authorize disposable lab integration spike
+
+- VERIFIED REVIEW: six R1SHA match; manifest actual503bytes inclBOM rather than500.14/16 read-manifest rows exact (12runtime+2D), two authority rows wrong/incomplete; old packet/dirtydocs hashes preserved. Actual13testrows/12families,17guardrows. All Stagechecks planned/unexecuted; no Unity/test/SaveGuard/liveRegistry by Codex.
+- ANALYSIS CLOSEOUT: SPEC-STAGE-GATE-READONLY-01-R1 CLOSED AS ANALYSIS WITH TECHLEAD ADDENDUM. BossLOSE100%, no-drop hook, survivor-resume/source ordering and evidence corrections retained. Editor-only mirror cannot prove unchangedBM guards/HUD; Stageprefix alone cannot isolate realEXP/Gold; no fullschema/framework-impossibility/fixture100% acceptance. Existing Goldformula remains preserved implementation/TBD balance.
+- TECHNICAL LAB AUTHORIZATION ONLY: SPIKE-STAGE-GATE-LAB-01 uses disposablecopy, exact source allowlist, owned RAM policy and unique company/product/CustomRegKey/freshlabjournal before Unity. Default owner profile/dirtyE:/oldrecovery unchanged. No source publication/transfer/productactivation/Stagepersistence; no new gameplayLOCK.
+- NEW STATIC INTEGRATION HAZARD: natural finishing-channel→first-loot path1291–1297 bypasses openflag initialization needed by PlayModecomplete1052. One targeted unmodified-baseline probe allowed; not a runtimeFAIL or reopenedP08. Any nonPASS stops before gatepatch; no automatic acceptedsourcefix. PhaseB bounded realintegration only after probePASS/verifiedlabcleanup.
+- DEFERRED: fullD18.23/highest-unlockedmapping/transactions/reopen/invalidsavedReady handling and interrupted finaldeath policy outside labproof. No Boss/content/Bun/offline/Companion/skills/Material/balance/UIpolish or Owner question/playtest now.
+- PRESERVED: all prior P08/P09-A/P09-B acceptance, USER_VERIFIED results, recyclecloseouts, raw failures/timeout/PID25360/recovery snapshot+metadata limits. Documentation-only canonical/game-memory publication; prepublication refs b6d5d0e/7441b9e, final refs verified separately.
+
 ## 2026-10-07 — Review Stage Gate proposal; require bounded read-only revision
 
 - VERIFIED DOCUMENT REVIEW: four packet bytes/SHA match;9/10 manifest rows match current files, CURRENT_DESIGN_AUTHORITY baseline stale. Planned SG01–SG12 unexecuted; no Unity/test/SaveGuard/liveRegistry/save by Codex.

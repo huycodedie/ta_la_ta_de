@@ -10,11 +10,25 @@ Historical P09B publication bases observed: memory `8ff7f79fcdcbb966a88e9a74fd41
 Resolve the publishing commit/main for the final synchronization SHA; a file cannot embed its own commit hash.
 Historical P09B publication scope: [P09B_GIT_PUBLICATION_20261005.md](P09B_GIT_PUBLICATION_20261005.md).
 
-## Stage Gate spec review and required read-only revision — 2026-10-07
+## R1 review closeout and authorized disposable lab spike — 2026-10-07
+
+**SPEC-STAGE-GATE-READONLY-01-R1 = REVIEW COMPLETE / CLOSED AS ANALYSIS WITH TECH LEAD ADDENDUM.** Read [TLTD_STAGE_GATE_R1_REVIEW_AND_LAB_SCOPE_20261007.md](TLTD_STAGE_GATE_R1_REVIEW_AND_LAB_SCOPE_20261007.md). R1 source/citation/matrix corrections retained; all-findings-resolved/full-foundation/100%fixture claims not accepted. Six SHA match, manifest503bytes/BOM rather than500;14/16 source/authority rows exact, two provenance rows wrong/incomplete. Actual matrix13rows/12families and guard17rows; all Stagechecks remain planned/unexecuted. Originals retained; metadata corrections require no rerun/ZIP.
+
+**Next active task: SPIKE-STAGE-GATE-LAB-01 — AUTHORIZED LAB ONLY / PROMPT PREPARED.** Give Antigravity [PROMPT_ANTIGRAVITY_STAGE_GATE_LAB_SPIKE_20261007.md](PROMPT_ANTIGRAVITY_STAGE_GATE_LAB_SPIKE_20261007.md). Real BattleManager/Bootstrap/HUD integration in a disposable Unity copy outside E:, Stage RAM-only and opt-in per owned fixture. No Editor mirror as real route proof. Before any Unity launch, use unique LAB company/product and exact matching CustomRegKey+freshBackupDir across all guard phases; Stage key prefixes/project folder alone do not isolate existing EXP/Gold. Default owner profile and recovery journals remain untouched; no bypass of global Unity-process conflict.
+
+**Phase A first:** one targeted natural channel→first-loot baseline probe with gate runtime unmodified. New static integration hazard: WaitForFinishingExecutionsThenProceed1289–1297 requests first loot without setting _isLootDecisionOpen, while PlayMode completion1052 requires it. This is not a runtime FAIL or reopened P08 acceptance. Probe FAIL/NOT_REACHED/block/timeout => preserve evidence/cleanup and STOP before gate patch; no accepted-source fix. Phase B real gate integration only after baselinePASS/profilecleanupverified; typed lifecycle tokens, valid completion/drain, guards before side effects and owned cleanup. Interrupted post-final-death edges stay observedBLOCKED/TBD/missingcoverage, not invented gameplay.
+
+**Production Stage/Boss implementation/exposure/persistence/source publication remains NOT APPROVED.** FullD18.23/transactions/reopen/versioned-progress deferred; no Stage assets/schema, source transfer into E:, main source push, Boss/content/Material/Bun/offline/Companion/skill rollout/UIpolish. This is a technical lab authorization, not a new product LOCK or completed playable Stage loop. No Owner question/playtest or repeated P08/P09 acceptance/ZIP now.
+
+Pre-publication refs verified: memoryb6d5d0ee01aca8c624a08c083253d41cc60ccb56; game main/E:7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425, source393a048 followed by docs-only1410/7441. Snapshot07/10 20:00:02+07:3tracked modifications+530untracked; original3dirtydocs match. Codex read source/docs and prepares/publishes docs only, no Unity/test/SaveGuard/liveRegistry/save. Final publishing refs/remote payload verification have a receipt. Lab task has not been claimed dispatched/executed.
+
+P08/P09-A/P09-B ACCEPTED/LOCKED and recycle corrective CLOSED remain unchanged with raw/recovery limits. Older next-task/no-Unity wording below belongs to closed read-only tasks and is historical where it conflicts with the explicit lab-only scope above.
+
+## Historical initial Stage Gate review and R1 assignment — 2026-10-07
 
 **SPEC-STAGE-GATE-READONLY-01 = REVIEW COMPLETE / REVISION REQUIRED**, submitted under executor alias AUDIT_STAGE_GATE_FOUNDATION_SPEC_20261007. Read [TLTD_STAGE_GATE_SPEC_REVIEW_20261007.md](TLTD_STAGE_GATE_SPEC_REVIEW_20261007.md). Four artifact hashes/bytes match;9/10 source manifest rows match current files, one CURRENT_DESIGN_AUTHORITY baseline is stale. SG01–SG12 remain PLANNED/NOT EXECUTED; no Stage gameplay acceptance.
 
-**Next active task: SPEC-STAGE-GATE-READONLY-01-R1 — AUTHORIZED ANALYSIS / PROMPT PREPARED.** Give Antigravity only [PROMPT_ANTIGRAVITY_STAGE_GATE_SPEC_REVISION_20261007.md](PROMPT_ANTIGRAVITY_STAGE_GATE_SPEC_REVISION_20261007.md). Create a new coherent spec/matrix/decision/provenance/revision-map packet. Do not overwrite original submission, execute Unity/tests or repeat the eight-group audit.
+**Historical R1 assignment, now completed/reviewed above.** Give Antigravity only [PROMPT_ANTIGRAVITY_STAGE_GATE_SPEC_REVISION_20261007.md](PROMPT_ANTIGRAVITY_STAGE_GATE_SPEC_REVISION_20261007.md). Create a new coherent spec/matrix/decision/provenance/revision-map packet. Do not overwrite original submission, execute Unity/tests or repeat the eight-group audit.
 
 Readiness blockers: wave-only Stage checkpoint cannot guarantee exactly-once rewards/no lost RAM loot because EXP/Gold write independently; save policy currently contradicts itself. Correct locked BossLOSE retaining100% untilWIN, actual survivor-resume vs Restart/reopen, no-drop hook outside nullable-drop branch, one full-wave/channel/loot/modal ready predicate and every spawn/register/command/deferred route. Complete versioned PlayerProgress/checkpoint/load ordering/config wiring and planned evidence oracles. DropSystem already inserts Inventory before enqueue; EXP listener ordering/load caller must not be assumed. Correct cold-start EXP restore is not runtime-verified; record the source load-order gap, no automatic existing-progression fix.
 
@@ -70,7 +84,7 @@ Documentation-only mirror repair restores five canonical authority files and fiv
 
 **Completed task — AUDIT_GAMEPLAY_GAP_20261005: READ-ONLY AUDIT REVIEWED / CLOSED WITH ADDENDUM.** The Owner requested takeover and a bounded design/source/content/player-flow audit when a complete implementation roadmap is absent. The roadmap stages remain PROPOSALS; no new feature/milestone is approved.
 
-Completed corrective tasks: F-RECYCLE-GOLD-ONLY-01 and F-RECYCLE-HARNESS-SAFE-ENTRY-01 CLOSED/FIX VERIFIED within documented evidence limits. Next concrete action: only SPEC-STAGE-GATE-READONLY-01-R1; Antigravity revises the source-grounded technical packet and persistence feasibility for Codex review, without implementation or Owner questions yet. Stage/Boss candidate remains PROPOSAL. Original takeover baselines/mirror repair scope: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md).
+Completed corrective tasks: F-RECYCLE-GOLD-ONLY-01 and F-RECYCLE-HARNESS-SAFE-ENTRY-01 CLOSED/FIX VERIFIED within documented evidence limits. Next concrete action: only SPIKE-STAGE-GATE-LAB-01 in a disposable Unity copy, baseline probe before any gate patch; real-source RAM integration follows only after probePASS. Production implementation/persistence remains unapproved. Stage/Boss candidate remains PROPOSAL. Original takeover baselines/mirror repair scope: [TLTD_TECH_LEAD_TAKEOVER_20261005.md](TLTD_TECH_LEAD_TAKEOVER_20261005.md).
 
 Local E:\code\TLTD was read without project mutations: HEAD 5eafa685b830282665aca72323ef143ff063f9f5, main, three tracked modifications and 533 untracked at the takeover snapshot. The seven P09-B runtime hashes matched the locked decision. Remote-versus-local-HEAD comparison was two documentation-only commits; this does not certify the full working tree. Local memory remains unsynchronized; use a separate canonical authority snapshot for the audit and preserve all local changes.
 
@@ -105,15 +119,15 @@ Gameplay functionality stays ahead of finished UI/polish. Production skill rollo
 4. P09_PROJECTILE_FOUNDATION_TASK.md as historical scope; it does not reopen accepted P09-A/P09-B.
 5. D12_D14_LOCKED.md (D13 projectile/data authority), D1_D23_LOCKED.md and amendments.
 6. P07_9_LOCKED.md, P07_9_1_LOCKED.md and actual local source/tests.
-7. TLTD_STAGE_GATE_SPEC_REVIEW_20261007.md and PROMPT_ANTIGRAVITY_STAGE_GATE_SPEC_REVISION_20261007.md for the only active task; recycle closeout and original spec prompt remain historical inputs.
+7. TLTD_STAGE_GATE_R1_REVIEW_AND_LAB_SCOPE_20261007.md and PROMPT_ANTIGRAVITY_STAGE_GATE_LAB_SPIKE_20261007.md for the only active task; R1/initial review/recycle closeout remain historical inputs.
 
 In the memory repository, some D documents are at repository root; in the game copy they are under PROJECT_MEMORY.
 
 ## Execution constraints
 
 - ChatGPT/Codex publishes accepted authority; Antigravity implements/tests within the scoped task.
-- The Owner explicitly authorized Git publication on 2026-10-05. This task permits scoped acceptance/continuity documentation commits and normal main updates in canonical memory and the game memory mirror. Earlier no-push wording belongs to the completed local handoff task. No gameplay/source/asset/save changes, unrelated staging, force-push, stash, reset, clean, or checkout overwrite is authorized.
-- Preserve uncommitted Unity work. No reset, force-push or broad source refactor.
+- The Owner explicitly authorized Git publication on 2026-10-05. This task permits scoped acceptance/continuity documentation commits and normal main updates in canonical memory and the game memory mirror. Earlier no-push wording belongs to the completed local handoff task. This Git publication scope does not authorize gameplay/source/asset/save changes, unrelated staging, force-push, stash, reset, clean, or checkout overwrite. Separate disposable lab authorization is stated below.
+- Preserve uncommitted Unity work. No reset, force-push or broad source refactor. Current lab-only authorization allows the exact disposable-copy edits/testing in SPIKE-STAGE-GATE-LAB-01; it does not authorize E: edits, source publication or product activation. Git publication remains documentation-only.
 - Existing gameplay authorities remain authoritative. New projectiles deliver through them.
 - UI changes are limited to essential functional/debug controls for the new feature; do not initiate finished UI design or polish.
 - Use bounded checks and direct owner testing when automation genuinely cannot exercise a path. Report what ran; do not manufacture PASS or repeat an unproductive loop.
