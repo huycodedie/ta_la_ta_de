@@ -1,6 +1,14 @@
 # DESIGN CHANGELOG — TLTD
 
-## 2026-10-08 — R3 static review partial; bounded STATIC-03-R1 revision
+## 2026-10-08 — STATIC-03-R1 partial review; require finite STATIC-03-R2 completion
+
+- STATIC03-R1 = STATIC REPAIR PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED; compilationNOTRUN/C0+A1–A5NOTEXECUTED. Packet18/manifest17/payload16 verified; pre/post6copiesmatch. Retain fixed actual API/real A2two-deaths/config/modalsetters/A1queueboundaries/A5defergate.
+- BLOCKERS: new IEnumerator helper missingyield/return (source-implied only); gameplay failure flags unaggregated/stopclassificationwrong; no guaranteed iterator/listener/config/driver cleanup, incomplete existing oracles; context/journal actualscope/process/PASS contradiction/sourcepayload/Ehistory gates still unfinished. Report13of15addendumrows/API/controlchars wrong; no invented CRLFcause/historicalproof.
+- NEXT STATIC03-R2 source-only finiteR1-01…08, exacttwofiles/no newcases/features. Promptprepared/nodispatchevidence/notexecuted; return source before separate runauthorization. BM/settings/metas/runtime/helpersfrozen; PhaseBSTOPPED; parentBMpatchacceptedwithlimits/overallpending; no sourcepublication/productdesign expansion.
+- PROOF/PRESERVATION: Codex exactwrapper AST0errors/patchcheck2of2 disposablecopiesunchanged/noapplication, not C#compile/runtimePASS. E22:14:33HEAD7441/fullporcelain3+530/17selected unchanged; prior95=93same+2allowed; historical19+8+27+17/archivespreserved; new113receivedinputs/archive18packet+22source/journal. Scopebounded, not wholebyte/save/globalprocessproof. Remote beforedocs memory37867d8e03a62d5b756019213df42a9f1541c794/game d55616fe96c7cea913fddb9cc5e8d1cc32863477 verified; exact5docs each/finalreceipt separate. NoCodexUnity/wrapper/Guard/Registry/Eedit/sourcepush.
+- LOCKS/HISTORY unchanged: PhaseA12100UNKNOWN/24764FAIL, corrective6792NOTREACHED/2684FAIL/16808raw5PASS, R2PID24052compileblocked/NOTREACHED/OS1; earlierrawmissing/causesUNVERIFIED. P08Gate2135/137exit1legacy07,09; P09AE2timeout/wrapper2; PID25360USER_REPORTED_PASS/RESTORE_UNRESOLVED; Restore-executionPARTIAL/Compare-preflightMETADATA_ONLY/F-SAVEsnapshotlimits. KnownOwnerlauncherVERIFIED24metadata separate from intentionalBACKED_UPcheckpoint. NoOwnerplay/retest/ZIP/recoveryrerun/skillrollout/StageBoss/persistence/productLOCK. Earlier assignments below historical where superseded.
+
+## Historical earlier 2026-10-08 — R3 review; assign STATIC-03-R1
 
 - R3 STATIC-03 = STATIC REPAIR PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED. Unity compilation NOT RUN; C0/A1–A5 NOT EXECUTED. Packet17/manifest16 exact; six pre/post copies match. Retain useful global-reset removal, entry/ownership/trust-order fixes; source claims all-resolved not accepted.
 - BLOCKERS: invented/private API and delegate types; synthetic A2 replacing real death/drop; A1 queue1 after dequeue; incomplete finally/dispose/ownedconfig/listeners/C0/cleanup-gated PASS; missing explicit context and strict wrapper journal/process/terminal/preservation gates. Finite R3-01…08 mapping in new review/prompt; only existing six cases/two mutable files.
