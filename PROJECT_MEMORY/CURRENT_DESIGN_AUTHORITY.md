@@ -1,5 +1,13 @@
 # CURRENT DESIGN AUTHORITY — TLTD
 
+## Latest Owner instruction - Codex direct implementation, 2026-10-13
+
+**OWNER-APPROVED WORKFLOW CHANGE:** Codex now directly implements, reviews, tests and builds TLTD. Antigravity is no longer required. Owner selected both Windows and Android. [Exact decision/scope](DECISION_CODEX_DIRECT_IMPLEMENTATION_AND_PLATFORMS_20261013.md). This supersedes the older mandatory Antigravity executor/next-prompt wording, not locked gameplay or evidence boundaries.
+
+Current direct batch: persistent equipment/inventory identity+loadout, authored MindMethod unlock/selection flow, owned natural channel/loot verification and platform build readiness. Source is being prepared/reviewed; no completed feature/build/Unity result is inferred from this instruction. Preserve E dirty source/docs/save; review precise changes and use fresh isolated profiles for Unity/player tests. The rejected PREP-01 packet stays historical and is not run. Codex creates/reviews its own session source/context; no need for Owner to execute Antigravity prompts.
+
+P08/P09-A/P09-B and recovery/raw limits stay as accepted. Roadmap ordering is technical proposal, unconfirmed product/balance/content remains TBD. No source Git publication follows from this decision; memory publication remains docs-only in isolated checkouts. Read later progress evidence for actual applied/tested outcomes.
+
 ## Latest evidence status - delta preparation review, 2026-10-13
 
 VERIFIED EVIDENCE: F-TLTD-DELTA-NATURAL-INPUT-PREP-01 packet was received and source-reviewed; **STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED**. Manifest12/12, AST0errors and standalone csc0errors are verified; they do not establish natural PlayMode or TMP input. D01/D05 execution remains NOT RUN. [Source findings and exact limits](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md).

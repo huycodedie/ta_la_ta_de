@@ -1,5 +1,11 @@
 # AI_RULES — TLTD PROJECT MEMORY AUTHORITY
 
+## Current workflow amendment - Owner decision, 2026-10-13
+
+The Owner explicitly replaced Antigravity execution with direct Codex implementation and selected Windows plus Android as target platforms. [Decision](DECISION_CODEX_DIRECT_IMPLEMENTATION_AND_PLATFORMS_20261013.md). Codex is now the Tech Lead/Architect, source/test/build executor and continuity publisher. Owner product decisions and manual experience acceptance remain separate. Earlier mandatory Antigravity role/executor wording is historical wherever it conflicts with this amendment.
+
+Codex may implement approved gameplay in E while preserving pre-existing dirty work/save; it reviews exact source/guards then performs owned isolated Unity/player verification. Earlier preparation-only/no-run tasks do not grant permission to run their rejected packets; they do not prevent new Codex-owned execution authorized by the latest Owner instruction. No invented design values, accepted-suite replay, recovery relabeling or blanket source publication. Existing continuity sync and Git safety rules remain active.
+
 > Local-copy contract for Google Antigravity / Unity development.
 > GitHub `main` is the persistent canonical project-memory source. Antigravity must synchronize and then read the LOCAL copy under `E:\code\TLTD\PROJECT_MEMORY\` before implementation.
 
