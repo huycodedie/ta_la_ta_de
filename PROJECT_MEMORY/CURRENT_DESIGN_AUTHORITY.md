@@ -1,5 +1,13 @@
 # CURRENT DESIGN AUTHORITY — TLTD
 
+## Latest evidence status - delta preparation review, 2026-10-13
+
+VERIFIED EVIDENCE: F-TLTD-DELTA-NATURAL-INPUT-PREP-01 packet was received and source-reviewed; **STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED**. Manifest12/12, AST0errors and standalone csc0errors are verified; they do not establish natural PlayMode or TMP input. D01/D05 execution remains NOT RUN. [Source findings and exact limits](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md).
+
+Next authorized executor work is [F-TLTD-DELTA-NATURAL-INPUT-PREP-01-R1 source preparation](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_R1_20261013.md), new packet only, template false, no Unity/wrapper/live prefs/Registry or E edits. E786fingerprints/full Git status and4journal file hashes were preserved in Codex review. Report's7/9 source baseline rows require correction; no source regression is inferred from erroneous report metadata.
+
+This evidence update changes no approved product design. P08/P09-A/P09-B ACCEPTED/LOCKED, source-applied bounded fixes, prior EditMode33/33 boundary, old frozen lab/R4 and Phase B STOPPED, recovery/raw limitations and approved Boss-exit LOSE/gate100% retry remain as recorded. Completion roadmap remains PROPOSAL; no production unlock or new feature authorization. Older pending/no-dispatch status for PREP-01 is superseded only by receipt of the preparation packet and this review.
+
 ## Current continuation — 2026-10-13
 
 **LOCKED DECISION:** Owner selected Boss exit → LOSE, gate100% retained for retry; no win reward/Stage advance or rollback of legitimate normal rewards. This supersedes only D18.25's unresolved exit choice. [Decision](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md). Background/focus-loss policy, checkpoint schema and Boss balance remain separate. No Stage/Boss implementation or Phase B acceptance follows from this decision.

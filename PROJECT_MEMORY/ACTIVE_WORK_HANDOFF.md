@@ -1,5 +1,15 @@
 # ACTIVE WORK HANDOFF — TLTD
 
+## Latest delta preparation source review - 2026-10-13
+
+**F-TLTD-DELTA-NATURAL-INPUT-PREP-01 = STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED.** Antigravity delivered the packet; Codex inspected actual source and independently verified manifest12/12, PowerShell AST0errors, standalone csc runtime126 plus adapter/builder0errors (warnings1/0). D01/D05 were NOT RUN: synchronous manual Tick/direct presentation/forced drain do not prove natural PlayMode; direct selection API calls do not prove TMP/EventSystem input. Combat fixtures, exact oracles, profile/source ownership, prefs/cleanup/process/terminal gates and report provenance require correction. [Detailed review](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md).
+
+**Exact next action: F-TLTD-DELTA-NATURAL-INPUT-PREP-01-R1, source preparation only**, [separate executor prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_R1_20261013.md). Preserve original packet21files; prepare a new R1 packet, no Unity/wrapper invocation or live save/Registry. Keep template runAuthorized=false. Codex source review then a separate run instruction; no run authority granted here.
+
+E read-only review: HEAD7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425,786/786 selected fingerprints unchanged vs pre/post and prior verified delta snapshot;12 tracked modified+530untracked file rows unchanged. Report's7/9 baseline rows were wrong; actual source has not changed relative to prior snapshot. Owner's3dirty Markdown/index/HEAD and four historical journal file hashes preserved; no live Registry Compare. Nine applied C# edits remain source-uncommitted/unpushed. Earlier EditMode33/33/cleanup evidence keeps its original boundary.
+
+P08/P09-A/P09-B ACCEPTED/LOCKED, old frozen lab/R4 status, Phase B STOPPED, recovery/raw limits and Boss-exit decision are unchanged. No new product LOCK, skill rollout, reference-game automation or Owner replay/ZIP. The older next-action/no-dispatch wording below is historical where superseded by this review. Resolve this review publication SHA from verified Git main/publication receipt; the reviewed bases were memory f8c88b9156b426741a09f783bb4012102596ef09 and game37dc30208d600c61a8639b37682994586b5cf110.
+
 ## Current continuation — 2026-10-13
 
 Current decision: Boss exit counts LOSE; gate100% retained for retry. [Owner-approved addendum](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md). No implementation/Phase B acceptance yet; background/focus-loss and balance remain separate.

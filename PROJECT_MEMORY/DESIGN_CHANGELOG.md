@@ -1,5 +1,11 @@
 # DESIGN CHANGELOG — TLTD
 
+## 2026-10-13 - D01/D05 preparation source review; no product design change
+
+VERIFIED EVIDENCE: received F-TLTD-DELTA-NATURAL-INPUT-PREP-01 packet and inspected source/APIs/launcher/receipts. Status: STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED. Manifest12/12, AST0errors, standalone csc0errors independently verified; natural PlayMode/TMP input remained NOT RUN. Fixture/oracle/guard/cleanup/terminal and report provenance findings recorded in [review](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md). E786fingerprints/full status and4historical journal hashes unchanged within selected file-metadata boundary.
+
+Authorized next preparation: [F-TLTD-DELTA-NATURAL-INPUT-PREP-01-R1 prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_R1_20261013.md), new packet/source only, no run authority or production edits. No new LOCK/acceptance, no reopening P08/P09 or recovery/raw history, no implementation of Boss/Stage/unlock/roadmap features. Preserve prior applied source and actual EditMode33/33 evidence.
+
 ## Current continuation — 2026-10-13
 
 - LOCKED DECISION: Owner chose exit during Boss → LOSE/gate100% retry; supersedes unresolved D18.25 A/B choice only. No win reward/Stage advance/normal-reward rollback. Background/focus-loss and implementation/checkpoint schema remain separate. [Decision](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md).

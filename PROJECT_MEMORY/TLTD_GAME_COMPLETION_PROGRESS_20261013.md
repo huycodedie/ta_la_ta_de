@@ -1,5 +1,13 @@
 # TLTD — tiến độ triển khai tiếp theo
 
+## Latest progress - preparation received and reviewed, 2026-10-13
+
+F-TLTD-DELTA-NATURAL-INPUT-PREP-01 is **STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED**. [Review](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md) distinguishes verified static checks from report claims. Codex independently matched12/12manifest payloads, parsed both PS scripts without errors and compiled runtime126+adapter/builder without errors (1pre-existing runtime warning,0adapter warnings). Original21packet files remained unchanged. D01 natural PlayMode and D05 TMP input were NOT RUN and are still unverified; source does not yet implement the stated flow/oracles/guards.
+
+E preservation:786selected fingerprints unchanged before/after and vs prior verified Unity delta snapshot;HEAD/index/3dirty Markdown/full status12modified+530untracked unchanged. Four historical journal file hashes unchanged, file-metadata boundary only. Seven of nine source baseline rows in the executor report were wrong; corrected measurements are in the review. This is a report/harness finding, not evidence of a new game runtime failure.
+
+Next executor task: [F-TLTD-DELTA-NATURAL-INPUT-PREP-01-R1](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_R1_20261013.md), source preparation only in a new packet. Keep runAuthorized=false; no Unity/wrapper/live save/Registry, no E source edits, old tests/ZIP or feature rollout. Separate Codex source review and session instruction remain required. Prior applied source, EditMode33/33/cleanup, approved Boss-exit policy, P08/P09 locks and roadmap proposal boundaries below are retained; old no-dispatch wording is superseded by receipt/review only.
+
 Ngày 13/10/2026, UTC+07. Yêu cầu hiện hành: tiếp tục phát triển game; áp dụng đúng những scope đã phân tích, giữ working tree/save và báo bằng chứng thật.
 
 **F-CONGPHAP-SLOT-SELECT-01 = APPLIED / STANDALONE COMPILE PASS / OFFLINE 27/27 PASS; UNITY INPUT & VISUAL NOT RUN.** Chưa gọi game hoàn chỉnh hoặc milestone gameplay ACCEPTED.

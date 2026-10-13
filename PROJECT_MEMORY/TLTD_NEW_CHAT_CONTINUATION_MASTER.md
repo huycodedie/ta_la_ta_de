@@ -1,5 +1,13 @@
 # TLTD — HỒ SƠ TIẾP NỐI CHO CHAT MỚI
 
+## Latest continuation - D01/D05 source review, 2026-10-13
+
+Read [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md), [source review](TLTD_DELTA_NATURAL_INPUT_SOURCE_REVIEW_20261013.md) and [R1 executor prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_R1_20261013.md). PREP-01 was delivered and reviewed: **STATIC PREPARATION PARTIAL / REVISION REQUIRED / NO RUN AUTHORIZED**, not a gameplay acceptance. Source compiles independently but natural PlayMode, real TMP input, fixtures/oracles and ownership/evidence gates are incomplete. D01/D05 have NOT RUN. Prepare a new R1 packet without invoking Unity/wrapper; source review precedes any separate session authorization.
+
+E stillHEAD7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425 with9C#+3pre-existing Markdown modified and530untracked file rows;786selected source/config/Git fingerprints unchanged. Report baseline errors do not prove source changes. Prior actual Unity EditMode33/33/cleanup and all accepted P08/P09/recovery/raw limits are retained. Preserve both the original preparation packet and Owner's dirty E memory. No source publication, product decision or feature rollout occurred in this review; continuation publication is docs-only.
+
+This is the latest pointer above prior same-date snapshots. The earlier PREP-01 no-dispatch wording is historical; it must not restart an already reviewed preparation or imply run permission. Reference-game automation remains stopped.
+
 ## Current continuation — 2026-10-13
 
 Latest pointer: [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md) and [TLTD_GAME_COMPLETION_PROGRESS_20261013.md](TLTD_GAME_COMPLETION_PROGRESS_20261013.md). Owner authorized direct E fixes; nine C# files are now locally applied, source-unpublished. New EditMode delta evidence is separate from the pending old frozen lab; natural gameplay and Công Pháp input/visual remain pending. Do not restart accepted P08/P09 or treat roadmap proposals as approved features.
