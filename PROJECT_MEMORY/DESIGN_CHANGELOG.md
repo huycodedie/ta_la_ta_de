@@ -1,5 +1,13 @@
 # DESIGN CHANGELOG — TLTD
 
+## Current continuation — 2026-10-13
+
+- LOCKED DECISION: Owner chose exit during Boss → LOSE/gate100% retry; supersedes unresolved D18.25 A/B choice only. No win reward/Stage advance/normal-reward rollback. Background/focus-loss and implementation/checkpoint schema remain separate. [Decision](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md).
+- LATER OWNER AUTHORIZATION: Direct E fixes and next gameplay work supersede the previous E-read-only task restriction within nine applied C# files (eight R01–R04 plus MindMethodUI). Source not committed/pushed; no Stage/Boss/Phase B or skill asset rollout approval. Three dirty Markdown preserved.
+- VERIFIED SOURCE:150 standalone inputs0errors/31existing warnings; UI27/27 offline with doubles. Independent real Unity EditMode fixture33checks/owned cleanup covers ownership, saved-expiry LoadState and builder reuse, not natural channel, natural Update, full-game import/build, cold start, DEV UI or TMP/visual input. First PID23592 OS0/133.31s has33passing cases but pre-adapter package import path errors, retained without blanket import PASS. A fresh short-path profile/run fixes the concrete fixture path issue; exact second PID/exit/elapsed in current progress.
+- NEXT: D01/D05 preparation prompt is separate, prepared/notdispatched/notexecuted; static review precedes a new run instruction. Completion roadmap remains PROPOSAL. Unlock caller/save/load/Material/Boss content/mobile gaps explicit, no auto-unlock or invented balance. Reference survey partial; automated reference control stopped after incident and is not product authority.
+- HISTORY: P08/P09-A/P09-B ACCEPTED/LOCKED, recycle/recovery closeouts and raw/snapshot limits unchanged; P08Gate2 135/137/exit1, P09-AE2timeout/wrapper2, PID25360USER_REPORTED_PASS/RESTORE_UNRESOLVED, Restore/executionPARTIAL/Compare-preflightMETADATA_ONLY retained. OldR4notexecuted/parentlabpending/PhaseBSTOPPED. No Owner replay/ZIP/recoveryrerun. Docs-only publication in isolated checkouts, no source Git mutation at E; receipt holds final remote SHAs/readback.
+
 ## 2026-10-09 — Review STATIC-03-R3 regressions; prepare STATIC-03-R4 source repair
 
 - Verdict STATIC REPAIR PARTIAL WITH REGRESSIONS / REVISION REQUIRED / NO RUN AUTHORIZED. Original packet is dated08/10; review/prompt filenames retain20261008. Unity compilation NOT RUN; C0+A1–A5 NOT EXECUTED; Phase B STOPPED. Report “100% resolved” is not accepted.

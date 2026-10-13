@@ -1,5 +1,19 @@
 # CURRENT DESIGN AUTHORITY — TLTD
 
+## Current continuation — 2026-10-13
+
+**LOCKED DECISION:** Owner selected Boss exit → LOSE, gate100% retained for retry; no win reward/Stage advance or rollback of legitimate normal rewards. This supersedes only D18.25's unresolved exit choice. [Decision](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md). Background/focus-loss policy, checkpoint schema and Boss balance remain separate. No Stage/Boss implementation or Phase B acceptance follows from this decision.
+
+**CURRENT IMPLEMENTATION EVIDENCE:** Owner's later explicit instruction authorized direct fixes in E, then continuation toward a playable game. This supersedes the older E-read-only wording for the bounded R01–R04 eight-source fixes plus MindMethodUI selection slice. Nine C# files applied locally, not source-published. [Eight fixes and limits](TLTD_DIRECT_BUGFIX_RESULT_20261013.md), [latest progress](TLTD_GAME_COMPLETION_PROGRESS_20261013.md). Current E HEAD7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425; twelve tracked modified including three pre-existing Markdown, same530 untracked; HEAD/index/dirty docs preserved.
+
+**VERIFIED EVIDENCE, LIMITED:** Standalone150 sources compile0errors/31existing warnings. Công Pháp selection27/27 offline with in-memory doubles, physical/Unity input NOT_RUN. New independent DELTA-VERIFY-20261013: real Unity6000.6.0f1 EditMode33/33 (ownership14, saved-expiry LoadState11, builder8) with owned cleanup, fresh isolated profile. First run retains pre-adapter long-path import errors despite33passing checks; a fresh shorter-path run addresses that concrete error. Source fixture is not full project/game build. Natural channel/loot/Update, cold start, DEV UI, TMP input and visual acceptance remain pending. Latest report contains exact PID/OS/receipt boundaries; do not infer them from old labs.
+
+**NEXT:** prepare/review D01 natural channel→loot→UI→drain→one advance and D05 real TMP/EventSystem delta. [Separate Antigravity prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_20261013.md) is SOURCE_PREPARATION_ONLY / NO_DISPATCH_EVIDENCE / NOT_EXECUTED; reviewed context and a separate run instruction are required. [Completion roadmap](TLTD_COMPLETION_ROADMAP_20261013.md) is PROPOSAL, not blanket approved feature/design scope. Unlock caller, method-switch HP/revive, save/load, Material/Boss content and mobile lifecycle gaps remain explicit.
+
+P08/P09-A/P09-B stay ACCEPTED/LOCKED. Old STATIC03-R4 remains prepared/notexecuted, parent frozen-lab closeout pending, Phase B STOPPED. This new delta does not resolve or relabel C0/A1–A5. Retain P08Gate2 135/137/exit1, P09-AE2 SCENARIO_PASS_EXIT_TIMEOUT/wrapper2, PID25360 USER_REPORTED_PASS/RESTORE_UNRESOLVED; raw Restore/execution PARTIAL, Compare/preflight METADATA_ONLY and recovery snapshot limits. No old-suite replay, Owner ZIP/recovery rerun, full skill rollout or reference-game automation. Reference survey was partial and automated control stopped after the account-lock incident; it is not TLTD design authority.
+
+The dated sections below are historical where current scope/status/next-action wording conflicts. Their raw evidence and acceptance limits are preserved. Publication is docs-only via separate clean memory/game checkouts, not a source commit at E; resolve publishing commit and verified remote readback in the publication receipt.
+
 ## Current decision update — 2026-10-09
 
 **P09-B DASH FOUNDATION = ACCEPTED / LOCKED** (accepted 2026-10-04). **F-SAVE-P09B-01 = CLOSED / RECOVERY ACCEPTED**; N-META CLOSED; journal preflight FIX VERIFIED. Scope and runtime hashes: [DECISION_P09B_ACCEPTED_LOCKED_20261004.md](DECISION_P09B_ACCEPTED_LOCKED_20261004.md); evidence limits: [TECH_LEAD_HANDOFF_REVIEW_20261004.md](TECH_LEAD_HANDOFF_REVIEW_20261004.md).

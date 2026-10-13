@@ -1,5 +1,11 @@
 # TLTD — HỒ SƠ TIẾP NỐI CHO CHAT MỚI
 
+## Current continuation — 2026-10-13
+
+Latest pointer: [ACTIVE_WORK_HANDOFF.md](ACTIVE_WORK_HANDOFF.md) and [TLTD_GAME_COMPLETION_PROGRESS_20261013.md](TLTD_GAME_COMPLETION_PROGRESS_20261013.md). Owner authorized direct E fixes; nine C# files are now locally applied, source-unpublished. New EditMode delta evidence is separate from the pending old frozen lab; natural gameplay and Công Pháp input/visual remain pending. Do not restart accepted P08/P09 or treat roadmap proposals as approved features.
+
+New Owner-approved Boss exit policy: LOSE, retain gate100% retry; [decision](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md). [Roadmap](TLTD_COMPLETION_ROADMAP_20261013.md) is technical proposal. [Next executor prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_20261013.md) is preparation only/notexecuted. Read the latest dated authority above historical snapshots; preserve all original raw/recovery limitations. Reference survey remains partial and automated reference-game control has stopped.
+
 **Phiên bản:** 1.0 — 05/10/2026, UTC+07:00.  
 **Mục đích:** một file để tiếp quản vai trò Tech Lead, hiểu việc đã làm, giữ đúng cách phối hợp, xử lý vấn đề và đưa TLTD tới bản game hoàn chỉnh.  
 **Nguồn:** hội thoại và quyết định đã nghiệm thu; 27 tài liệu trên Git được đối chiếu tại mốc bên dưới. Đây không phải bản sao toàn bộ source, log hoặc thiết kế gốc.

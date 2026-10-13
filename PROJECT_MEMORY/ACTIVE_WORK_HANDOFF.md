@@ -1,5 +1,17 @@
 # ACTIVE WORK HANDOFF — TLTD
 
+## Current continuation — 2026-10-13
+
+Current decision: Boss exit counts LOSE; gate100% retained for retry. [Owner-approved addendum](DECISION_BOSS_EXIT_LOSE_RETRY_GATE_20261013.md). No implementation/Phase B acceptance yet; background/focus-loss and balance remain separate.
+
+Completed locally: R01–R04 eight-file fixes, then one MindMethodUI file exposing existing unlocked-skill selection. No auto-unlock, method switch or asset flag rollout. Standalone150 compile0errors/31existing warnings, offline UI27/27. New independent Unity source-fixture EditMode33/33/cleanup verified in isolated profile; first long-path import failure retained, fresh shorter-path correction verified separately. Read [current progress](TLTD_GAME_COMPLETION_PROGRESS_20261013.md) for exact outcomes and boundaries; [eight-file report](TLTD_DIRECT_BUGFIX_RESULT_20261013.md) is the earlier pre-Unity snapshot.
+
+E HEAD7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425, nine C# plus three pre-existing Markdown modified,530 untracked. Sources uncommitted/unpushed; three dirty docs/HEAD/index kept. Do not assume remote source equals E. Local E memory may lag canonical; synchronize exact docs carefully without overwriting Owner's dirty ACTIVE_WORK_HANDOFF.
+
+Exact next action: [F-TLTD-DELTA-NATURAL-INPUT-PREP-01 prompt](PROMPT_ANTIGRAVITY_TLTD_DELTA_NATURAL_INPUT_PREP_20261013.md), preparation only; no dispatch/execution evidence. D01 natural channel/loot/UI/advance and D05 real TMP input remain pending; prepare static-reviewed owned source/context before separate run. [Roadmap](TLTD_COMPLETION_ROADMAP_20261013.md) proposes dependencies; save/load and unlock progression are not silently treated as finished.
+
+Preserve P08/P09-A/P09-B ACCEPTED/LOCKED, raw/recovery limits and old R4/frozen lab pending/Phase B STOPPED. No replay/ZIP/recovery rerun or reference-account automation. Older read-only wording is superseded only by the later Owner-authorized bounded direct work, not by blanket feature approval. Last synchronization date for this update:13/10/2026; resolve its SHA from Git/receipt after verified publication.
+
 New-chat operating guide: [TLTD_NEW_CHAT_CONTINUATION_MASTER.md](TLTD_NEW_CHAT_CONTINUATION_MASTER.md). It consolidates working history, workflow, evidence rules, storage locations and a proposed completion roadmap. Proposed stages are not new implementation authorization; this active handoff and later explicit decisions remain the current task authority.
 
 Last synchronization update: 2026-10-09 (UTC+07:00).
