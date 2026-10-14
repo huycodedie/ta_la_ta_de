@@ -1,5 +1,13 @@
 # DESIGN CHANGELOG — TLTD
 
+## Latest runtime evidence / Android Boss decision — 2026-10-14
+
+Codex continues direct implementation for Windows and Android. Owner approved [pause Boss and timer while Android is backgrounded/locked, resume in the same process](DECISION_ANDROID_BOSS_BACKGROUND_PAUSE_20261014.md). Closing/killing the process still loses and keeps the gate100%. This supplements the [internal Stage1/Boss1/Stage2 configuration](DECISION_FIRST_PLAYABLE_STAGE_BOSS_INTERNAL_20261014.md), not release balance or the full roadmap.
+
+[Actual runtime checkpoint and evidence limits](TLTD_DIRECT_RUNTIME_PROGRESS_20261014.md): isolated Unity cold write/read PASS40+8; D01 natural channel/drop/Gold-only dismantle/modal drain PASS18; D05 real TMP geometry with synthetic EventSystem input PASS22 in fresh R2 profile. Prior failed/interrupted evidence stays unchanged. These are not physical input, production-save, Android-device or full-game acceptance. Windows attempt1 and R1 bounded FAIL during build dirty tracking; no EXE/player smoke/APK yet. BuildProfile R2 is only being prepared. Stage/journal/Boss/session/native adapters are staged and compiled/offline-tested, not applied to E or integrated as playable Stage/Boss yet.
+
+E HEAD remains7441b9ec9508e6a39b1ec5a1c3d9abf89c73b425; applied source is uncommitted/unpushed and three Owner dirty Markdown files are preserved. This docs-only continuity update does not publish E source. Next: bounded Windows BuildProfile diagnostic, reviewed natural Boss fixture, coherent normal death/loot/EXP checkpoint and scene/UI integration. P08/P09-A/P09-B remain ACCEPTED/LOCKED within scope; preserve raw-log limits and recovery history, no old ZIP/retest request. No reference-game automation or automatic rollout of all skill assets.
+
 ## Latest direct implementation / internal playtest decision — 2026-10-14
 
 Owner selected the proposed internal Stage1 -> Boss1 -> Stage2 configuration: [exact decision](DECISION_FIRST_PLAYABLE_STAGE_BOSS_INTERNAL_20261014.md). This authorizes this new Codex-owned implementation scope; it is not release balance, Owner experience acceptance, or permission to execute an old rejected Antigravity packet. [Reviewed proposal](TLTD_FIRST_PLAYABLE_SLICE_PROPOSAL_20261014.md).

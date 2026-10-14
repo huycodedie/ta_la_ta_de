@@ -18,3 +18,5 @@ Các luật đã chốt giữ nguyên: timer60s; Hero chết là thua ngay; thua
 Đề xuất kiến trúc/triển khai trong TLTD_FIRST_PLAYABLE_SLICE_PROPOSAL_20261014.md vẫn cần review kỹ thuật. Câu trả lời này không tự duyệt mọi roadmap, economy, Bun/offline/Companion, đổi/nâng Tâm Pháp hoặc title-cost discrepancy còn mở. Không rollout toàn bộ skill assets.
 
 Triển khai phải giữ working tree/save, tách source staging và backup, kiểm natural frames + cold restart + player thực trong clone/profile riêng. Source Git E không tự commit/push; P08/P09-A/P09-B, raw-log limits và recovery history vẫn ACCEPTED/LOCKED đúng scope. Không yêu cầu chơi lại/ZIP phần đã xong nếu không có thay đổi hoặc rủi ro mới cụ thể.
+
+Bổ sung đã được Owner duyệt: [Android xuống nền/khóa màn hình tạm dừng Boss và timer; trở lại cùng process tiếp tục](DECISION_ANDROID_BOSS_BACKGROUND_PAUSE_20261014.md). Đóng game/process chết vẫn thua và giữ cổng 100%.
