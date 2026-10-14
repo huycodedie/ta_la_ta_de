@@ -1,5 +1,13 @@
 # TLTD — HỒ SƠ TIẾP NỐI CHO CHAT MỚI
 
+## Latest direct implementation / internal playtest decision — 2026-10-14
+
+Owner selected the proposed internal Stage1 -> Boss1 -> Stage2 configuration: [exact decision](DECISION_FIRST_PLAYABLE_STAGE_BOSS_INTERNAL_20261014.md). This authorizes this new Codex-owned implementation scope; it is not release balance, Owner experience acceptance, or permission to execute an old rejected Antigravity packet. [Reviewed proposal](TLTD_FIRST_PLAYABLE_SLICE_PROPOSAL_20261014.md).
+
+Codex directly applied authored skill unlock/reselect guards, failed loot action handling, automatic existing level/EXP restore, coherent equipment/inventory/resources persistence and exactly nine missing scene config references in E. Source remains uncommitted/unpushed; backups and measured receipts exist. [Checkpoint and evidence limits](TLTD_CODEX_DIRECT_CHECKPOINT_20261014.md). Runtime127 standalone compile passes; this is not whole-game/Unity/player acceptance. Cold attempt1 was compile-blocked by omitted fixture test dependencies; D01 attempt1 was interrupted before a verdict with exit unobserved. Windows build is in progress, Android not built at this checkpoint. Later results must supersede these in-progress statuses only with actual evidence.
+
+P08/P09-A/P09-B remain ACCEPTED/LOCKED in their scope; raw-log and recovery history stay unchanged. No re-test/ZIP request for old accepted work. Preserve E working tree/save and three dirty Owner Markdown files. Internal Stage/Boss source is being prepared separately; no Boss gameplay or whole-game completion is claimed yet. Other roadmap/content/economy/Tam Phap upgrade/Bun/offline/Companion decisions remain outside this internal configuration.
+
 ## Latest Owner instruction - Codex direct implementation, 2026-10-13
 
 **OWNER-APPROVED WORKFLOW CHANGE:** Codex now directly implements, reviews, tests and builds TLTD. Antigravity is no longer required. Owner selected both Windows and Android. [Exact decision/scope](DECISION_CODEX_DIRECT_IMPLEMENTATION_AND_PLATFORMS_20261013.md). This supersedes the older mandatory Antigravity executor/next-prompt wording, not locked gameplay or evidence boundaries.
